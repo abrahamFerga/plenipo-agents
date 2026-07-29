@@ -239,10 +239,16 @@ creation, PR merge, branch deletion, anything that spends money. This mirrors th
 2. **The runtime proof passed on the merged state** — phase 8 re-run after the last merge, with
    rungs 1–3 green and an AG-UI turn ending `RUN_FINISHED` with no `RUN_ERROR`.
 
-If PRs are open and waiting on a human because auto-merge is off, the honest terminal state is
-**`Approval-required`**. The work exists but is not merged; nothing is proven on `main`. Reporting
-`Success` there substitutes an L5 checkpoint for an L1 fact, and the next session will inherit a
-board that disagrees with the run log.
+If PRs are open and waiting on a human, the honest terminal state is **`Approval-required`**. The
+work exists but is not merged; nothing is proven on `main`. Reporting `Success` there substitutes an
+L5 checkpoint for an L1 fact, and the next session will inherit a board that disagrees with the run
+log.
+
+**Do not resolve that by turning on auto-merge.** Feature PRs are meant to wait: the agent that wrote
+the change cannot also be the one that approves it, and CI green is an L1 check on the tests that
+happen to exist, not evidence the feature does what was asked. A drained backlog with N open PRs is
+the *correct* end state — human review capacity is the real constraint, and auto-merging does not
+create more of it. `/deliver:work-next-issue`'s `references/merge-policy.md` has the full policy.
 
 A run that ends `Blocked`, `Stalled`, or `Exhausted` is a *useful* outcome when it names the gate, the
 evidence, and the single next action. A run that ends `Success` without both conditions above is

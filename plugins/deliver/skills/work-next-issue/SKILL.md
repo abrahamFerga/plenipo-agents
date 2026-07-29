@@ -209,7 +209,8 @@ A human re-specifies. Rewriting the criteria yourself is scoring against a targe
 | Adding the tool to the manifest only | never registered, no error, and the runtime check "passes" because nothing was called | assert on `GET /api/admin/security/catalog` |
 | Polishing past pass 3 | budget burned on a specification defect | `Stalled` — comment on the issue with evidence |
 | Omitting `Closes #<n>` | the issue stays open forever and the board rots | put it in the PR body, not the title |
-| Moving the card to Done | the loop claims an outcome it never verified | In Review is the end; a human or auto-merge closes it |
+| Moving the card to Done | the loop claims an outcome it never verified | In Review is the end; a human closes it — see `references/merge-policy.md` |
+| Enabling auto-merge on a feature PR | the agent becomes its own approver, and auto-merge does not wait for a Copilot review that is still running | leave it off; only docs/test-only changes may auto-merge |
 | Committing the branch name or owner into a script | breaks on every fork and every other product | derive both at run time |
 
 ## Related skills
@@ -218,6 +219,9 @@ A human re-specifies. Rewriting the criteria yourself is scoring against a targe
   step 8 gates on. **Load when:** you reach step 8, or a rung goes red.
 - `../plenipo-module-sdk/SKILL.md` — the member-by-member module authoring recipe. **Load when:**
   step 6 touches a manifest, tool, tab, entity, or endpoint.
+- [`references/merge-policy.md`](references/merge-policy.md) — who merges, what may be automated, and
+  what GitHub's review automation can and cannot gate. **Load when:** deciding whether a PR may
+  auto-merge, or wiring branch protection.
 - `../install-runbook/SKILL.md` — installs the runbook, fixture, eval harness, and `.http` catalog.
   **Load when:** preflight finds no runtime surface to prove anything against.
 - `plenipo-platform` — the seams and the invariants a module may not violate.
