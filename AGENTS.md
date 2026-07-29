@@ -145,9 +145,6 @@ other tools should **open the file when its description matches the task**.
   product loop keeps moving, and only then file a structured platform request that the steward
   can…  
   → [`plugins/deliver/skills/request-platform-change/SKILL.md`](plugins/deliver/skills/request-platform-change/SKILL.md)
-- **revise-pr** *(action)* — Close the loop on a pull request that came back — review comments,
-  requested changes, a failing check, or a merge conflict.  
-  → [`plugins/deliver/skills/revise-pr/SKILL.md`](plugins/deliver/skills/revise-pr/SKILL.md)
 - **scaffold-product** *(action)* — Create a brand-new product repo on the Plenipo platform: the
   four-project skeleton — Aspire AppHost, thin Host, the domain module that holds all the real
   code, optional product-owned connectors — plus the two test projects, the vendored…  
@@ -160,10 +157,6 @@ other tools should **open the file when its description matches the task**.
   reproduce through the narrowest surface, diagnose from telemetry before source, fix one variable
   per turn, then lock the behaviour in with a regression test seen red before the…  
   → [`plugins/deliver/skills/verify-runtime/SKILL.md`](plugins/deliver/skills/verify-runtime/SKILL.md)
-- **work-next-issue** *(action)* — Take exactly one Ready issue off the GitHub project board and
-  drive it to an open pull request: select the top item by build order, move the card to In
-  Progress, cut a branch, implement it against the platform contract, climb the test la…  
-  → [`plugins/deliver/skills/work-next-issue/SKILL.md`](plugins/deliver/skills/work-next-issue/SKILL.md)
 - **e2e-tester** *(agent — delegate)* — Boots a Plenipo product and exercises it end to end the
   way a real household or firm would, hunting for what is actually broken rather than confirming
   what was just built.  
@@ -175,18 +168,15 @@ other tools should **open the file when its description matches the task**.
 
 ### `harness`
 
-- **agent-protocol** *(reference)* — The shared language agents use to talk to each other
-  through GitHub — the message envelope, the closed set of message kinds, the label vocabulary
-  that is the state machine, and the rules for replying and handing off.  
-  → [`plugins/harness/skills/agent-protocol/SKILL.md`](plugins/harness/skills/agent-protocol/SKILL.md)
 - **conduct** *(action)* — Drive one product from an idea to merged, runtime-proven code by
   sequencing the four loops — scout, define, shape, deliver — handing each phase off to its own
   slash command and refusing to advance until that phase's exit check passes.  
   → [`plugins/harness/skills/conduct/SKILL.md`](plugins/harness/skills/conduct/SKILL.md)
-- **install-agent-config** *(action)* — Give a repo cross-tool agent configuration so OpenAI
-  Codex, GitHub Copilot (VS Code, cloud agent, code review) and Claude Code all work from the same
-  rules: AGENTS.md as the single source, a CLAUDE.md that imports it, a thin .github/copi…  
-  → [`plugins/harness/skills/install-agent-config/SKILL.md`](plugins/harness/skills/install-agent-config/SKILL.md)
+- **install-github-agentic-workflows** *(action)* — Install and govern GitHub Agentic Workflows
+  in a Plenipo platform or product repository: initialize gh-aw authoring, add bounded Codex
+  issue-triage and PR-intent-review workflows, connect an explicit GitHub App allowlist for
+  product-to-p…
+  → [`plugins/harness/skills/install-github-agentic-workflows/SKILL.md`](plugins/harness/skills/install-github-agentic-workflows/SKILL.md)
 - **loop-discipline** *(reference)* — The operating rules every loop in this marketplace runs
   under: the five-level verification ladder (deterministic → rule → field truth → model-as-judge →
   human), the six named terminal states, the five loop anti-patterns, and the design f…  
