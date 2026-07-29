@@ -1,10 +1,9 @@
 # Copilot instructions
 
-**Read [`AGENTS.md`](../AGENTS.md) first — it is the single source for how this repo works**, and
-Copilot reads it on every surface except github.com Chat. This file exists for that one surface and
-for Copilot-specific behaviour; it deliberately does **not** repeat AGENTS.md, because these files
-are combined without any ordering guarantee and duplicated rules that drift produce contradictions
-no tool can resolve.
+**Read [`AGENTS.md`](../AGENTS.md) first — it is the single source for how this repo works.**
+Copilot agent surfaces and code review read it; github.com Chat does not. This file carries the
+minimum Chat needs standalone plus Copilot-specific behaviour. It deliberately does **not** repeat
+the whole of AGENTS.md, because duplicated rules drift and produce contradictions.
 
 ## What this repo is
 

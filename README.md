@@ -15,6 +15,8 @@ shaped this way; read it once.
 
 ## Install
 
+### Claude Code
+
 ```text
 /plugin marketplace add abrahamFerga/plenipo-agents
 ```
@@ -37,6 +39,37 @@ Then enable the plugins for the loop you're in:
 }
 ```
 
+### OpenAI Codex
+
+Register the marketplace, then install only the loops you need:
+
+```bash
+codex plugin marketplace add abrahamFerga/plenipo-agents
+codex plugin add harness@plenipo-agents
+codex plugin add deliver@plenipo-agents
+```
+
+Codex records the marketplace and plugin state in `~/.codex/config.toml`. Start a new session after
+installation so the bundled skills appear. The marketplace currently ships Claude-compatible
+manifests; Codex accepts them through its legacy plugin compatibility path. See the
+[Codex plugin commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli#cli-codex-plugin).
+
+### GitHub Copilot CLI
+
+Copilot CLI can install the same marketplace and its existing `.claude-plugin` manifests:
+
+```bash
+copilot plugin marketplace add abrahamFerga/plenipo-agents
+copilot plugin install harness@plenipo-agents
+copilot plugin install deliver@plenipo-agents
+```
+
+See GitHub's
+[Copilot plugin installation guide](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-finding-installing).
+For Copilot in VS Code, the cloud agent, and code review, also commit the repository instruction
+files described in [Codex and Copilot](#codex-and-copilot). Plugin installation makes workflows
+available; instruction files carry the durable rules of one repository.
+
 ## The five loops
 
 Each plugin is one loop. A loop declares **Trigger · Goal · Execution · Verification · Stopping rule
@@ -53,6 +86,9 @@ Each plugin is one loop. A loop declares **Trigger · Goal · Execution · Verif
 | **steward** | platform | the request queue from every product, triaged and answered | platform repo only |
 
 ## Skills
+
+The invocation column uses Claude Code syntax. In Codex, mention the same bundled skill as
+`$<plugin>:<skill>`; in Copilot CLI, invoke it as `/<skill>` or select it from the skill picker.
 
 ### `harness` — always on
 
@@ -162,29 +198,46 @@ to patch four platform bugs — marked deletion-ready, with nothing tracking whe
 
 ## Codex and Copilot
 
-The same rules reach every tool, with each fact in exactly one file — duplication across these is the
-top cause of contradictory agent behaviour, and no tool defines a precedence to resolve it.
+Cross-tool support has two separate layers:
 
-| File | Codex | Copilot (VS Code / cloud / review) | Copilot on github.com | Claude Code |
-|---|---|---|---|---|
-| `AGENTS.md` — the source | ✅ | ✅ | ❌ | ❌ |
-| `CLAUDE.md` — `@AGENTS.md` + Claude specifics | ❌ | ✅ | ❌ | ✅ |
-| `.github/copilot-instructions.md` — pointer + what github.com needs standalone | ❌ | ✅ | ✅ | ❌ |
-| `.github/instructions/*.instructions.md` — path-scoped | ❌ | ✅ | ❌ | ❌ |
-| `.github/agents/*.agent.md` — assignable agents | ❌ | ✅ | ✅ | ❌ |
+1. **Plugin installation** makes the reusable Plenipo skills available to Codex or Copilot.
+2. **Repository instructions** give every agent the durable facts for the product it has opened.
 
-Two facts that shape all of it: **Claude Code does not read `AGENTS.md`** (hence the `@AGENTS.md`
-import rather than a symlink, which needs Developer Mode on Windows), and **Codex truncates the
-AGENTS.md chain at 32 KiB silently** — so the index is generated, kept small, and CI fails if it
-drifts:
+Each durable fact still lives in exactly one file — duplication across these is the top cause of
+contradictory agent behaviour.
+
+| File | Codex | Copilot agent surfaces¹ | github.com Chat | Copilot code review | Claude Code |
+|---|---|---|---|---|---|
+| `AGENTS.md` — the source | ✅ | ✅ | ❌ | ✅ | ❌ |
+| `CLAUDE.md` — `@AGENTS.md` + Claude specifics | ❌ | ✅ | ❌ | ❌ | ✅ |
+| `.github/copilot-instructions.md` — Copilot-wide + Chat standalone | ❌ | ✅ | ✅ | ✅ | ❌ |
+| `.github/instructions/*.instructions.md` — path-scoped | ❌ | ✅ | ❌ | ✅ | ❌ |
+| `.github/agents/*.agent.md` — assignable custom agents | ❌ | ✅ | ❌ | ❌ | ❌ |
+
+¹ Copilot agent surfaces here means VS Code, Copilot CLI, and the cloud agent. Support varies in
+other IDEs; consult GitHub's current
+[custom-instructions support matrix](https://docs.github.com/en/copilot/reference/custom-instructions-support).
+
+Three facts shape this arrangement:
+
+- **Claude Code does not read `AGENTS.md`.** `CLAUDE.md` imports it with `@AGENTS.md`; a symlink
+  would require Developer Mode or Administrator privileges on Windows.
+- **github.com Chat reads `.github/copilot-instructions.md`, not `AGENTS.md`.** It therefore needs
+  the minimum repository facts inline.
+- **Codex stops adding project instructions at `project_doc_max_bytes`, which defaults to 32 KiB.**
+  The limit is configurable, but a shared repository cannot depend on every user raising it. Keep
+  the chain comfortably below the default. See the
+  [Codex `AGENTS.md` guide](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
+
+The skill index is generated, kept small, and checked in CI:
 
 ```bash
 node eng/generate-agent-docs.mjs           # regenerate the skill index in AGENTS.md
 node eng/generate-agent-docs.mjs --check   # CI: fail if it is out of sync
 ```
 
-`/harness:install-agent-config` installs this shape into any repo. The steward also ships as a
-**Copilot custom agent**, so a platform request can be triaged on github.com by assigning it —
+The bundled `install-agent-config` skill installs this shape into any repo. The steward also ships
+as a **Copilot custom agent**, so a platform request can be triaged on github.com by assigning it —
 no checkout, no local session.
 
 ## What this repo will not do
