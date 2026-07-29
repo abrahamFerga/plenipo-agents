@@ -90,10 +90,10 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    number you selected. **Do not re-perform any of its steps here**, and do not summarize its
    procedure into this tick; one source per procedure.
 
-   For rule 1 (a rejected PR), instead: check out the branch, read the reviewer's comments, make the
-   smallest change that answers each one, re-run the checks the review named, push, and reply on the
-   PR pointing at the commit that answers each comment. Then remove `agent:changes-requested` so
-   `../ship/SKILL.md` re-evaluates it.
+   For rule 1 (a rejected PR), hand to `/deliver:revise-pr` instead. It owns reading every thread,
+   classifying each point as must-fix / discuss / out-of-scope, re-proving the change at runtime, and
+   replying so the reviewer can see what happened without re-reading the diff. When it reports back,
+   remove `agent:changes-requested` so `../ship/SKILL.md` re-evaluates the PR.
 
 6. **Journal the tick.** Append one line to `TICKS.md`:
 
@@ -136,7 +136,8 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 
 ## Related skills
 
-- `/deliver:work-next-issue` — the procedure this tick delegates to. **Load when:** step 5.
+- `/deliver:work-next-issue` — the build procedure. **Load when:** rules 2–5 fire.
+- `/deliver:revise-pr` — owns answering a PR that came back. **Load when:** rule 1 fires.
 - `../ship/SKILL.md` — reviews and merges what this produces. **Load when:** PRs are piling up.
 - `../define/SKILL.md` — refills the board this drains. **Load when:** nothing is Ready.
 - `../test/SKILL.md` — files the bug issues rule 3 prioritizes.
