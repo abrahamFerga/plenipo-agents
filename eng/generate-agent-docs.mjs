@@ -31,12 +31,13 @@ const listDirs = (p) =>
 
 /** Flat scalars and folded (>) blocks only — anything more exotic in skill frontmatter is a smell. */
 function frontmatter(text) {
-  if (!text.startsWith('---')) return null;
-  const end = text.indexOf('\n---', 3);
+  const normalized = text.replace(/\r\n/g, '\n');
+  if (!normalized.startsWith('---')) return null;
+  const end = normalized.indexOf('\n---', 3);
   if (end === -1) return null;
   const fm = {};
   let key = null;
-  for (const line of text.slice(text.indexOf('\n') + 1, end).split('\n')) {
+  for (const line of normalized.slice(normalized.indexOf('\n') + 1, end).split('\n')) {
     const m = /^([A-Za-z][\w-]*):\s*(.*)$/.exec(line);
     if (m) {
       key = m[1];
@@ -140,7 +141,7 @@ const block = lines.join('\n');
 
 // ── Apply ─────────────────────────────────────────────────────────────────────
 const targetPath = join(ROOT, 'AGENTS.md');
-const current = readFileSync(targetPath, 'utf8');
+const current = readFileSync(targetPath, 'utf8').replace(/\r\n/g, '\n');
 const start = current.indexOf(BEGIN);
 const stop = current.indexOf(END);
 

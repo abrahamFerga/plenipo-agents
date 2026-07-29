@@ -31,10 +31,11 @@ const MAX_REFERENCE_LINES = 600;
 // Deliberately not a YAML parser: skill frontmatter is a flat map of scalars and
 // folded (>) blocks. Anything more exotic is itself a smell.
 function readFrontmatter(text) {
-  if (!text.startsWith('---')) return { fm: null, bodyOffset: 0 };
-  const end = text.indexOf('\n---', 3);
+  const normalized = text.replace(/\r\n/g, '\n');
+  if (!normalized.startsWith('---')) return { fm: null, bodyOffset: 0 };
+  const end = normalized.indexOf('\n---', 3);
   if (end === -1) return { fm: null, bodyOffset: 0 };
-  const raw = text.slice(text.indexOf('\n') + 1, end);
+  const raw = normalized.slice(normalized.indexOf('\n') + 1, end);
   const fm = {};
   let key = null;
   for (const line of raw.split('\n')) {
@@ -47,7 +48,7 @@ function readFrontmatter(text) {
       fm[key] = (fm[key] ? fm[key] + ' ' : '') + line.trim();
     }
   }
-  const bodyOffset = text.slice(0, end).split('\n').length + 1;
+  const bodyOffset = normalized.slice(0, end).split('\n').length + 1;
   return { fm, bodyOffset };
 }
 
