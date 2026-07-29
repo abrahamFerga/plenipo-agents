@@ -1,0 +1,13 @@
+{
+  "$comment": "Replace every placeholder. A consumer should be registered only after cross-repository routing is configured and tested.",
+  "consumers": [
+    {
+      "repo": "<owner>/<product-repo>",
+      "solution": "<Product>.slnx",
+      "ref": "main",
+      "module": "<module-id>",
+      "required": true,
+      "note": "Describe the platform seam coverage this consumer contributes."
+    }
+  ]
+}
