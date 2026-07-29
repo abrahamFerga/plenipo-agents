@@ -144,6 +144,9 @@ This is the part that makes it self-sustaining rather than a queue that drains:
         bugs from sweeps ────┘                                               │
               ▲                                                              ▼
               └──────────── test ◀──── merged ◀──── ship (gates + review) ───┘
+                                                             │ changes requested
+                                                             ▼
+                                                        revise-pr
 ```
 
 Each arrow is a GitHub object, never a chat message: issues, labels, PR bodies, board columns. That
@@ -293,8 +296,10 @@ deserves:
 - **The verbs have never driven a real product end to end** — this is the largest gap. The dispatch
   chain, the tick ordering and the fleet scheduling are **L4**: reasoned, internally consistent, and
   unobserved. Run one product at level 0 for a week before believing any of it.
-- **`agent-review.yml` is unverified** — it depends on Claude Code CLI flags that move, and it is
-  the one optional piece. The local reviewer needs no secret and no bill; prefer it.
+- **Cloud review is a separate, optional surface.** The local `pr-reviewer` needs no secret and no
+  bill, and is the default. If review must keep running with the machine off, use
+  `/harness:install-github-agentic-workflows` rather than a hand-rolled workflow: it compiles
+  SHA-pinned lock files and can be proven in staged mode before it can write anything.
 - **Building needs your machine.** Runtime proof means booting the product under Docker, so the
   build and sweep loops are local. Review and merge keep working in the cloud while the machine is
   off, but no new code gets written.

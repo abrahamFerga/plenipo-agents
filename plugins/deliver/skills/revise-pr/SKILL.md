@@ -9,7 +9,6 @@ description: >
   DO NOT USE FOR: starting the next backlog item (../work-next-issue/SKILL.md) or the first-pass
   verification of a change you just wrote (../verify-runtime/SKILL.md).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Revise a pull request

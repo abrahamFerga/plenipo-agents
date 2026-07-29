@@ -69,7 +69,7 @@ your code).
 | 7 | `CODEOWNERS` | repo root | a named human on every spine change |
 | 8 | branch protection | GitHub settings | what makes 5 and 6 mandatory instead of advisory |
 | 9 | `.claude/settings.json` | the repo | plugins on, permissions scoped, destructive verbs denied |
-| 10 | `agent-review.yml` | `.github/` | **optional** — cloud review for when the machine is off |
+| 10 | gh-aw workflows | `.github/workflows/` | **optional** — cloud review and triage for when the machine is off |
 
 ## Workflow
 
@@ -164,10 +164,11 @@ your code).
    the deny list matches Bash strings only and cannot see inside the gate script, so
    `autonomy.level` remains the authoritative control over merging.
 
-9. **Optionally install the cloud reviewer** (`agent-review.yml`), which needs an
-   `ANTHROPIC_API_KEY` secret and costs API tokens. Say plainly that the flags in it are unverified
-   until run once, and that `../ship/SKILL.md` already reviews locally for free. Adding a repository
-   secret is the user's action, not yours.
+9. **Optionally add the cloud surface.** `../ship/SKILL.md` already reviews locally, for free, under
+   the subscription you have — so this is only for when the machine is off. Do not hand-roll a
+   workflow for it: point at `/harness:install-github-agentic-workflows`, which compiles SHA-pinned
+   lock files, routes through an explicit App allowlist, and can be proven in staged mode first.
+   Installing it is a human's call — it is outward-facing and needs repository configuration.
 
 10. **Report the checklist** — each of the ten items as present or missing, the recorded autonomy
     level, both gate-script outcomes from step 5 with their exit codes, the protection state, and
@@ -207,6 +208,8 @@ your code).
 ## Related skills
 
 - `/deliver:install-runbook` — step 1's run-and-prove surface. **Load when:** `RUNBOOK.md` is absent.
+- `/harness:install-github-agentic-workflows` — the optional cloud review and triage surface from
+  step 9. **Load when:** review must keep running with the machine off.
 - `/harness:install-agent-config` — step 1's cross-tool rules. **Load when:** the repo is Claude-only.
 - `../ship/SKILL.md` — runs `merge-gate.mjs`; every gate it reports comes from here. **Load when:**
   deciding what may merge.
