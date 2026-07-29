@@ -244,11 +244,16 @@ work exists but is not merged; nothing is proven on `main`. Reporting `Success` 
 L5 checkpoint for an L1 fact, and the next session will inherit a board that disagrees with the run
 log.
 
-**Do not resolve that by turning on auto-merge.** Feature PRs are meant to wait: the agent that wrote
-the change cannot also be the one that approves it, and CI green is an L1 check on the tests that
-happen to exist, not evidence the feature does what was asked. A drained backlog with N open PRs is
-the *correct* end state — human review capacity is the real constraint, and auto-merging does not
-create more of it. `/deliver:work-next-issue`'s `references/merge-policy.md` has the full policy.
+**Do not resolve that by turning on auto-merge yourself.** At autonomy level 0–1 a feature PR is
+*meant* to wait: the agent that wrote the change cannot also approve it, and CI green is an L1 check
+on the tests that happen to exist, not evidence the feature does what was asked. A drained backlog
+with N open PRs is the correct end state there.
+
+A product **can** graduate to merging features unattended — but it buys that with a stronger verifier
+(an adversarial reviewer that can block, red-before-green evidence in the PR, the conformance gate,
+and a cheap revert path), never with bigger batches. The level is recorded in `workflow.json` by a
+human; **read it, never infer it.** Platform changes and anything touching the spine stay human at
+every level. Full policy and the ratchet: `/deliver:work-next-issue`'s `references/merge-policy.md`.
 
 A run that ends `Blocked`, `Stalled`, or `Exhausted` is a *useful* outcome when it names the gate, the
 evidence, and the single next action. A run that ends `Success` without both conditions above is

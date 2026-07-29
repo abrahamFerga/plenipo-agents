@@ -25,6 +25,7 @@ reads a table better than `oneOf`/`$ref`/`pattern`.
 | `platform` | object | yes | See below. Identifies the Plenipo dependency. |
 | `platform.version` | string | yes | The platform package version the product targets, e.g. `0.1.0-alpha.28`. |
 | `platform.feed` | enum | yes | `vendored` \| `github-packages` \| `nuget`. **`vendored` is currently the only working value** — the packages are not on nuget.org, and the GitHub Packages feed needs a PAT even for public repos. |
+| `autonomy` | integer | no | `0`–`3`. What this product may merge without a human. **Set by a human, never inferred by an agent** — a loop deciding it has earned autonomy is the self-approving loop wearing a different hat. Defaults to `0` when absent. See the ratchet in `/deliver:work-next-issue`'s `references/merge-policy.md` |
 | `cloud` | enum | no | `azure` \| `aws` \| `none`. `none` means no server deployment; the fleet scan excludes those from vertical coverage. |
 | `connectors` | string[] | no | Connector ids the product installs. |
 | `capabilities` | object[] | no | `{ name, provider }` — e.g. `{ "name": "ocr", "provider": "azure-document-intelligence" }`. |
@@ -63,6 +64,7 @@ means the skills the product thinks it has are not the skills it loads.
     "version": "0.1.0-alpha.28",
     "feed": "vendored"
   },
+  "autonomy": 1,
   "cloud": "azure",
   "connectors": ["plaid"],
   "capabilities": [

@@ -210,7 +210,8 @@ A human re-specifies. Rewriting the criteria yourself is scoring against a targe
 | Polishing past pass 3 | budget burned on a specification defect | `Stalled` — comment on the issue with evidence |
 | Omitting `Closes #<n>` | the issue stays open forever and the board rots | put it in the PR body, not the title |
 | Moving the card to Done | the loop claims an outcome it never verified | In Review is the end; a human closes it — see `references/merge-policy.md` |
-| Enabling auto-merge on a feature PR | the agent becomes its own approver, and auto-merge does not wait for a Copilot review that is still running | leave it off; only docs/test-only changes may auto-merge |
+| Enabling auto-merge on a feature PR at autonomy level 0–1 | the agent becomes its own approver, and auto-merge does not wait for a review still running | check the product's recorded level; features auto-merge only from level 2, and only on an adversarial reviewer's approval |
+| Deciding you have earned a higher autonomy level | the self-approving loop wearing a different hat | the level is recorded in `workflow.json` by a human; read it, never infer it |
 | Committing the branch name or owner into a script | breaks on every fork and every other product | derive both at run time |
 
 ## Related skills
