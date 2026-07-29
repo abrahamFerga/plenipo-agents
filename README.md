@@ -10,6 +10,9 @@ Built on two disciplines: **harness engineering** (the guides and sensors an age
 engineering** (what lets it run unsupervised). [HARNESS.md](HARNESS.md) explains why the repo is
 shaped this way; read it once.
 
+> **New here? → [QUICKSTART.md](QUICKSTART.md).** Five minutes, two plugins, one command that saves
+> the most time. Come back here when you want the full map.
+
 ## Install
 
 ```text
@@ -93,6 +96,13 @@ Each plugin is one loop. A loop declares **Trigger · Goal · Execution · Verif
 | `verify-runtime` | `/deliver:verify-runtime` | The verification loop: reproduce → observe → diagnose → fix → lock-in |
 | `install-runbook` | `/deliver:install-runbook` | Installs a product's execution + verification surface |
 | `scaffold-product` | `/deliver:scaffold-product` | Creates a new product repo on the platform |
+
+**Agents** — delegate these; they run in their own context and return a report, not a transcript.
+
+| Agent | Delegate when |
+|---|---|
+| `e2e-tester` | you want the whole system swept for what's actually broken — boots it, walks real journeys, drives the UI, returns ranked findings with reproductions. Read/run only, never edits |
+| `product-improver` | you want the product made *better* rather than an issue closed — uses the app as its intended user, logs friction, and ships **one** proven improvement as a PR |
 
 ## The part that saves the most time
 

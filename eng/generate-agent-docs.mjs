@@ -78,7 +78,23 @@ for (const plugin of listDirs(join(ROOT, 'plugins')).sort()) {
       path: `plugins/${plugin}/skills/${skill}/SKILL.md`,
     });
   }
-  if (skills.length) plugins.push({ plugin, skills });
+  // Agents are workers you delegate to, not procedures you read. Tools without a subagent mechanism
+  // still benefit from knowing they exist and what they cover.
+  const agents = [];
+  const agentsDir = join(ROOT, 'plugins', plugin, 'agents');
+  if (existsSync(agentsDir)) {
+    for (const file of readdirSync(agentsDir).filter((f) => f.endsWith('.md')).sort()) {
+      const fm = frontmatter(readFileSync(join(agentsDir, file), 'utf8'));
+      if (!fm?.name) continue;
+      agents.push({
+        name: fm.name,
+        summary: firstSentence(fm.description),
+        path: `plugins/${plugin}/agents/${file}`,
+      });
+    }
+  }
+
+  if (skills.length || agents.length) plugins.push({ plugin, skills, agents });
 }
 
 // ── Render ────────────────────────────────────────────────────────────────────
@@ -99,13 +115,18 @@ function wrap(text, width, indent) {
 }
 
 const lines = [BEGIN, ''];
-for (const { plugin, skills } of plugins) {
+for (const { plugin, skills, agents } of plugins) {
   lines.push(`### \`${plugin}\``, '');
   for (const s of skills) {
     const kind = s.manual ? 'action' : 'reference';
     const wrapped = wrap(`- **${s.name}** *(${kind})* — ${s.summary}`, 98, '  ');
     lines.push(...wrapped.slice(0, -1), `${wrapped[wrapped.length - 1]}  `);
     lines.push(`  → [\`${s.path}\`](${s.path})`);
+  }
+  for (const a of agents) {
+    const wrapped = wrap(`- **${a.name}** *(agent — delegate)* — ${a.summary}`, 98, '  ');
+    lines.push(...wrapped.slice(0, -1), `${wrapped[wrapped.length - 1]}  `);
+    lines.push(`  → [\`${a.path}\`](${a.path})`);
   }
   lines.push('');
 }

@@ -1,0 +1,117 @@
+# Quickstart
+
+Five minutes from nothing to an agent that can build, run, and prove a Plenipo product.
+
+## 1. Install
+
+```text
+/plugin marketplace add abrahamFerga/plenipo-agents
+```
+
+## 2. Turn on the two plugins you need
+
+Paste this into your product's `.claude/settings.json`:
+
+```jsonc
+{
+  "extraKnownMarketplaces": {
+    "plenipo-agents": { "source": { "source": "github", "repo": "abrahamFerga/plenipo-agents" } }
+  },
+  "enabledPlugins": {
+    "harness@plenipo-agents": true,     // always on
+    "deliver@plenipo-agents": true,     // the coding loop
+    "scout@plenipo-agents": false,
+    "define@plenipo-agents": false,
+    "shape@plenipo-agents": false,
+    "steward@plenipo-agents": false     // only in the Plenipo platform repo
+  }
+}
+```
+
+That's the whole setup. `harness` + `deliver` is the right pair for ~90% of days.
+
+## 3. Do the one thing that saves the most time
+
+```text
+/deliver:install-runbook
+```
+
+Run it once per product. It writes `RUNBOOK.md` and a `run-<product>` skill, so **every future
+session already knows how to start your app and how to prove a change** instead of reverse-engineering
+it from `AppHost.cs` comments.
+
+Then check it worked:
+
+```bash
+dotnet run --project src/<Product>.AppHost     # run it
+dotnet test <Product>.slnx                      # prove it
+```
+
+---
+
+## What to say, depending on what you want
+
+| You want… | Say this |
+|---|---|
+| the next feature built | `/deliver:work-next-issue` |
+| to know if a change really works | `/deliver:verify-runtime` |
+| the whole system swept for bugs | *"use the e2e-tester agent"* |
+| the product made nicer to use | *"use the product-improver agent"* |
+| the platform to add something you need | `/deliver:request-platform-change` |
+| to move onto a newer platform release | `/deliver:upgrade-platform` |
+| to check the repo is in good shape | `/harness:validate-product` |
+
+You don't have to memorize these. `harness` is always on, so Claude already knows how the platform
+works, how to run a product, and how "done" is defined — just describe what you want.
+
+## Starting a brand-new product instead
+
+Turn on `scout`, `define`, and `shape` as well, then walk the loops in order:
+
+```text
+/scout:scan-fleet          → what's already built, what's still open
+/scout:find-industry       → a shortlist of verticals worth doing
+/define:research-industry  → the competitive picture
+/define:synthesize-spec    → SPEC.md
+/define:plan-product       → PLAN.md
+/define:sync-backlog       → the backlog, as GitHub issues
+/shape:design-product      → ARCH.md + ADRs
+/deliver:scaffold-product  → the repo
+/deliver:install-runbook   → the run/test surface
+/deliver:work-next-issue   → …then repeat this one
+```
+
+Or just `/harness:conduct` and let it drive, stopping at each gate.
+
+## Working on the Plenipo platform itself
+
+Different repo, different plugins — `harness` + `steward`:
+
+```text
+/steward:install-request-surface   → once: the request queue and the consumer safety gate
+/steward:triage-requests           → work the queue from your products
+```
+
+## Two rules worth knowing on day one
+
+**Never edit the platform from a product.** If Plenipo is missing something, run
+`/deliver:request-platform-change` — it applies a local workaround so you're not blocked, tags it,
+and files the request. Ten products editing one repo is how that repo becomes unmergeable.
+
+**Compiling isn't proof.** A change is done when a test that *fails without it* passes with it, and
+you watched both happen. Every skill here holds you to that.
+
+## Using Codex or Copilot instead of Claude Code
+
+```text
+/harness:install-agent-config
+```
+
+Writes `AGENTS.md` (Codex, Cursor, Copilot), a `CLAUDE.md` that imports it, and the `.github/`
+instruction files — each fact in exactly one place, so the tools can't contradict each other.
+
+## Where to go deeper
+
+- **[README.md](README.md)** — every skill, and what each loop is for
+- **[HARNESS.md](HARNESS.md)** — why the repo is shaped this way *(read once, when curious)*
+- **[AUTHORING.md](AUTHORING.md)** — only if you're writing a skill yourself

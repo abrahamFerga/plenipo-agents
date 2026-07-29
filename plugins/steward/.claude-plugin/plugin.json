@@ -1,7 +1,9 @@
 {
   "name": "steward",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
-  "author": { "name": "Abraham Fernandez" },
+  "author": {
+    "name": "Abraham Fernandez"
+  },
   "description": "The platform side of the request protocol, enabled in the Plenipo repo only: triage the incoming platform-request queue from every product, dedupe demand across them, answer each with a structured verdict the requesting agent can act on, implement what is accepted one change at a time, and release with a consumer-conformance gate so a change cannot silently break the products already built on it."
 }

@@ -1,7 +1,9 @@
 {
   "name": "deliver",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
-  "author": { "name": "Abraham Fernandez" },
+  "author": {
+    "name": "Abraham Fernandez"
+  },
   "description": "The build and verification loops: take one Ready issue at a time from the board to a merged PR, and prove each change at runtime rather than at compile time. Ships the Plenipo module and connector SDK references Claude reaches for while coding, the runbook installer that gives a product its execution + verification surface, and the run -> exercise -> observe -> diagnose -> fix -> lock-in loop. The default coding-loop plugin."
 }

@@ -51,17 +51,56 @@ Verified July 2026 — check before relying on any of it, these move:
 | **Merge queue** | Worth enabling on the **platform** repo — the serial shared resource. The queue re-tests batched changes before they land |
 | **GitHub Agentic Workflows** (`gh-aw`) | Markdown workflows compiled into Actions, running on Copilot CLI / Claude / Codex / Gemini. **Read-only by default**, writes through preapproved "safe outputs." Public preview |
 
+### `merge-pull-request` — what it can and cannot do
+
+gh-aw ships a `merge-pull-request` safe output, and it is **far better gated than "let an agent
+merge" sounds.** Verified against the handler source (`actions/setup/js/merge_pull_request.cjs`),
+July 2026 — re-verify, it is marked experimental and its ADR is still Draft.
+
+The agent never holds a merge token. It emits a structured request; a separate trusted job evaluates
+**sixteen gates** and performs the merge only if every one passes. Gates are accumulated, not
+short-circuited, so a blocked merge reports every reason at once.
+
+**Three gates are hardcoded with no opt-out, and they are the ones that matter:**
+
+| Gate | Blocks when |
+|---|---|
+| `target_branch_protected` | the base branch has branch protection |
+| `target_branch_default` | the base branch is the repo's default branch |
+| `target_branch_has_no_open_pr` | the base branch is not itself the head of another open PR |
+
+Read those together: **it cannot merge into `main`, and it cannot merge into any protected branch.**
+It is built for merging *intermediate* PRs in a stack — never the one that lands on your default
+branch. The tool enforces the policy in this file by construction.
+
+The rest are also on your side: `pr_is_draft`, `merge_conflicts`, `not_mergeable`,
+`required_checks_missing` / `required_checks_failing` (derived from your branch protection),
+`pending_reviewers`, `blocking_review_state` (fires on `CHANGES_REQUESTED` **and** `REVIEW_REQUIRED`),
+and `unresolved_review_threads`. So a required review still blocks it — maker-checker survives.
+
+Configurable narrowing: `required-labels` (all must be present), `required-title-prefix`,
+`allowed-branches` (globs on the **head** ref), `max` (1–10), and `staged: true` to evaluate the
+gates and preview the outcome **without merging** — use that first.
+
+There is **no** merge-method restriction, **no** path/file filter, and **no** author filter. The
+agent picks `merge`/`squash`/`rebase` itself, and `allowed-branches` does not constrain the base.
+
 ### Where an agentic workflow belongs
 
-**Triage, not merging.** An event-driven agentic workflow on `issues.labeled: platform-request` that
-clusters, verdicts, comments, and labels is an excellent fit — read-mostly, its only write is a
-comment, and the queue is exactly the kind of thing nobody wants to poll by hand.
+**Triage first.** An event-driven workflow on `issues.labeled: platform-request` that clusters,
+verdicts, comments, and labels is the strongest fit — read-mostly, its only write is a comment, and
+nobody wants to poll that queue by hand.
 
-**Never grant one merge rights.** Its output is a verdict a human acts on. The moment an automated
-agent can merge, every gate above becomes advisory.
+**Merging: yes, within its gates.** Given it physically cannot touch `main` or a protected branch,
+`merge-pull-request` is a reasonable way to automate the low-risk tier and stacked intermediate
+merges. The safety comes from the gates, not from the agent's judgement — which is the whole point.
 
-Because it is in preview, do not make it load-bearing: the protocol must still work if you triage the
-queue by hand.
+**So protect your branches.** Every gate above that matters is *derived from branch protection*. On
+an unprotected repo, `target_branch_protected` never fires and `required_checks_*` have nothing to
+read. The policy in this file is only real if branch protection is real.
+
+Because the feature is experimental, do not make it load-bearing: the protocol must still work if
+you merge by hand.
 
 ## Earning autonomy — how the human comes out of the loop
 

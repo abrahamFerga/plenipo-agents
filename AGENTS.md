@@ -161,9 +161,21 @@ other tools should **open the file when its description matches the task**.
   drive it to an open pull request: select the top item by build order, move the card to In
   Progress, cut a branch, implement it against the platform contract, climb the test la…  
   → [`plugins/deliver/skills/work-next-issue/SKILL.md`](plugins/deliver/skills/work-next-issue/SKILL.md)
+- **e2e-tester** *(agent — delegate)* — Boots a Plenipo product and exercises it end to end the
+  way a real household or firm would, hunting for what is actually broken rather than confirming
+  what was just built.  
+  → [`plugins/deliver/agents/e2e-tester.md`](plugins/deliver/agents/e2e-tester.md)
+- **product-improver** *(agent — delegate)* — Runs a Plenipo product, uses it as its intended
+  user would, and improves what it finds — features that stop half-finished, screens that make the
+  user do the system's work, flows where the assistant is unhelpful.  
+  → [`plugins/deliver/agents/product-improver.md`](plugins/deliver/agents/product-improver.md)
 
 ### `harness`
 
+- **agent-protocol** *(reference)* — The shared language agents use to talk to each other
+  through GitHub — the message envelope, the closed set of message kinds, the label vocabulary
+  that is the state machine, and the rules for replying and handing off.  
+  → [`plugins/harness/skills/agent-protocol/SKILL.md`](plugins/harness/skills/agent-protocol/SKILL.md)
 - **conduct** *(action)* — Drive one product from an idea to merged, runtime-proven code by
   sequencing the four loops — scout, define, shape, deliver — handing each phase off to its own
   slash command and refusing to advance until that phase's exit check passes.  
@@ -217,6 +229,10 @@ other tools should **open the file when its description matches the task**.
 
 ### `steward`
 
+- **announce-release** *(action)* — Push a Plenipo release out to every product built on it:
+  classify what changed, then open an issue in each consumer repo — carrying step-by-step
+  migration instructions when the release breaks them, or the shims it now retires when it doe…  
+  → [`plugins/steward/skills/announce-release/SKILL.md`](plugins/steward/skills/announce-release/SKILL.md)
 - **install-request-surface** *(action)* — Stand up the platform side of the request protocol in
   the Plenipo repo: the platform-request issue form, the triage label taxonomy, the consumer
   registry, and the conformance workflow that builds and tests every registered product agains…  
