@@ -1,0 +1,7 @@
+{
+  "name": "harness",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": { "name": "Abraham Fernandez" },
+  "description": "Always-on control plane: what the Plenipo platform already gives you (so you never rebuild it), how any Plenipo product is run and proven, the workflow.json/settings.json pair, config + guardrail validation, and the conductor that drives the scout -> define -> shape -> deliver loops end to end. Keep enabled in every loop."
+}

@@ -1,0 +1,7 @@
+{
+  "name": "shape",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": { "name": "Abraham Fernandez" },
+  "description": "The design loop: decide the SHAPE once, against the platform rather than from scratch. Which modules and manifests, which tools and the permission gating each, which writes are approval-gated, which connectors and plans, which host seams — recorded in ARCH.md plus ADRs for every non-default choice, with the backlog marked Ready. Enable to design, then disable for the long delivery phase."
+}

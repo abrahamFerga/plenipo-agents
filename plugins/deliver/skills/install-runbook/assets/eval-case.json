@@ -1,0 +1,11 @@
+{
+  "name": "{{module-id}}-write-requires-approval",
+  "module": "{{ModuleId}}",
+  "message": "…the user's turn, phrased the way a real user would…",
+  "role": "system_admin",
+  "expectToolCalls": ["{{write_tool_name}}"],
+  "forbidToolCalls": [],
+  "expectApproval": true,
+  "replyMustContain": ["approval"],
+  "replyMustNotContain": ["created", "done", "saved"]
+}

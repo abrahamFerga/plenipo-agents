@@ -1,0 +1,22 @@
+{
+  // Skill prose is written for a model first and a human second; several default rules
+  // fight that on purpose. Everything left enabled catches something that actually matters.
+  "config": {
+    "line-length": { "line_length": 100, "code_blocks": false, "tables": false },
+    "no-inline-html": false,
+    "no-duplicate-heading": { "siblings_only": true },
+    "no-trailing-punctuation": { "punctuation": ".,;:!" },
+    "first-line-heading": false,        // SKILL.md opens with YAML frontmatter
+    "no-bare-urls": false,
+    "code-block-style": false,
+    "ol-prefix": false,
+    "no-emphasis-as-heading": false,
+    // Tables here are wide reference matrices; enforcing pipe alignment would mean padding
+    // every cell to the widest row, which makes the source unreadable and diffs enormous.
+    "table-column-style": false
+  },
+  "globs": ["**/*.md"],
+  // assets/ holds copy-ready templates with placeholder syntax, not repo prose — linting them
+  // flags the template markers, not real defects.
+  "ignores": ["node_modules/**", "**/assets/**"]
+}

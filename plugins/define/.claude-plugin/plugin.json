@@ -1,0 +1,7 @@
+{
+  "name": "define",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": { "name": "Abraham Fernandez" },
+  "description": "The definition loop: decide WHAT to build. Competitive industry research -> product spec (SPEC.md) -> plan with the module split, tool inventory and RBAC model (PLAN.md) -> the feature backlog published as GitHub issues on a project board. Enable at kickoff; disable once the backlog is published so its descriptions stop costing context."
+}

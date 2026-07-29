@@ -1,0 +1,29 @@
+{
+  "name": "plenipo-agents",
+  "owner": {
+    "name": "Abraham Fernandez"
+  },
+  "description": "The outer harness for building AI-first products on the Plenipo platform. Five loop-scoped plugins: harness (always-on control plane — platform contract, runbook knowledge, config, validation, the conductor), scout (find an unclaimed industry worth a product), define (research -> spec -> plan -> GitHub backlog), shape (module, tool, permission and connector design + ADRs), and deliver (issue-driven build plus the run -> observe -> fix -> lock-in verification loop). Enable per loop to keep context minimal.",
+  "plugins": [
+    {
+      "name": "harness",
+      "source": "./plugins/harness"
+    },
+    {
+      "name": "scout",
+      "source": "./plugins/scout"
+    },
+    {
+      "name": "define",
+      "source": "./plugins/define"
+    },
+    {
+      "name": "shape",
+      "source": "./plugins/shape"
+    },
+    {
+      "name": "deliver",
+      "source": "./plugins/deliver"
+    }
+  ]
+}
