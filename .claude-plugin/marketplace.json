@@ -24,6 +24,10 @@
     {
       "name": "deliver",
       "source": "./plugins/deliver"
+    },
+    {
+      "name": "steward",
+      "source": "./plugins/steward"
     }
   ]
 }

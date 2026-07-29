@@ -47,6 +47,7 @@ Each plugin is one loop. A loop declares **Trigger · Goal · Execution · Verif
 | **define** | definition | a spec and plan a team could build against | off |
 | **shape** | design | every shape decision made once, and justified | off |
 | **deliver** | build + verification | one Ready issue → a merged PR, proven at runtime | **on** |
+| **steward** | platform | the request queue from every product, triaged and answered | platform repo only |
 
 ## Skills
 
@@ -121,6 +122,61 @@ dotnet test <Product>.slnx                       # prove it
 No API key, no cloud account, no Plenipo checkout: the assistant runs on the platform's `Mock`
 provider, which still performs **real, audited tool calls and triggers the approval gate**.
 
+## Ten products, one platform
+
+Products build in parallel; the platform does not. That asymmetry is the whole design.
+
+A product agent that hits a platform gap **never edits the platform and never waits for it**. It
+climbs an escalation ladder — is it already there? does a product seam cover it? can a local shim
+carry it? — applies the shim tagged `TODO(plenipo#N)`, files a structured request, and **carries on**.
+On the platform side a single steward works that queue: clustering the same need across products
+(demand outranks argument), answering each with a verdict the requesting agent can parse without a
+human relaying, guarding the invariants, and refusing shapes that serve only one product. When a
+release lands, each product's upgrade PR unwinds the shims whose requests it closed.
+
+| Skill | Side | What it does |
+|---|---|---|
+| `platform-protocol` | both | the contract: the ladder, the request fields, what each verdict obliges |
+| `/deliver:request-platform-change` | product | climb, shim, tag, file — without blocking |
+| `/deliver:upgrade-platform` | product | consume a release and retire the shims it made unnecessary |
+| `/steward:triage-requests` | platform | cluster, verdict, guard the invariants, adopt the acceptance test |
+| `/steward:install-request-surface` | platform | the issue form, labels, consumer registry, and the CI gate |
+
+The gate matters as much as the queue: `consumer-conformance.yml` packs the platform as a release
+candidate and **builds and tests every registered product against it** before a change can merge.
+
+This isn't theoretical. Measured on this platform with *one* product active: **~22% of platform
+commits were already product-driven** (the largest single category), **zero issues had ever been
+filed** against 62 PRs, and one product carries **235 lines of middleware rewriting platform JSON**
+to patch four platform bugs — marked deletion-ready, with nothing tracking when to delete it.
+
+## Codex and Copilot
+
+The same rules reach every tool, with each fact in exactly one file — duplication across these is the
+top cause of contradictory agent behaviour, and no tool defines a precedence to resolve it.
+
+| File | Codex | Copilot (VS Code / cloud / review) | Copilot on github.com | Claude Code |
+|---|---|---|---|---|
+| `AGENTS.md` — the source | ✅ | ✅ | ❌ | ❌ |
+| `CLAUDE.md` — `@AGENTS.md` + Claude specifics | ❌ | ✅ | ❌ | ✅ |
+| `.github/copilot-instructions.md` — pointer + what github.com needs standalone | ❌ | ✅ | ✅ | ❌ |
+| `.github/instructions/*.instructions.md` — path-scoped | ❌ | ✅ | ❌ | ❌ |
+| `.github/agents/*.agent.md` — assignable agents | ❌ | ✅ | ✅ | ❌ |
+
+Two facts that shape all of it: **Claude Code does not read `AGENTS.md`** (hence the `@AGENTS.md`
+import rather than a symlink, which needs Developer Mode on Windows), and **Codex truncates the
+AGENTS.md chain at 32 KiB silently** — so the index is generated, kept small, and CI fails if it
+drifts:
+
+```bash
+node eng/generate-agent-docs.mjs           # regenerate the skill index in AGENTS.md
+node eng/generate-agent-docs.mjs --check   # CI: fail if it is out of sync
+```
+
+`/harness:install-agent-config` installs this shape into any repo. The steward also ships as a
+**Copilot custom agent**, so a platform request can be triaged on github.com by assigning it —
+no checkout, no local session.
+
 ## What this repo will not do
 
 Deliberate exclusions, most of them learned the expensive way by its predecessor:
@@ -167,6 +223,19 @@ Stated plainly, because a harness that hides its own gaps is not one:
 - **Two of the platform's own products are inconsistent** — one is the current reference, the other
   still consumes pre-rename packages and ships architecture docs describing code that was deleted.
   `/scout:scan-fleet` reports this rather than pretending otherwise.
+- **The request protocol is designed for ten products and there is currently one.** That is a real
+  over-fit risk, so `platform-protocol` stages adoption by consumer count: only the tagged
+  self-failing shim and the conformance gate are load-bearing at n=1. Clustering, demand counting and
+  queue ceremony are scaffolding for a scale you may not reach — turn them on when a second requester
+  makes them mean something.
+- **The conformance gate cannot see the highest-risk break.** A product pinning a CSP hash of
+  platform-authored inline HTML white-screens when that HTML changes, and no managed-API check, and
+  no compile-and-test gate, catches it. Only a browser smoke test would. The workflow says so in its
+  own header rather than letting a green check imply safety.
+- **Cross-tool instructions are advisory in every tool that reads them.** `AGENTS.md` has no include
+  syntax in Codex, and no vendor guarantees an agent follows a prose pointer — which is why the
+  operating rules are inline in `AGENTS.md` rather than behind a link, and why anything that must be
+  *enforced* lives in CI, not in markdown.
 
 ## Relationship to `my-skills`
 

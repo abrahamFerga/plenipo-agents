@@ -28,6 +28,11 @@ jobs:
       - name: Validate marketplace invariants
         run: node eng/validate-marketplace.mjs
 
+      # L1 — the cross-tool index in AGENTS.md must match the skills on disk. Codex and Copilot
+      # route from that index, and a stale one sends them to files that moved or no longer exist.
+      - name: Check the cross-tool skill index is in sync
+        run: node eng/generate-agent-docs.mjs --check
+
       # L2 — prose conventions.
       - name: Lint markdown
         run: npx --yes markdownlint-cli2 "**/*.md" "#node_modules"

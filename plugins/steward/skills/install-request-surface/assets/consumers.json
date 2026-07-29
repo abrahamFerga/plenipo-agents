@@ -1,0 +1,28 @@
+{
+  "$comment": [
+    "The platform's list of what it must not break — install at the PLATFORM repo root.",
+    "A product that is not registered here gets no protection from consumer-conformance.yml,",
+    "which is the incentive to register. Keep it small and honest: every entry costs CI minutes",
+    "on every platform PR, so 'required: false' a consumer that is stale rather than deleting the",
+    "signal that it exists."
+  ],
+  "consumers": [
+    {
+      "repo": "<owner>/networthy",
+      "solution": "Networthy.slnx",
+      "ref": "main",
+      "module": "finance",
+      "required": true,
+      "note": "Reference product. Exercises modules, product-owned connectors, roles, approvals, RAG, jobs."
+    },
+    {
+      "repo": "<owner>/casewell",
+      "solution": "Casewell.slnx",
+      "ref": "main",
+      "module": "legal",
+      "required": false,
+      "conformance": false,
+      "note": "Stale — still consumes pre-rename Cortex.* packages. Re-enable once it upgrades; until then it would fail for reasons unrelated to any platform change."
+    }
+  ]
+}
