@@ -8,7 +8,7 @@ on:
         description: Product issue number to assess for a platform escalation.
         required: true
         type: string
-engine: codex
+engine: copilot
 timeout-minutes: 12
 max-ai-credits: 140K
 permissions:
@@ -20,7 +20,7 @@ tools:
     min-integrity: approved
     approval-labels: [platform:request]
 network:
-  allowed: [github, api.openai.com]
+  allowed: [github]
 safe-outputs:
   allowed-github-references: [<owner>/<platform-repo>]
   github-app:
