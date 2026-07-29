@@ -57,10 +57,28 @@ commit rather than an issue.
 | `handoff` | any → any | I did part of this; here is exactly where I stopped | continue from the stated point |
 | `blocked` | any → human | I cannot proceed and no agent can unblock me | decide |
 
-## The labels are the state machine
+## Two state machines, and which one is authoritative
 
-Labels are how an agent finds work without reading every issue. The same vocabulary in **every**
-repo, so a scan written for one works on all of them.
+There are two, they are **not** alternatives, and confusing them is how agents disagree about what
+state something is in:
+
+| | Authoritative for | Where |
+|---|---|---|
+| **The Projects board** | *work items* — a product's own features and epics | product repos, which each have a board |
+| **`agent:*` labels** | *cross-repo messages* — requests, verdicts, release notices, findings | anywhere without a board, notably the platform repo |
+
+**In a product repo with a board, the board wins.** Its columns are
+`Backlog → Ready → In Progress → In Review → Done`, and an agent selects work by
+`Status == Ready` ordered by the **Build order** field. Never invent a label duplicating a column —
+if the board says `In Progress`, that is the state, regardless of labels.
+
+Labels carry the states a board cannot: a message that arrived from another repo, addressed to
+whichever agent picks it up next. The platform repo has no board, which is exactly why the label
+vocabulary exists.
+
+### The label vocabulary
+
+The same words in **every** repo, so a scan written for one works on all of them.
 
 | Label | Meaning |
 |---|---|
@@ -73,9 +91,9 @@ repo, so a scan written for one works on all of them.
 | `breaking-change` | migration required before upgrading |
 | `demand:multi` | more than one product wants this |
 
-**Claim by label before you work.** Two agents on one issue produce two PRs that conflict, and
-neither knows about the other. Set `agent:in-progress`, and if it is already set, take the next item
-instead.
+**Claim before you work.** Two agents on one item produce two PRs that conflict, and neither knows
+about the other. On a board, move the card to `In Progress`; off a board, set `agent:in-progress`.
+Either way, if it is already claimed, take the next item instead — never assume the other agent died.
 
 ## The five rules
 
