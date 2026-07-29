@@ -2,7 +2,7 @@
 on:
   issues:
     types: [opened, reopened, labeled]
-engine: codex
+engine: copilot
 timeout-minutes: 12
 max-ai-credits: 120K
 permissions:
@@ -14,7 +14,7 @@ tools:
     min-integrity: approved
     approval-labels: ["from:<trusted-product>"]
 network:
-  allowed: [github, api.openai.com]
+  allowed: [github]
 safe-outputs:
   add-labels:
     allowed: [platform-request, needs-triage, needs-info, duplicate, "triage:*", demand:multi, "from:*"]

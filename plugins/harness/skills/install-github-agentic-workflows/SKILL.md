@@ -2,7 +2,7 @@
 name: install-github-agentic-workflows
 description: >
   Install and govern GitHub Agentic Workflows in a Plenipo platform or product repository: initialize
-  gh-aw authoring, add bounded Codex issue-triage and PR-intent-review workflows, connect an explicit
+  gh-aw authoring, add bounded Copilot issue-triage and PR-intent-review workflows, connect an explicit
   GitHub App allowlist for product-to-platform and release-impact routing, compile hardened lock files,
   and prove safe outputs in staged mode. USE FOR: onboarding a Plenipo repo or product such as
   Networthy to GitHub-hosted agentic automation. DO NOT USE FOR: manually triaging platform requests
@@ -26,7 +26,7 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 
 ## When to Use
 
-- A Plenipo platform or child product needs GitHub-hosted Codex triage and non-blocking PR review.
+- A Plenipo platform or child product needs GitHub-hosted Copilot triage and non-blocking PR review.
 - Product issues should be validated before they become structured platform requests.
 - A Plenipo release should create a narrowly scoped upgrade brief in an approved product repository.
 
@@ -43,7 +43,7 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 |---|---|---|
 | Repository role | `Plenipo.slnx` means platform; `workflow.json` and vendored `Plenipo.*` packages mean product | selects the safe template set |
 | Repository slug | `gh repo view --json nameWithOwner -q .nameWithOwner` | never hardcode an owner in a reusable setup |
-| Engine credential | a repository `OPENAI_API_KEY` or `CODEX_API_KEY` secret | runs Codex without embedding a key in source |
+| Engine credential | a repository `COPILOT_GITHUB_TOKEN` fine-grained PAT | runs Copilot without embedding a credential in source |
 | Router GitHub App | App ID variable plus private-key secret, installed only in named repos | cross-repository reads/writes use short-lived tokens |
 | Product registry | platform `consumers.json` | release routing and consumer scope |
 
@@ -58,7 +58,7 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 
    ```bash
    gh extension install github/gh-aw
-   gh aw init --engine codex
+   gh aw init --engine copilot
    ```
 
    `init` installs the GitHub/Copilot authoring dispatcher, marks lock files generated, and adds the
@@ -77,8 +77,10 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    workflow's `safe-outputs.add-labels.allowed` list. A label allowlist is a security boundary, not
    decoration.
 
-4. **Configure credentials with least privilege.** Add `OPENAI_API_KEY` (or `CODEX_API_KEY`) as a
-   repository Actions secret; never put it in workflow frontmatter, a variable, or a local file.
+4. **Configure credentials with least privilege.** Add `COPILOT_GITHUB_TOKEN` as a repository Actions
+   secret. It must be a fine-grained PAT owned by an account with a Copilot license and the account
+   permission **Copilot Requests: Read**; do not use an OAuth token (`gho_…`). Never put it in workflow
+   frontmatter, a variable, or a local file.
    For cross-repository routing, create one GitHub App installed only on Plenipo and the named child
    repositories. Grant metadata read plus `Contents: read`, `Issues: read/write`, and
    `Pull requests: read/write`; do not grant administration, workflows, or contents write. In every
@@ -94,8 +96,8 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    gh aw compile --validate --actionlint --zizmor --poutine --approve
    ```
 
-   Review the compiler's safe-update report. New `OPENAI_API_KEY`/`CODEX_API_KEY` references are
-   expected for Codex; `GH_AW_ROUTER_APP_PRIVATE_KEY` is expected only in a cross-repository router.
+   Review the compiler's safe-update report. New `COPILOT_GITHUB_TOKEN` references are expected for
+   Copilot; `GH_AW_ROUTER_APP_PRIVATE_KEY` is expected only in a cross-repository router.
    Record these, any new actions, and any redirects in the PR description. `--approve` approves the
    compiled manifest change; it is not permission to skip that review.
 
