@@ -8,7 +8,7 @@ on:
         description: Published platform release tag to assess.
         required: true
         type: string
-engine: codex
+engine: copilot
 timeout-minutes: 15
 max-ai-credits: 160K
 permissions:
@@ -19,7 +19,7 @@ tools:
     toolsets: [repos, issues]
     min-integrity: approved
 network:
-  allowed: [github, api.openai.com]
+  allowed: [github]
 safe-outputs:
   allowed-github-references: [<owner>/<product-repo>]
   github-app:

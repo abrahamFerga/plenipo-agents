@@ -188,9 +188,9 @@ other tools should **open the file when its description matches the task**.
   rules: AGENTS.md as the single source, a CLAUDE.md that imports it, a thin .github/copi…  
   → [`plugins/harness/skills/install-agent-config/SKILL.md`](plugins/harness/skills/install-agent-config/SKILL.md)
 - **install-github-agentic-workflows** *(action)* — Install and govern GitHub Agentic Workflows
-  in a Plenipo platform or product repository: initialize gh-aw authoring, add bounded Codex
+  in a Plenipo platform or product repository: initialize gh-aw authoring, add bounded Copilot
   issue-triage and PR-intent-review workflows, connect an explicit GitHub App allowlist for
-  product-to-p…  
+  product-to…  
   → [`plugins/harness/skills/install-github-agentic-workflows/SKILL.md`](plugins/harness/skills/install-github-agentic-workflows/SKILL.md)
 - **loop-discipline** *(reference)* — The operating rules every loop in this marketplace runs
   under: the five-level verification ladder (deterministic → rule → field truth → model-as-judge →

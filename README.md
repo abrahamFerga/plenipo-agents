@@ -99,7 +99,7 @@ The invocation column uses Claude Code syntax. In Codex, mention the same bundle
 | `loop-discipline` | automatic | The verification ladder, terminal states, and the five loop anti-patterns |
 | `conduct` | `/harness:conduct` | Drives the full pipeline, gating on each loop's exit condition |
 | `validate-product` | `/harness:validate-product` | Read-only L2 check of config, invariants, and doc drift |
-| `install-github-agentic-workflows` | `/harness:install-github-agentic-workflows` | Installs bounded Codex triage, PR-review, and cross-repo routing workflows |
+| `install-github-agentic-workflows` | `/harness:install-github-agentic-workflows` | Installs bounded Copilot triage, PR-review, and cross-repo routing workflows |
 
 ### `scout` — the discovery loop
 
