@@ -2,8 +2,8 @@
      code review), Cursor, Jules, Gemini CLI and others. NOT read by Claude Code — CLAUDE.md
      imports this file instead.
 
-     Codex truncates the concatenated AGENTS.md chain at 32 KiB SILENTLY. Keep this file short and
-     push depth into the linked skills. -->
+     Codex stops loading the concatenated AGENTS.md chain at project_doc_max_bytes (32 KiB by
+     default). Keep this file short and push depth into the linked skills. -->
 
 # plenipo-agents
 
