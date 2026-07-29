@@ -19,6 +19,9 @@ disable-model-invocation: true
 Different tools read different files, none of them read all of the others, and none of them define a
 precedence between them. So the only safe design is: **one fact, one file, everything else points.**
 
+This skill installs repository instructions. It does not install or enable the marketplace plugins
+for Codex, Copilot, or Claude Code; do that separately in the host that will run the skills.
+
 **Terminal states.** `Success` — files written, `AGENTS.md` under the size cap, and at least one tool
 verified to pick them up · `No-op` — present and current · `Blocked` — the repo has no `RUNBOOK.md`
 or equivalent to point at, so there is nothing to say · `Approval-required` — installing
@@ -40,27 +43,31 @@ or equivalent to point at, so there is nothing to say · `Approval-required` —
 
 This drives every placement decision below. Verified July 2026:
 
-| File | Codex | Copilot VS Code | Copilot cloud agent | Copilot on github.com | Claude Code |
+| File | Codex | Copilot agent surfaces¹ | github.com Chat | Copilot code review | Claude Code |
 |---|---|---|---|---|---|
-| `AGENTS.md` | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `AGENTS.md` | ✅ | ✅ | ❌ | ✅ | ❌ |
 | `.github/copilot-instructions.md` | ❌ | ✅ | ✅ | ✅ | ❌ |
-| `.github/instructions/*.instructions.md` | ❌ | ✅ | ✅ | ❌ | ❌ |
-| `.github/agents/*.agent.md` | ❌ | ✅ | ✅ | ✅ | ❌ |
-| `CLAUDE.md` | ❌ | ✅ | ✅ | ❌ | ✅ |
+| `.github/instructions/*.instructions.md` | ❌ | ✅ | ❌ | ✅ | ❌ |
+| `.github/agents/*.agent.md` | ❌ | ✅ | ❌ | ❌ | ❌ |
+| `CLAUDE.md` | ❌ | ✅ | ❌ | ❌ | ✅ |
+
+¹ VS Code, Copilot CLI, and Copilot cloud agent. Other IDEs support a smaller subset.
 
 Two consequences worth internalizing:
 
 - **Claude Code does not read `AGENTS.md`.** Bridge it with an `@AGENTS.md` import inside
   `CLAUDE.md` — not a symlink, which needs Administrator or Developer Mode on Windows.
-- **github.com Chat reads only `copilot-instructions.md`.** Anything that must reach a reviewer
-  working in the browser has to be there, which is why that file is not merely a pointer.
+- **github.com Chat reads only `copilot-instructions.md` from this set.** Anything that must reach a
+  Chat session in the browser has to be there, which is why that file is not merely a pointer.
 
 ## The size trap
 
-**Codex truncates the concatenated `AGENTS.md` chain at 32 KiB, silently** — no warning in the TUI,
-in `/stats`, in `exec`, or in the VS Code extension. Content past the cap is simply discarded, and a
-long file at the root starves nested ones. Target **well under** it; ~150 lines is comfortable.
-GitHub's own advice for `copilot-instructions.md` is "no longer than two pages."
+Codex stops adding files to the concatenated `AGENTS.md` chain when it reaches
+`project_doc_max_bytes`, which defaults to **32 KiB**. A user can raise the limit in Codex
+configuration, but a shared repository cannot depend on that personal setting. Content beyond the
+active cap is omitted from the task context, and a long file at the root can starve nested ones.
+Target **well under the default**; ~150 lines is comfortable. GitHub's own advice for
+`copilot-instructions.md` is "no longer than two pages."
 
 ## Workflow
 
@@ -80,8 +87,8 @@ GitHub's own advice for `copilot-instructions.md` is "no longer than two pages."
 3. **Write `CLAUDE.md`** with `@AGENTS.md` on its own line, then *only* what is Claude-specific.
    Never restate AGENTS.md.
 
-4. **Write `.github/copilot-instructions.md`** — points at `AGENTS.md`, then carries the minimum a
-   github.com reviewer needs standalone: what the repo is, the verification commands, and the two or
+4. **Write `.github/copilot-instructions.md`** — points at `AGENTS.md`, then carries the minimum
+   github.com Chat needs standalone: what the repo is, the verification commands, and the two or
    three rules that catch most mistakes. Say explicitly that it does not duplicate AGENTS.md, so the
    next editor does not "helpfully" sync them.
 
@@ -104,7 +111,7 @@ GitHub's own advice for `copilot-instructions.md` is "no longer than two pages."
    is the deprecated predecessor — rename any you find.)
 
 7. **Verify the install**, and be honest that this is mostly L4:
-   - `AGENTS.md` byte size is under the cap — that part is L1, so actually measure it;
+   - `AGENTS.md` byte size is under Codex's shared 32 KiB default — that part is L1, so measure it;
    - every path referenced from these files exists;
    - if the repo generates its index, the sync check passes;
    - open the repo in one of the tools and confirm it picks the rules up. Nothing here is enforced by
@@ -117,7 +124,8 @@ GitHub's own advice for `copilot-instructions.md` is "no longer than two pages."
 
 - **One fact, one file.** If a rule needs to be in two places, put it in `AGENTS.md` and point from
   the other. Contradictions between these files resolve nondeterministically.
-- **Never let `AGENTS.md` grow past the cap** — the failure is silent, so nothing will tell you.
+- **Keep `AGENTS.md` below Codex's default cap** — do not make a shared repo depend on a personal
+  `project_doc_max_bytes` override.
 - **Never restate the runbook.** Point at it. A second copy of run instructions is a second copy to
   go stale, and the stale one is the one an agent will read.
 - **Do not claim enforcement.** These are advisory context in every tool that reads them.
@@ -130,7 +138,7 @@ GitHub's own advice for `copilot-instructions.md` is "no longer than two pages."
 |---|---|---|
 | Copying AGENTS.md into copilot-instructions.md | the two drift; no tool defines which wins | point, and keep only what github.com needs standalone |
 | Symlinking CLAUDE.md → AGENTS.md | needs admin/Developer Mode on Windows | `@AGENTS.md` import |
-| A long AGENTS.md | silently truncated by Codex, rules never arrive | keep it short; push depth into linked files |
+| A long AGENTS.md | later files can be omitted at Codex's active cap | keep it below the 32 KiB default; push depth into linked files |
 | Path rules that contradict each other | nondeterministic behaviour, no ordering guarantee | make them disjoint by `applyTo` |
 | Writing `.chatmode.md` | deprecated format | `.github/agents/<name>.agent.md` |
 | Assuming instructions are enforced | an agent skips them and nothing catches it | enforce in CI or a hook |

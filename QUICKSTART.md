@@ -4,11 +4,35 @@ Five minutes from nothing to an agent that can build, run, and prove a Plenipo p
 
 ## 1. Install
 
+Choose the agent you use. The marketplace carries the same Plenipo workflows to all three tools.
+
+### Claude Code
+
 ```text
 /plugin marketplace add abrahamFerga/plenipo-agents
 ```
 
-## 2. Turn on the two plugins you need
+### OpenAI Codex
+
+```bash
+codex plugin marketplace add abrahamFerga/plenipo-agents
+codex plugin add harness@plenipo-agents
+codex plugin add deliver@plenipo-agents
+```
+
+Start a new Codex session after installation.
+
+### GitHub Copilot CLI
+
+```bash
+copilot plugin marketplace add abrahamFerga/plenipo-agents
+copilot plugin install harness@plenipo-agents
+copilot plugin install deliver@plenipo-agents
+```
+
+Copilot CLI recognizes the marketplace's existing `.claude-plugin` manifests.
+
+## 2. Turn on the two Claude Code plugins you need
 
 Paste this into your product's `.claude/settings.json`:
 
@@ -28,7 +52,11 @@ Paste this into your product's `.claude/settings.json`:
 }
 ```
 
-That's the whole setup. `harness` + `deliver` is the right pair for ~90% of days.
+For Codex and Copilot CLI, the install commands above already select the same pair. `harness` +
+`deliver` is the right pair for ~90% of days.
+
+The examples below use Claude Code's `/<plugin>:<skill>` syntax. In Codex, mention the same skill as
+`$<plugin>:<skill>`; in Copilot CLI, invoke it as `/<skill>` or select it from the skill picker.
 
 ## 3. Do the one thing that saves the most time
 
@@ -101,14 +129,18 @@ and files the request. Ten products editing one repo is how that repo becomes un
 **Compiling isn't proof.** A change is done when a test that *fails without it* passes with it, and
 you watched both happen. Every skill here holds you to that.
 
-## Using Codex or Copilot instead of Claude Code
+## Give every agent the same repository rules
 
-```text
-/harness:install-agent-config
-```
+| Agent | Invocation |
+|---|---|
+| Claude Code | `/harness:install-agent-config` |
+| OpenAI Codex | `$harness:install-agent-config` |
+| GitHub Copilot CLI | `/install-agent-config` |
 
-Writes `AGENTS.md` (Codex, Cursor, Copilot), a `CLAUDE.md` that imports it, and the `.github/`
-instruction files — each fact in exactly one place, so the tools can't contradict each other.
+Run that skill once from any host where `harness` is installed. It writes `AGENTS.md` for Codex and
+Copilot, a `CLAUDE.md` that imports it, and the `.github/` instruction files for Copilot. Plugin
+installation supplies reusable workflows; these committed files supply the durable facts for one
+repository. Each fact lives in exactly one place, so the tools cannot contradict each other.
 
 ## Where to go deeper
 
