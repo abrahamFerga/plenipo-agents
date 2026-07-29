@@ -1,249 +1,307 @@
-# Running an unattended Claude delivery loop
+# Automated loops
 
-This guide describes how to let Claude build and maintain a Plenipo product while you are away:
-issue → implementation → runtime proof → pull request → independent review → revision → merge.
+How to run products on autopilot: **seven commands, one timer per loop, and a gate list that cannot
+be argued with.** This is the operator's manual. [HARNESS.md](HARNESS.md) explains *why* it is
+shaped this way; you do not need it to start.
 
-It is intentionally not a "give Claude admin and let it run" recipe. An unattended loop needs a
-durable queue, event triggers, limits, independent verification, and a way to stop it remotely.
-The outcome is a system that can work without an open terminal, not a system that can bypass the
-controls that keep the product safe.
+The design goal is a portfolio you supervise in minutes a day, in domains you do not know, without
+becoming the bottleneck on ten products at once.
 
-## What this marketplace supplies—and what it does not
+## The whole thing in one command
 
-The delivery procedures already exist:
-
-| Responsibility | Marketplace procedure |
-| --- | --- |
-| Take one shaped issue to a tested PR | `/deliver:work-next-issue` |
-| Reproduce and prove a behavioural fix | `/deliver:verify-runtime` |
-| Respond to PR review threads and failing checks | `/deliver:revise-pr` |
-| Review product PR intent without changing code | `/harness:install-github-agentic-workflows` |
-
-`work-next-issue` deliberately stops with the PR in **In Review**. The installed GitHub Agentic
-Workflow deliberately leaves a non-blocking review comment. Neither is a long-running waiter.
-
-For a fully unattended product, add a **delivery supervisor** outside the interactive Claude
-session. It runs on GitHub Actions or a dedicated, isolated runner and re-invokes Claude when the
-GitHub state changes. The supervisor owns sequencing; the marketplace skills still own the actual
-build, runtime verification, and PR-revision procedures.
-
-## The target architecture
-
-```mermaid
-flowchart LR
-    I["Ready GitHub issue"] --> B["Claude builder\nwork-next-issue"]
-    B --> P["PR with red→green and runtime evidence"]
-    P --> R["Independent gh-aw reviewer\ncomments only"]
-    R --> S["Delivery supervisor\nreads PR state"]
-    S -->|"findings or red checks"| V["Claude reviser\nrevise-pr"]
-    V --> P
-    S -->|"all gates pass"| M["Merge policy\nauto-merge or protected human review"]
-    M --> D["Done; final runtime proof"]
+```bash
+/loop 20m /plenipo:fleet
 ```
 
-The supervisor must store its state in GitHub, not in a Claude conversation:
+That is the steady state. Each tick, `fleet` looks at every product you own, decides which one is
+most starved and what it needs — build the next issue, review and merge what is waiting, sweep for
+bugs, or refill the backlog — does exactly that one thing, and writes down what it did.
 
-- GitHub Issues and the project board are the work queue.
-- A branch and PR identify the item in flight.
-- Labels and PR comments record the current loop state and terminal state.
-- CI, review threads, and the final runtime run are the evidence.
+If you only have one product, run its four loops directly instead and skip the scheduler:
 
-## Preconditions
+```bash
+/loop 20m /plenipo:deliver     # next Ready issue → a pull request
+/loop 30m /plenipo:ship        # review, gate, merge what passes
+/loop 3h  /plenipo:test        # sweep end to end, file the bugs it finds
+/loop 6h  /plenipo:define      # keep the backlog full and Ready
+```
 
-Do these once in the Networthy repository before enabling automation.
+**Why not `5m`?** A build tick usually runs longer than five minutes, and a sweep boots the whole
+stack. The interval is the *gap between ticks*, so 20 minutes for building and hours for sweeping
+keeps the token bill proportional to work done rather than to polling. Drop the interval entirely
+(`/loop /plenipo:fleet`) to let it pace itself.
 
-1. Install the `harness` and `deliver` marketplace plugins for the Claude runtime. The runner must
-   see the same `CLAUDE.md`, `AGENTS.md`, `RUNBOOK.md`, and `.claude` configuration that a local
-   session sees. Pin the marketplace revision used by automation; do not silently fetch a new skill
-   revision during a production run.
-2. Run `/deliver:install-runbook` and make its checks green. This gives Claude a repeatable startup,
-   real-request, E2E, and telemetry contract. An agent that cannot run the product has no basis for
-   opening a feature PR.
-3. Create a GitHub project with a `Ready` status and a build-order field. Each work request must be
-   a single issue with acceptance criteria, expected behaviour, and a testable definition of done.
-4. Install the product PR-intent-review workflow with
-   `/harness:install-github-agentic-workflows`. Its review is a separate, read-only checker; it
-   must never push commits or merge a PR.
-5. Protect the default branch: require pull requests, required checks, resolved threads, and fresh
-   review after a new push. Put `CLAUDE.md`, `.claude/`, `.github/`, authorization, approvals,
-   tenant isolation, audit, and secret-handling paths under `CODEOWNERS`.
-6. Give the automation a dedicated GitHub App or bot identity. Scope it to this repository and only
-   the permissions it needs. Do not run the loop using a personal access token belonging to an
-   administrator.
-7. Put the Anthropic credential in an Actions secret or a dedicated runner secret store. Never put
-   it in an issue, prompt, workflow source, log, or `CLAUDE.md`.
+## The seven verbs
 
-Claude Code supports non-interactive execution and its GitHub Action can run on issue and PR events.
-Use the current [Claude Code GitHub Actions guide](https://docs.anthropic.com/en/docs/claude-code/github-actions)
-and [CLI reference](https://docs.anthropic.com/en/docs/claude-code/cli-usage) for the current action
-version and arguments.
+That is the entire surface. Everything else in this marketplace is an internal the verbs call — you
+never type those names.
 
-## One work request, end to end
+| Verb | One tick does | How often |
+|---|---|---|
+| `/plenipo:setup` | make a repo safe to point a timer at: runbook, labels, gate scripts, branch protection, autonomy level | once per repo |
+| `/plenipo:launch` | nothing → a product with a Ready backlog. Pauses once, for the go/no-go and the name | once per product |
+| `/plenipo:deliver` | pick what deserves this tick, hand it to the build loop, journal it | 20 min |
+| `/plenipo:ship` | adversarial review, then merge only what clears every gate | 30 min |
+| `/plenipo:test` | boot it, hunt end to end, file deduplicated bug issues | 3 h |
+| `/plenipo:define` | triage friction, promote Backlog → Ready, extend the plan only if it would run dry | 6 h |
+| `/plenipo:fleet` | one tick on the one product that most needs it, across the whole portfolio | 20 min |
 
-Use an issue rather than a chat message as the entry point. For the example request, create an
-issue such as:
+Every verb ends in exactly one named state — `Success`, `No-op`, `Blocked`, `Stalled`, `Exhausted`,
+`Approval-required` — and **an error or a spent budget is never `Success`**. A tick that reports
+`No-op` because nothing needed doing is a good tick, not a wasted one.
+
+## Setup
+
+Three steps. Nothing here needs an API key, a paid GitHub feature, or a cloud account.
+
+### 1. Your machine, once
+
+Install the marketplace, then put this in each product's `.claude/settings.json` (or your user
+settings, to cover every repo). The template is
+[`plugins/plenipo/skills/setup/assets/settings.json`](plugins/plenipo/skills/setup/assets/settings.json):
 
 ```text
-Title: Detect statement accounts by account number
-
-When importing a statement, identify an existing account using its account number.
-Preserve the current behaviour when the number is absent or ambiguous.
-
-Acceptance criteria
-- An account number uniquely identifies the existing account.
-- Missing or duplicate account numbers do not attach a statement to the wrong account.
-- The import/review journey is proven end to end.
-- A regression test is observed failing before the implementation and passing after it.
+/plugin marketplace add <your-owner>/plenipo-agents
 ```
 
-Only after the issue has been shaped and marked `Ready` should the build workflow add its
-`agent:claimed` label and call Claude with a bounded prompt such as:
+```jsonc
+{
+  "enabledPlugins": {
+    "plenipo@plenipo-agents": true,   // the seven verbs
+    "harness@plenipo-agents": true,
+    "scout@plenipo-agents":   true,
+    "define@plenipo-agents":  true,
+    "shape@plenipo-agents":   true,
+    "deliver@plenipo-agents": true,
+    "steward@plenipo-agents": false   // only in the Plenipo platform repo
+  }
+}
+```
+
+**Everything on, always.** An unattended run cannot reload its own plugin set mid-flight, so a
+narrower set means a loop that stops halfway and cannot fix itself. The cost is every skill's
+description resident in context — a few thousand tokens — and nothing else until a skill runs.
+
+You also need: `gh auth login` (with the `project` scope — `gh auth refresh -s project`), Docker
+running, and the .NET 10 SDK. The loops verify all three and report `Blocked` rather than guessing.
+
+### 2. Each product repo, once
 
 ```text
-You are the Networthy delivery builder. Work only on issue #123.
-Read RUNBOOK.md, CLAUDE.md, ARCH.md, DECISIONS.md, and the issue.
-Execute /deliver:work-next-issue. Do not select another issue. Do not merge.
-End with exactly one named terminal state and leave all evidence in the PR.
+/plenipo:setup
 ```
 
-The build workflow must use a unique concurrency key for the issue. A second event for issue 123
-should resume or no-op; it must not create a second branch or PR.
+This is the step that makes autonomy safe rather than reckless. It installs ten things; the four
+that matter most:
 
-## Event design
+| What | Where | Why |
+|---|---|---|
+| `pr-gates.mjs` + `agent-gates.yml` | `.github/` | a **required status check**: the PR must carry its issue, real runtime evidence, and a regression test seen red — and must not quietly edit the spine |
+| `merge-gate.mjs` + `agent-merge.yml` | `.github/` | the one implementation of the merge policy, run both locally and on a schedule |
+| branch protection | GitHub settings | what makes the above mandatory instead of decorative |
+| the `autonomy` block | `workflow.json` | the single number deciding what may merge without you |
 
-Configure these four bounded workflows. Exact YAML changes over time, so use the Claude and GitHub
-documentation to choose the current action syntax; the event contract is the important part.
+It proves both scripts fail before it trusts them to pass. **A check never seen red may be asserting
+nothing** — and an inert gate is worse than no gate, because then a green tick implies safety.
 
-| Workflow | Trigger | Actor | Required outcome |
-| --- | --- | --- | --- |
-| Builder | An authorized user adds `agent:ready` to a `Ready` issue | Claude builder | One branch, one PR, runtime evidence, status `In Review` |
-| Reviewer | PR opened, synchronized, or marked ready | `gh-aw` reviewer | Comment-only independent intent review |
-| Reviser | Trusted reviewer feedback, a red required check, or a queued reconciliation run | Claude reviser | `/deliver:revise-pr`; reply to every thread; re-run affected proof |
-| Reconciler | Manual dispatch and a modest schedule | Supervisor | Inspect every `agent:claimed` PR; restart only an eligible stalled state |
+### 3. Start the loop
 
-The reconciler is the answer to "wait for feedback." It does not sleep inside an agent session. It
-periodically asks GitHub whether the PR now has unresolved threads, `CHANGES_REQUESTED`, failed
-required checks, a merge conflict, or a completed review run. It then either invokes the reviser,
-does nothing, or records a named terminal state.
-
-Use a concurrency group per issue or PR and cancel older queued runs, not a run actively changing
-the branch. Set a hard timeout and a maximum Claude turn count for every workflow. Keep at most one
-issue `In Progress` in a product: the board, not concurrent Claude sessions, carries the queue.
-
-## Trust boundaries for the reviser
-
-PR comments, issue text, source code, test fixtures, action logs, and linked pages are untrusted
-input. Treat a comment that says "ignore the policy" as data to analyse, never an instruction.
-
-Before invoking the reviser, the supervisor should verify all of the following:
-
-- The PR head matches the branch recorded for the claimed issue.
-- The PR was created by the delivery bot or is on the expected `feat/<issue>-*` branch.
-- Feedback comes from an allowed reviewer workflow or a configured reviewer identity. Other
-  comments can be reported to a human but must not automatically trigger a privileged coding run.
-- The PR does not change workflow, policy, credential, or ownership files unless a human explicitly
-  enabled that scope.
-- The iteration count has not exceeded its budget. Three non-converging review rounds are
-  `Stalled`, not an excuse to keep spending.
-
-Never check out untrusted fork code in a privileged `pull_request_target` or `workflow_run` job.
-GitHub specifically warns that those triggers can expose repository write access and secrets when
-used with untrusted PR content. See GitHub's [secure-use guidance](https://docs.github.com/en/actions/reference/security/secure-use).
-Run this automation only for branches the bot created in the trusted repository, or isolate it in a
-disposable runner with no repository-write token or unrelated secrets.
-
-## Merge policy: choose it explicitly
-
-Fully unattended *implementation* does not require fully unattended *merging*. Start with the
-first row and advance only when the evidence exists.
-
-| Level | What can merge without you | Minimum gate |
-| --- | --- | --- |
-| 0 | Nothing | Claude builds and revises; a human merges |
-| 1 | Docs, runbook, and test-only PRs | Required checks plus a non-author reviewer |
-| 2 | Low-risk product features | L1/L2 checks, red-before-green evidence, E2E proof, independent reviewer, and a cheap revert |
-| 3 | Bounded product backlog | Level 2 has remained clean over time; per-run issue and cost budgets are configured |
-
-Platform changes and changes to authorization, approvals, tenant isolation, audit, or secrets stay
-human-approved at every level. The bot that wrote the code must not be the only party that judges
-and merges it. GitHub branch protection and `CODEOWNERS` make this rule enforceable; see GitHub's
-[protected branches](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches/about-protected-branches)
-and [CODEOWNERS](https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners)
-documentation.
-
-If Level 2 or 3 is enabled, make auto-merge conditional on all required checks, no unresolved
-threads, the independent review having completed, and an explicit `agent:merge-approved` label
-written only by the supervisor after it verifies those facts. The writer workflow may never apply
-that label.
-
-## Claude policy file
-
-Keep the durable rules in `CLAUDE.md`, not in an event prompt. A useful automation section looks
-like this:
-
-```markdown
-## Unattended delivery
-
-- Work only on the issue and PR provided by the supervisor.
-- Read RUNBOOK.md before running or changing code.
-- Do not change CI, workflows, agent policy, credentials, branch protection, or CODEOWNERS.
-- Do not merge; only the supervisor may request an eligible auto-merge.
-- Keep one issue in flight. Do not create a second PR for the issue.
-- Prove behavioural changes through the real request or UI path and record the exact evidence.
-- A regression test must be observed red before the change and green after it.
-- After three non-converging attempts, stop as Stalled and leave the reproduction in the issue.
+```bash
+/loop 20m /plenipo:fleet
 ```
 
-The supervisor prompt should name the issue/PR and the procedure to run, but it must not repeat or
-weaken these rules. A repository policy survives a fresh runner, a resumed Claude session, and
-context compaction; conversational instructions do not.
+`/loop` runs inside an open Claude Code session. To survive a reboot, schedule the headless form
+instead — one scheduled task per verb, staggered:
 
-## Remote controls and observability
+```bash
+claude -p "/plenipo:fleet" --permission-mode acceptEdits
+```
 
-Before you walk away, verify each of these controls works:
+Check the flags against `claude --help` on your version before relying on them; they move.
 
-| Control | Test | Purpose |
-| --- | --- | --- |
-| Pause | Remove `agent:ready` or add `agent:paused` | No new builder or reviser run starts |
-| Stop now | Disable the Actions workflow or revoke the bot's write token | Stops new writes immediately |
-| Cancel | Cancel the current workflow run | Ends a runaway run without waiting for its timeout |
-| Audit | Open the issue and PR timeline | Shows every action, prompt trigger, commit, check, and terminal state |
-| Recover | Run the reconciler with `workflow_dispatch` | Re-evaluates persisted GitHub state without relying on a chat transcript |
+## What a night actually looks like
 
-Send the supervisor's terminal state and a link to the issue or PR to a channel you actually read.
-Alert on `Blocked`, `Stalled`, `Exhausted`, and any failed runtime proof; do not alert only on
-successes. Record the precise reason in the issue so recovery does not begin by guessing.
+```text
+02:00  fleet → networthy  rule 5  deliver   #128 → PR #131 (runtime evidence attached)
+02:21  fleet → casewise   rule 7  define    ready 1→4, promoted #61 #62, epic 3 added (SPEC §4.2)
+02:44  fleet → networthy  rule 2  ship      #131 reviewed → agent:approved → merged (level 2)
+03:05  fleet → networthy  rule 6  test      swept 4a91c2f: 2 bugs filed, 1 at p0 (approval gate)
+03:28  fleet → networthy  rule 3  deliver   p0 bug #134 → PR #135
+03:52  fleet → casewise   rule 4  ship      3 PRs open, review is the constraint
+```
 
-## Prove the automation before relying on it
+Nobody was awake. Six ticks, one product booted at a time, every decision recorded in `TICKS.md` and
+`FLEET-RUN.md` — on disk, because the conversation is gone by morning and compaction erases the
+rest.
 
-Treat the automation itself as production code. Enable it in this order:
+### The loop is closed
 
-1. **Dry run:** use a disposable issue and require the builder to report its intended commands
-   without pushing. Confirm the correct issue is selected and no other issue changes.
-2. **PR-only run:** allow one known small change to create a PR, but keep auto-merge disabled.
-   Confirm the PR includes runtime evidence and the expected board transition.
-3. **Review repair:** place a controlled, valid review finding on the PR. Confirm the reviewer
-   triggers exactly one reviser run, the test is re-proven, and the response addresses the thread.
-4. **Negative security test:** use an unapproved commenter or a fork PR. Confirm it cannot trigger
-   a privileged Claude run or access secrets.
-5. **Merge test:** only at the chosen autonomy level, run a low-risk PR through all merge gates and
-   verify a failed check, unresolved thread, or missing reviewer blocks the merge.
+This is the part that makes it self-sustaining rather than a queue that drains:
 
-The review-repair test is especially important: a monitor that has never been observed handling
-feedback is not proven to close the loop.
+```text
+     SPEC.md deferred scope ─┐
+   friction from real use ───┼──▶ define ──▶ Ready issues ──▶ deliver ──▶ pull request
+        bugs from sweeps ────┘                                               │
+              ▲                                                              ▼
+              └──────────── test ◀──── merged ◀──── ship (gates + review) ───┘
+```
 
-## Operational checklist
+Each arrow is a GitHub object, never a chat message: issues, labels, PR bodies, board columns. That
+is deliberate — the agent that arrives next has no memory of the one before it, so if a fact matters
+after this tick, it is in GitHub or it does not exist.
 
-- [ ] The product has `RUNBOOK.md`, integration coverage, and a working runtime/E2E command.
-- [ ] The issue queue, build order, and `Ready` status are configured.
-- [ ] Claude's repository rules and marketplace revision are present on the runner.
-- [ ] The builder, reviewer, reviser, and reconciler workflows have separate responsibilities.
-- [ ] Branch protection, required checks, CODEOWNERS, and the bot identity were tested.
-- [ ] The automation only acts on trusted bot branches and trusted review feedback.
-- [ ] Per-issue concurrency, maximum turns, timeout, retry, and cost limits are set.
-- [ ] The remote pause, cancellation, alert, and recovery paths were exercised.
-- [ ] The current merge-autonomy level is recorded by a human in `workflow.json`.
+**Bugs become work automatically.** `test` delegates the sweep to an agent that *cannot edit code*,
+then files each finding with a stable fingerprint (`bug/approvals-write-not-gated`), a reproduction,
+and a priority set by consequence — tenant leaks and dead approval gates at p0. Tomorrow's `deliver`
+tick picks p0 bugs up **ahead of features**. Re-running the sweep does not refile last night's bug,
+and cannot reproduce it any more? It says so and leaves the issue open — a fix you cannot see is not
+a fix.
 
-When these conditions are true, you can be away from the computer while Claude moves a bounded
-product queue forward. It still stops honestly when the loop reaches a human-only decision, a
-security boundary, or a non-converging requirement.
+**Features keep coming, but cannot be invented.** `define` may only add capabilities with
+*provenance*: a line in `SPEC.md` that was deliberately deferred, or an enhancement issue somebody
+hit while using the product. When those run out it reports `Stalled` — "this product has built
+everything its spec asked for" — and stops. That is the honest answer, and the one thing an
+unattended loop must never paper over with plausible-sounding make-work.
+
+## Review, approve, merge
+
+The rule everything follows: **the agent that wrote the change never approves it.** The same model
+producing and grading is the *self-approving loop*, and the grade drifts up while quality stalls.
+
+So there are two planes, and they never share a context:
+
+| | Writes code | Judges code |
+|---|---|---|
+| **Where** | your machine (needs Docker to prove anything at runtime) | a fresh session's `pr-reviewer` agent, or GitHub Actions |
+| **Can** | branch, implement, test, open a PR | read, comment, label, block |
+| **Cannot** | merge, approve, label itself approved | edit, push, fix what it found |
+
+### The gates
+
+A merge happens because a **list of checks passed**, not because a reviewer was enthusiastic. The
+review can only ever *block*.
+
+| Enforced by | Runs | Checks |
+|---|---|---|
+| `pr-gates.mjs` | CI, required check on every push | `closes_an_issue` · `has_runtime_evidence` · `has_red_before_green` · `spine_untouched` |
+| `merge-gate.mjs` | `/plenipo:ship`, and `agent-merge.yml` every 15 min | `is_loop_pr` · `not_draft` · `checks_exist` · `checks_green` · `mergeable` · `no_blocking_review` · `agent_approved` · `no_human_hold` · `main_is_green` · `level_permits` · `under_cap` |
+
+Two of those are worth understanding, because they are what makes the arrangement honest:
+
+- **`checks_exist`** — a repo with no CI can never auto-merge. If nothing ran, green means nothing.
+- **`spine_untouched`** — fires when a diff *removes or edits* a line touching `HasQueryFilter`,
+  `RequiresApproval`, `Permissions.`, `AddPlenipoRole`, or anything in `.github/`, `CODEOWNERS`,
+  `nuget.config`, `appsettings*.json`. **Adding** a query filter is ordinary feature work;
+  **deleting** one is a tenant-isolation change. Override needs the `human-approved` label — a human
+  act, recorded on the PR. This is content-based on purpose: a path rule would either block every
+  migration or catch nothing.
+
+Merging is never a bare `gh pr merge`. It is `merge-gate.mjs --merge`, which re-evaluates every gate
+immediately before touching anything — so a check that turned red after the review still blocks.
+
+### Earning autonomy
+
+One number in `workflow.json`, **written by you, never inferred by an agent**:
+
+| Level | May merge | You get here by |
+|---|---|---|
+| **0** | nothing — it reviews and labels, you merge | the default for every new repo |
+| **1** | docs, tests, the runbook | the runbook is installed and rungs 1–3 are green |
+| **2** | product features, on an adversarial approval | golden evals exist, and level 1 was clean for a stretch |
+| **3** | unattended, inside a revert budget | level 2 was clean, and you said so in words |
+
+Start at 0 for a week and read the reviews it would have posted. The way out of the loop is a
+**stronger verifier**, never a bigger batch: shipping in large chunks does not remove review, it
+defers and enlarges it, and it costs the loop the one thing it needs even with nobody watching —
+attribution, so a red check points at a cause.
+
+**Two things never graduate**, at any level, for any product with any track record:
+
+- **Anything in the Plenipo platform.** A bad product merge hurts one product; a bad platform merge
+  hurts every product built on it.
+- **The spine** — RBAC before the model, approval-first writes, tenant isolation, append-only
+  audit, write-only secrets. Those five *are* the platform's value. A product that can merge a
+  change to them unsupervised has already lost the thing it was built on.
+
+### Do not add GitHub's auto-merge
+
+It waits only for conditions you explicitly configured, so a PR can merge while a review is still
+running. And GitHub's own AI review leaves **comments only** — it never Approves, so it satisfies no
+required-reviewers rule. Useful as a second pair of eyes; useless as a gate.
+
+## Ten products, one machine
+
+`fleet.json` at the directory holding your repos — paths only, so no policy value is ever
+duplicated:
+
+```json
+{ "products": [ { "name": "networthy", "path": "networthy" },
+                { "name": "casewise",  "path": "casewise" } ] }
+```
+
+Everything else is read from each product's own `workflow.json`. Two properties keep it honest
+overnight: it serves the **least-recently-served** product on ties, so a noisy repo cannot starve a
+quiet one; and it **quarantines** a product after three consecutive failed ticks, naming it in every
+report afterwards. A broken repo consuming every tick until morning is the most expensive failure
+available here, and it looks exactly like activity.
+
+Ask for a status instead of a tick and it prints the whole portfolio — Ready, in flight, open PRs,
+p0 bugs, autonomy level, last swept, quarantined — and touches nothing. That report is your daily
+supervision, and it is the honest way to start: watch what it *would* have chosen for a few days
+before letting it choose.
+
+## When you want it to stop
+
+| Lever | Effect | Scope |
+|---|---|---|
+| `human-hold` label on a PR | that PR never merges | one PR |
+| `human-approved` label | overrides `spine_untouched`, deliberately | one PR |
+| `AGENT_AUTOMERGE=off` repo variable | the scheduled merger no-ops, no commit needed | one repo |
+| `autonomy.level: 0` | nothing merges anywhere in that repo | one repo |
+| stop the `/loop` | everything stops; the board and journals hold the state | everything |
+
+Nothing is lost by stopping. Every piece of state lives in GitHub or in a journal file, so the next
+tick — tonight or next month — reads where things stand instead of asking you.
+
+## What to watch weekly
+
+The metric is **cost per accepted change**: tokens spent divided by changes that survived
+verification. Not tokens, not PRs opened, not tests passing. Benchmarks flatter agents — PRs that
+pass them merge at a rate 24 points lower than implied — so the only score is what survived.
+
+Five minutes, once a week:
+
+1. `/plenipo:fleet` in report mode — anything quarantined? any product not served in days?
+2. Open PRs older than two days — is review the constraint, or is a gate stuck?
+3. Skim two merged PRs: was the runtime evidence real, or a heading with prose under it?
+4. Any `agent:blocked` or `needs-human` issue is a decision waiting on you. That queue *is* your
+   job.
+5. Did any product report `Stalled`? A backlog that honestly ran out is a milestone, not a fault.
+
+## Honest status
+
+This document argues for a system; here is what is actually proven about it, at the level it
+deserves:
+
+- **The gate scripts work** — L1. Both were run against fixtures and observed failing before
+  passing: the evidence gates on an empty body, the spine guard on a diff deleting a
+  `HasQueryFilter`, and the merge gate refusing at every autonomy level including a missing config.
+- **The marketplace is structurally sound** — L1/L2. `node eng/validate-marketplace.mjs` exits 0,
+  and it now catches two classes of defect it previously could not: a `/plugin:skill` reference to a
+  skill that does not exist, and a backticked relative path that does not resolve. Both were seen
+  red against real stale references in this repo before being fixed.
+- **The verbs have never driven a real product end to end** — this is the largest gap. The dispatch
+  chain, the tick ordering and the fleet scheduling are **L4**: reasoned, internally consistent, and
+  unobserved. Run one product at level 0 for a week before believing any of it.
+- **`agent-review.yml` is unverified** — it depends on Claude Code CLI flags that move, and it is
+  the one optional piece. The local reviewer needs no secret and no bill; prefer it.
+- **Building needs your machine.** Runtime proof means booting the product under Docker, so the
+  build and sweep loops are local. Review and merge keep working in the cloud while the machine is
+  off, but no new code gets written.
+- **The instructions in every skill are advisory.** No tool enforces markdown. Anything that must
+  be enforced is in CI or in a gate script — which is exactly why the load-bearing parts of this
+  design are two node files with exit codes rather than three paragraphs of prose.
+
+---
+
+> **Build the loop. Stay the engineer.**

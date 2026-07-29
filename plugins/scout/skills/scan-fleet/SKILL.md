@@ -9,7 +9,6 @@ description: >
   products, finding stale architecture docs. DO NOT USE FOR: ranking new industries (that is
   ../find-industry) or researching one industry's competitors (/define:research-industry).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Scan the fleet

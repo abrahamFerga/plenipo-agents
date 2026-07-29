@@ -8,10 +8,9 @@ description: >
   then mark each backlog item Ready once its shape is settled.
   USE FOR: writing ARCH.md and the ADRs before any code exists, deciding what belongs in the module
   versus a host seam, gating every write, drawing the module's component view. DO NOT USE FOR:
-  deciding what the product does or ordering its epics (/define:plan-system), or authoring module
+  deciding what the product does or ordering its epics (/define:plan-product), or authoring module
   code member by member (/deliver:plenipo-module-sdk).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Design the product
@@ -49,7 +48,7 @@ arrives when `/deliver:work-next-issue` builds it.
 
 ## Stop Signals
 
-- **No PLAN.md** → `/define:plan-system` first. Shaping an unplanned product invents scope.
+- **No PLAN.md** → `/define:plan-product` first. Shaping an unplanned product invents scope.
 - **The repo has no `Plenipo.*` package references** → there is no platform to delta against; either
   scaffold it with `/deliver:scaffold-product` or this is not a Plenipo product.
 - **You are choosing what the product does** → that is the define loop, not this one.
@@ -305,6 +304,6 @@ ADR"* list so the next agent does not re-litigate the platform.
 - `plenipo-runbook` — the test ladder your design will later be proved against, including the golden
   evals that guard prompt-shaped assets.
 - `loop-discipline` — the ladder level and terminal states every claim here is graded on.
-- `/define:plan-system` — produces the `PLAN.md` this consumes.
+- `/define:plan-product` — produces the `PLAN.md` this consumes.
 - `/deliver:plenipo-module-sdk` — turns this design into module code, member by member.
 - `/deliver:work-next-issue` — picks up the items this skill marked Ready.

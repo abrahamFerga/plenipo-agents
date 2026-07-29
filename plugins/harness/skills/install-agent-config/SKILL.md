@@ -11,7 +11,6 @@ description: >
   DO NOT USE FOR: writing the run/test contract itself (/deliver:install-runbook), which AGENTS.md
   then points at.
 license: MIT
-disable-model-invocation: true
 ---
 
 # Install cross-tool agent configuration

@@ -31,6 +31,7 @@ const listDirs = (p) =>
 
 /** Flat scalars and folded (>) blocks only — anything more exotic in skill frontmatter is a smell. */
 function frontmatter(text) {
+  // Normalize CRLF before parsing, so the generated index works in CRLF checkouts as well as CI.
   const normalized = text.replace(/\r\n/g, '\n');
   if (!normalized.startsWith('---')) return null;
   const end = normalized.indexOf('\n---', 3);

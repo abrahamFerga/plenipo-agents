@@ -11,7 +11,6 @@ description: >
   or the board (/deliver:scaffold-product), moving cards out of Backlog (/shape:design-product),
   implementing an issue (/deliver:work-next-issue).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Sync the backlog
@@ -149,9 +148,15 @@ filed them.
 
 ## Orphans — the gap this closes
 
-An orphan is an issue carrying a `plenipo-key` whose key no longer appears in `PLAN.md`. Left alone
-it is worse than harmless: it sits in `Ready`, and `/deliver:work-next-issue` picks it up and builds
-a capability the product deliberately dropped.
+An orphan is an issue carrying an **`epic/` or `feature/`** `plenipo-key` whose key no longer appears
+in `PLAN.md`. Left alone it is worse than harmless: it sits in `Ready`, and
+`/deliver:work-next-issue` picks it up and builds a capability the product deliberately dropped.
+
+**Only those two prefixes are yours.** Other loops key their issues in the same namespace —
+`/plenipo:test` files defects as `bug/<surface>-<symptom>` — and those never appear in `PLAN.md` by
+design. Sweeping them as orphans would close every open bug in the repo on the next sync, which is
+the most destructive thing this skill could plausibly be talked into doing. Match the prefix, not
+merely the presence of a key.
 
 | Orphan's state | Action | Contributes |
 |---|---|---|
@@ -297,8 +302,8 @@ around by writing a different value.
   because the plan was re-synced destroys the one signal `/deliver:work-next-issue` depends on.
 - **No invented scope.** Every issue traces to `PLAN.md`; every criterion to `SPEC.md`. Missing
   input is a `Blocked` pointing at `../plan-product`, not a plausible-sounding issue body.
-- **Touch only what you own.** An issue with no `plenipo-key` is a human's. Do not edit, label,
-  close, or board it.
+- **Touch only what you own.** An issue with no `plenipo-key` is a human's, and one keyed `bug/…`
+  belongs to the sweep loop. Do not edit, label, close, or board either.
 - **Public-repo hygiene.** Bodies are world-readable. Secret-scan before publishing; never paste
   tenant data, credentials, or real customer names.
 - **This is an L2 projection, not proof of anything.** A populated board says the plan was

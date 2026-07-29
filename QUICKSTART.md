@@ -42,6 +42,7 @@ Paste this into your product's `.claude/settings.json`:
     "plenipo-agents": { "source": { "source": "github", "repo": "abrahamFerga/plenipo-agents" } }
   },
   "enabledPlugins": {
+    "plenipo@plenipo-agents": true,     // the seven verbs
     "harness@plenipo-agents": true,     // always on
     "deliver@plenipo-agents": true,     // the coding loop
     "scout@plenipo-agents": false,
@@ -57,6 +58,9 @@ For Codex and Copilot CLI, the install commands above already select the same pa
 
 The examples below use Claude Code's `/<plugin>:<skill>` syntax. In Codex, mention the same skill as
 `$<plugin>:<skill>`; in Copilot CLI, invoke it as `/<skill>` or select it from the skill picker.
+
+That's the whole setup. Turn everything on instead if you intend to leave a timer running — see
+[AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.md).
 
 ## 3. Do the one thing that saves the most time
 
@@ -79,9 +83,24 @@ dotnet test <Product>.slnx                      # prove it
 
 ## What to say, depending on what you want
 
+Seven verbs cover the whole lifecycle, and each one is a single bounded tick you can put on a timer:
+
 | You want… | Say this |
 |---|---|
-| the next feature built | `/deliver:work-next-issue` |
+| a repo ready to run unattended | `/plenipo:setup` |
+| a whole new product, from an industry | `/plenipo:launch` |
+| the next feature built | `/plenipo:deliver` |
+| the open PRs reviewed and merged | `/plenipo:ship` |
+| the product swept for bugs, filed as issues | `/plenipo:test` |
+| the backlog kept full | `/plenipo:define` |
+| all of it, across every product, forever | `/loop 20m /plenipo:fleet` |
+
+Underneath, those call the skills below — you can also invoke one directly when you know exactly what
+you want:
+
+| You want… | Say this |
+|---|---|
+| one issue implemented, nothing else | `/deliver:work-next-issue` |
 | to know if a change really works | `/deliver:verify-runtime` |
 | the whole system swept for bugs | *"use the e2e-tester agent"* |
 | the product made nicer to use | *"use the product-improver agent"* |

@@ -9,7 +9,6 @@ description: >
   blocks a feature. DO NOT USE FOR: consuming a platform release and unwinding shims
   (../upgrade-platform/SKILL.md), or triaging the queue (/steward:triage-requests).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Request a platform change

@@ -1,0 +1,9 @@
+{
+  "name": "plenipo",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": {
+    "name": "Abraham Fernandez"
+  },
+  "description": "The front door. Seven loop verbs that drive every other plugin so you never have to remember the rest: setup (make a repo loop-ready), launch (nothing to a Ready backlog), define (keep the backlog full), deliver (next issue to a PR), test (sweep end to end and file the bugs), ship (review, gate, merge), fleet (one tick across many products). Each verb is one bounded tick with a named terminal state, so `/loop <interval> /plenipo:<verb>` runs it unattended. Enable this plus every other plugin when you intend to run unattended."
+}

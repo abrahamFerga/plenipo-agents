@@ -11,9 +11,8 @@ description: >
   permission before any code exists, turning spec roles into concrete grants, listing what the design
   loop still has to decide. DO NOT USE FOR: writing the spec itself (../synthesize-spec/SKILL.md),
   publishing epics as GitHub issues on a board (../sync-backlog/SKILL.md), or pinning versions,
-  schemas, solution layout and ADRs (/shape:design-architecture).
+  schemas, solution layout and ADRs (/shape:design-product).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Plan the product
@@ -54,7 +53,7 @@ no compiler for a plan; say that rather than implying one ran.
 - **No SPEC.md, or no must-have list in it** → `../synthesize-spec/SKILL.md` first. Planning an
   unwritten spec produces epics nobody agreed to.
 - **Choosing packages, schemas, project layout, or writing ADRs** → that is the design loop,
-  `/shape:design-architecture`. A plan that pins a version has stolen a decision and left no ADR.
+  `/shape:design-product`. A plan that pins a version has stolen a decision and left no ADR.
 - **Epics already exist and you want issues on a board** → `../sync-backlog/SKILL.md`.
 - **About to plan work inside the Plenipo platform repo** → wrong repo. A missing platform primitive
   is an open question with a named decider, never an epic here.
@@ -231,7 +230,7 @@ dead; do not add one, suggest one, or check for one.
   accepted spec, or the capability lists are missing.
 - `../sync-backlog/SKILL.md` — publishes these epics and their capabilities as GitHub issues on the
   project board. **Load when:** a human has accepted PLAN.md.
-- `/shape:design-architecture` — answers the open questions and turns this plan into ARCH.md plus
+- `/shape:design-product` — answers the open questions and turns this plan into ARCH.md plus
   ADRs.
 - `plenipo-platform` — the "do not rebuild" table step 1 subtracts against, the seven host seams, and
   the invariants an epic must never plan around.

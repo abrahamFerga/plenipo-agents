@@ -11,7 +11,6 @@ description: >
   (../find-industry), taking stock of repos already built (../scan-fleet), or the competitor and
   feature matrix that follows a go decision (/define:research-industry).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Opportunity brief

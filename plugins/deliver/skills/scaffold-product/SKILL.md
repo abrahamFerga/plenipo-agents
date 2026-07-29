@@ -11,7 +11,6 @@ description: >
   already exists (`../plenipo-module-sdk/SKILL.md`), or fitting the run-and-prove surface onto a
   repo that already has the skeleton (`../install-runbook/SKILL.md`).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Scaffold a product

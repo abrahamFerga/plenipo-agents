@@ -12,7 +12,6 @@ description: >
   DO NOT USE FOR: turning the findings into a specification (../synthesize-spec) or deciding which
   vertical to enter in the first place (/scout:find-industry).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Research an industry

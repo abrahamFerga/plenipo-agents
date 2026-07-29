@@ -9,9 +9,8 @@ description: >
   anything the platform already supplies.
   USE FOR: writing or re-scoping a product spec, cutting v1 down to what ships, sketching the shipped
   role baselines. DO NOT USE FOR: the competitive landscape (../research-industry), epics and build
-  order (../plan-system), or technology, layout and data-model decisions (/shape:design-architecture).
+  order (../plan-product), or technology, layout and data-model decisions (/shape:design-product).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Synthesize the spec
@@ -47,8 +46,8 @@ it on).
 
 - **No research artifact** → `../research-industry/SKILL.md`. Specifying from memory invents vendors.
 - **The vertical isn't actually chosen** → `/scout:find-industry`.
-- **SPEC.md exists and is accepted** → epics and build order are `../plan-system/SKILL.md`.
-- **You are choosing technologies, project layout, or the data model** → `/shape:design-architecture`.
+- **SPEC.md exists and is accepted** → epics and build order are `../plan-product/SKILL.md`.
+- **You are choosing technologies, project layout, or the data model** → `/shape:design-product`.
   The spec names *what* and *which seam*; it never names a library, a table, or a class.
 
 ## Inputs
@@ -226,7 +225,7 @@ The human accepting the spec is `L5`, and it is the only signal that actually cl
 - **Do not name the product `the-<something>`.** The old prefix convention is dead — do not apply it,
   suggest it, or validate against it.
 - **No technology in the spec.** No library, no table name, no class name, no cloud service. If a
-  choice feels forced, it is an open question for `/shape:design-architecture`.
+  choice feels forced, it is an open question for `/shape:design-product`.
 
 ## Common Pitfalls
 
@@ -246,7 +245,7 @@ The human accepting the spec is `L5`, and it is the only signal that actually cl
 
 - `../research-industry/SKILL.md` — produces the input this consumes. **Load when:** there is no
   `research/<industry>.md`.
-- `../plan-system/SKILL.md` — turns this spec into epics, build order, and the module list.
+- `../plan-product/SKILL.md` — turns this spec into epics, build order, and the module list.
   **Load when:** the exit check passes and a human has accepted the spec.
 - `plenipo-platform` — the freebie list, the seam list, and the invariants this skill cuts against.
   **Load when:** unsure whether a capability is yours to build.

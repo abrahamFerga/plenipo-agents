@@ -10,7 +10,6 @@ description: >
   DO NOT USE FOR: doing a single phase's work (invoke that phase's command directly), or grading
   evidence in the abstract (loop-discipline).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Conduct the pipeline
@@ -75,6 +74,7 @@ stage-by-stage enabling was self-defeating for exactly this reason.
 
 ```json
 "enabledPlugins": {
+  "plenipo@plenipo-agents": true,
   "harness@plenipo-agents": true,
   "scout@plenipo-agents":   true,
   "define@plenipo-agents":  true,
@@ -83,9 +83,9 @@ stage-by-stage enabling was self-defeating for exactly this reason.
 }
 ```
 
-The cost is small and bounded: only each skill's ~100-token `description` is resident, and every
-action skill sets `disable-model-invocation: true`, so its body costs nothing until invoked. Trading
-that for a run that never has to stop and reconfigure itself is the right trade.
+The cost is small and bounded: only each skill's `description` is resident — a few thousand tokens for
+the whole set — and no skill body costs anything until it is invoked. Trading that for a run that never
+has to stop and reconfigure itself is the right trade.
 
 Narrower sets are for narrower work — `harness` + `scout` to choose a vertical, `harness` + `deliver`
 for a long delivery stretch. Choose the set for the run you are about to make, then **do not change
@@ -101,7 +101,7 @@ it until the run ends**.
 | 4 | Ground | deliver | `/deliver:scaffold-product` → `/deliver:install-runbook` | `PLAN.md` | repo + board, the host, `RUNBOOK.md`, the E2E fixture | `dotnet build <Product>.slnx` and `dotnet test tests/<Product>.IntegrationTests` both exit 0, and `/harness:validate-product` exits 0 (L1+L2) |
 | 5 | Backlog | define | `/define:sync-backlog` | `PLAN.md` + the repo | epic and feature issues on the board | the board returns ≥1 item and every epic has ≥1 feature under it (L1) |
 | 6 | Design | shape | `/shape:design-product` | `SPEC.md`, `PLAN.md` | `ARCH.md`, `DECISIONS.md`, cards moved to Ready | both files exist, ≥1 item is `Ready`, every non-default choice has an ADR (L2) |
-| 7 | Build | deliver | `/deliver:work-next-issue` — repeat | one `Ready` issue | a branch, a PR, a merged commit | the PR is merged and the issue closed (`gh pr view --json state,mergedAt`) (L1) |
+| 7 | Build | deliver | `/deliver:work-next-issue` — repeat | one `Ready` issue | a branch and an open PR | a PR exists carrying runtime evidence and the card is `In Review` (L1). **Merging is not this phase's** — `/plenipo:ship` or a human does it, under the recorded autonomy level |
 | 8 | Prove | deliver | `/deliver:verify-runtime` | the merged change | a regression test + runtime evidence | rungs 1–3 green; the test seen **red before, green after**; an AG-UI turn ends `RUN_FINISHED` with no `RUN_ERROR` (L1+L3) |
 
 **Phase 4 sits inside the definition loop on purpose.** Issues need a repo, so the product must be
@@ -118,14 +118,13 @@ Everything in the Command column is a **hand-off, not a summary**. Do not read a
 procedure held alongside your own context, executed at half fidelity, with two sources of truth for
 one job.
 
-- If the harness lets you invoke a named skill directly, invoke it by its exact name and let it own
-  the phase.
-- If it does not — action skills set `disable-model-invocation: true`, which makes them
-  user-invocable — **print the literal command on its own line and stop**. That pause is
-  `Approval-required`, a legitimate terminal state, not a failure. The run resumes when the user runs
-  it.
-- If the owning plugin is disabled, you are `Blocked`. You are not licensed to improvise the phase
-  from memory.
+- **Invoke each phase's skill by its exact name and let it own the phase.** Every skill in the Command
+  column is model-invocable precisely so an unattended run can call it — that is the difference
+  between conducting a pipeline and narrating one.
+- **If a skill genuinely cannot be invoked** — the plugin is disabled, or it is one of the deliberately
+  human-fired operations — **print the literal command on its own line and stop.** That pause is
+  `Approval-required`, a legitimate terminal state, not a failure; the run resumes when the user runs
+  it. You are never licensed to improvise the phase from memory instead.
 
 The only work you do yourself is: the pre-flight checks, running each exit-condition command, reading
 the board, and appending the journal. **That list is exhaustive.** If you find yourself drafting

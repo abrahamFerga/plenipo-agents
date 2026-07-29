@@ -11,7 +11,6 @@ description: >
   (/define:sync-backlog), deciding architecture or moving cards Backlog → Ready (the `shape` loop),
   or debugging behaviour that has no issue behind it (`../verify-runtime`).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Work the next issue
@@ -158,10 +157,30 @@ auto-merge. Do not wait for them, do not poll for them, and never report `Succes
     gh pr create --base "$DEFAULT_BRANCH" --title "<type>: <issue title>" --body-file pr-body.md
     ```
 
-    The body carries, in this order: what changed and why · `Closes #<n>` · the runtime evidence from
-    step 8 (command in, output out) · the regression test, named, with red-then-green stated · the
-    ladder level each claim actually rests on. Without `Closes #<n>` the issue never closes and the
-    board rots.
+    **The body is parsed, not just read.** A repo prepared by `/plenipo:setup` runs
+    `.github/scripts/pr-gates.mjs` as a required check, and it fails the PR when the envelope, the
+    `Closes` line, or either heading below is missing — so this shape is a contract, not a convention:
+
+    ```markdown
+    <!-- plenipo-agent kind=handoff from=<repo> ref=<repo>#<n> status=open -->
+
+    What changed, and why — one paragraph.
+
+    Closes #<n>
+
+    ## Runtime evidence
+
+    The exact request exercised and the exact output observed, verbatim from step 8.
+
+    ## Regression test
+
+    `<TestClass>.<TestName>` — seen **red** against the unfixed code, **green** after. The ladder
+    level each claim above actually rests on: L1 for exit codes, L3 for what was observed running,
+    L4 for anything concluded by reading.
+    ```
+
+    Without `Closes #<n>` the issue never closes and the board rots; without the two headings the PR
+    cannot merge, by design — the check exists because "tests pass" is not evidence a feature works.
 
 11. **Move the card to In Review**, unassign nothing, and report the terminal state. Stop. Do not
     merge your own PR — the maker is not the approver.

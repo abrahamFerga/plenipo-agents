@@ -31,6 +31,7 @@ const MAX_REFERENCE_LINES = 600;
 // Deliberately not a YAML parser: skill frontmatter is a flat map of scalars and
 // folded (>) blocks. Anything more exotic is itself a smell.
 function readFrontmatter(text) {
+  // Normalize CRLF before parsing; CI blobs are LF, but contributors commonly use CRLF checkouts.
   const normalized = text.replace(/\r\n/g, '\n');
   if (!normalized.startsWith('---')) return { fm: null, bodyOffset: 0 };
   const end = normalized.indexOf('\n---', 3);
@@ -229,6 +230,31 @@ for (const { path } of allSkills) {
           err(path, `link "${target}" escapes the plugin root — it will not exist once the plugin is installed on its own`);
         }
       }
+    }
+  }
+}
+
+// ── 3b. Skill references must resolve to a skill that exists ──────────────────
+// Now that loop-body skills are model-invocable, a dangling `/plugin:skill` is not a documentation
+// nit: an agent following it invokes nothing and silently improvises the phase instead. Backticked
+// paths are checked too — section 3 only sees markdown links, and `../x/SKILL.md` in backticks was
+// exactly where a batch of stale names survived.
+const known = new Set(allSkills.map(({ plugin, skill }) => `${plugin}:${skill}`));
+
+for (const { path, plugin, dir } of [...allSkills, ...allAgents.map((a) => ({ ...a, dir: dirname(a.path) }))]) {
+  const text = readFileSync(path, 'utf8');
+
+  for (const m of text.matchAll(/(^|[\s(`"'])\/([a-z][a-z0-9-]*):([a-z][a-z0-9-]*)/g)) {
+    const [, , targetPlugin, targetSkill] = m;
+    if (!onDisk.has(targetPlugin)) continue; // not a plugin reference at all
+    if (!known.has(`${targetPlugin}:${targetSkill}`)) {
+      err(path, `references /${targetPlugin}:${targetSkill}, which is not a skill in this marketplace`);
+    }
+  }
+
+  for (const m of text.matchAll(/`(\.\.?\/[^`\s]*?SKILL\.md)`/g)) {
+    if (!existsSync(join(dir ?? dirname(path), m[1]))) {
+      err(path, `backticked path "${m[1]}" does not resolve — it will be a dead end at runtime`);
     }
   }
 }

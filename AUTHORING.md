@@ -58,7 +58,14 @@ disable-model-invocation: true  # action skills only — see below
 | Kind | Setting | Cost | Examples |
 |---|---|---|---|
 | **Knowledge / reference** — Claude should reach for it while working | omit `disable-model-invocation` | description is always-on when the plugin is enabled | `plenipo-platform`, `plenipo-runbook`, `loop-discipline`, `plenipo-module-sdk` |
-| **Action / phase / ops** — a human fires it deliberately | `disable-model-invocation: true` | **zero** until invoked as `/<plugin>:<skill>` | everything that mutates, scaffolds, or is a pipeline phase |
+| **Loop body** — a `plenipo` verb or the conductor must be able to *call* it | omit `disable-model-invocation` | description always-on | `work-next-issue`, `sync-backlog`, `design-product`, `scaffold-product`, every `plenipo` verb |
+| **Human-fired op** — irreversible, or a decision only a person should start | `disable-model-invocation: true` | **zero** until invoked as `/<plugin>:<skill>` | `upgrade-platform`, the `steward` set |
+
+**The loop-body category is not a style choice; it is a hard constraint.** A skill with
+`disable-model-invocation: true` is absent from the model's skill list entirely, so **no skill can
+invoke it** — only a user typing the command (or `/loop` firing it) can. Any skill that an automated
+tick has to call must therefore omit the flag, and must earn that by being **idempotent, re-entrant,
+and willing to stop** rather than improvise when its input artifact is missing.
 
 Every action skill also names its **terminal states** near the top — which of `Success`, `No-op`,
 `Blocked`, `Stalled`, `Exhausted`, `Approval-required` it can end in, and what each means there.
@@ -89,7 +96,11 @@ A skill that cannot say how it ends will not end.
 | **A model-invokable `harness` skill** | its bare name, e.g. `` `loop-discipline` `` | a file path |
 | **Repo root** (`HARNESS.md`, `README.md`) | don't — move the content into a skill | `../../../../HARNESS.md` |
 
-The validator rejects any relative link that escapes the plugin root or fails to resolve on disk.
+The validator rejects any relative link that escapes the plugin root or fails to resolve on disk. It
+also rejects a `/<plugin>:<skill>` reference naming a skill that does not exist, and a backticked
+`../x/SKILL.md` that does not resolve — both were dead ends inherited from a predecessor's skill
+names, and neither is cosmetic now that a verb can *invoke* what it references.
+
 This is not pedantry: it is the exact bug that makes an installed plugin reference a file the user
 does not have.
 
@@ -133,6 +144,8 @@ Constraints specific to plugin-shipped agents:
 
 ## Checklist — new skill
 
+0. Ask whether it needs to exist. The user-facing surface is the seven `plenipo` verbs; a new skill
+   they must remember is a cost, and the right answer is often a step inside a verb instead.
 1. Create `plugins/<plugin>/skills/<name>/` under the plugin that owns its loop.
 2. Write `SKILL.md`: valid frontmatter, the section order above, `DO NOT USE FOR:` in the
    description, terminal states if it's an action skill.

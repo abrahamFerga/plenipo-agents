@@ -9,7 +9,6 @@ description: >
   ranked shortlist with reasons. DO NOT USE FOR: inventorying existing repos (../scan-fleet) or
   competitive research on a chosen industry (/define:research-industry).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Find the next industry

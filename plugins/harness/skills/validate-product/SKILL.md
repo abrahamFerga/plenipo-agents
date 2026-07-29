@@ -10,7 +10,6 @@ description: >
   DO NOT USE FOR: fixing anything it reports (strictly read-only), proving the product actually
   behaves at runtime (/deliver:verify-runtime), or inventorying every repo (/scout:scan-fleet).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Validate a product

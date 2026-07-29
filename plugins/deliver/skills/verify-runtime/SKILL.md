@@ -10,7 +10,6 @@ description: >
   assertion. DO NOT USE FOR: standing up the verification surface in a repo that has none
   (../install-runbook/SKILL.md), or the product-independent run and test contract (plenipo-runbook).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Verify at runtime

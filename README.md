@@ -12,6 +12,9 @@ shaped this way; read it once.
 
 > **New here? → [QUICKSTART.md](QUICKSTART.md).** Five minutes, two plugins, one command that saves
 > the most time. Come back here when you want the full map.
+>
+> **Want it to run itself? → [AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.md).** Seven verbs,
+> one timer, and the gate list that lets a product merge without you.
 
 ## Install
 
@@ -30,6 +33,7 @@ Then enable the plugins for the loop you're in:
     "plenipo-agents": { "source": { "source": "github", "repo": "abrahamFerga/plenipo-agents" } }
   },
   "enabledPlugins": {
+    "plenipo@plenipo-agents": true,    // the front door: seven loop verbs
     "harness@plenipo-agents": true,    // always on
     "scout@plenipo-agents":   false,
     "define@plenipo-agents":  false,
@@ -78,6 +82,7 @@ Each plugin is one loop. A loop declares **Trigger · Goal · Execution · Verif
 
 | Plugin | Loop | Goal | Default |
 |---|---|---|---|
+| **plenipo** | the front door | seven loopable verbs that drive the others, so you never type their names | **on** |
 | **harness** | control plane | the platform contract, the runbook, config validation, the conductor | **on** |
 | **scout** | discovery | an unclaimed industry worth a product, with a defensible reason | off |
 | **define** | definition | a spec and plan a team could build against | off |
@@ -89,6 +94,21 @@ Each plugin is one loop. A loop declares **Trigger · Goal · Execution · Verif
 
 The invocation column uses Claude Code syntax. In Codex, mention the same bundled skill as
 `$<plugin>:<skill>`; in Copilot CLI, invoke it as `/<skill>` or select it from the skill picker.
+
+### `plenipo` — the only surface you need to remember
+
+One tick per invocation, each safe on a timer: `/loop 20m /plenipo:fleet` is the whole steady state.
+Full operator's manual in **[AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.md)**.
+
+| Skill | Invocation | One tick does |
+|---|---|---|
+| `setup` | `/plenipo:setup` | Makes a repo safe to leave a timer on: runbook, labels, two gate scripts, branch protection, the autonomy level |
+| `launch` | `/plenipo:launch` | Nothing → a product with a Ready backlog. Pauses once: the go/no-go and the name |
+| `deliver` | `/plenipo:deliver` | Admission control, then one build tick — rejected PRs and p0 bugs before features, and a ceiling on PRs in flight |
+| `ship` | `/plenipo:ship` | Adversarial review, then merges only what clears every deterministic gate at the recorded autonomy level |
+| `test` | `/plenipo:test` | Boots it, sweeps end to end, files deduplicated bug issues with reproductions |
+| `define` | `/plenipo:define` | Triages friction, promotes Backlog → Ready, extends the plan only from scope with provenance |
+| `fleet` | `/plenipo:fleet` | One tick on whichever product most needs it; least-recently-served, and quarantines a repo that keeps failing |
 
 ### `harness` — always on
 
@@ -138,6 +158,7 @@ The invocation column uses Claude Code syntax. In Codex, mention the same bundle
 
 | Agent | Delegate when |
 |---|---|
+| `pr-reviewer` | a pull request needs a second opinion from a context that never saw it written — reads the issue, the evidence and the diff, tries to *refute* it, returns approve / request-changes / escalate. Cannot edit, push, label or merge |
 | `e2e-tester` | you want the whole system swept for what's actually broken — boots it, walks real journeys, drives the UI, returns ranked findings with reproductions. Read/run only, never edits |
 | `product-improver` | you want the product made *better* rather than an issue closed — uses the app as its intended user, logs friction, and ships **one** proven improvement as a PR |
 

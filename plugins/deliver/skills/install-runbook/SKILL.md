@@ -10,7 +10,6 @@ description: >
   repo that predates this contract. DO NOT USE FOR: running or debugging the product (the installed
   runbook does that), or platform-level Plenipo work (the Plenipo repo has its own run skill).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Install the runbook

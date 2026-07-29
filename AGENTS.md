@@ -103,6 +103,18 @@ If you are in a *product* repo rather than this one:
 - Never weaken an invariant to unblock yourself: RBAC before the model, approval-first writes,
   tenant isolation, write-only secrets, append-only audit.
 
+## Start here: the seven verbs
+
+The `plenipo` plugin is the front door, and the only surface anyone needs to remember. Each verb is
+one bounded tick with a named terminal state, so it is safe on a timer:
+`setup` · `launch` · `deliver` · `ship` · `test` · `define` · `fleet`. Everything in the index below
+is an internal those verbs call. `/loop 20m /plenipo:fleet` is the whole steady state; the operator's
+manual is `AUTOMATED_CLAUDE_LOOPS.md`.
+
+**A skill with `disable-model-invocation: true` cannot be invoked by another skill** — only by a user
+typing it. That is why loop bodies omit the flag, and why adding it to something a verb calls silently
+breaks automation.
+
 ## Skill index
 
 Each skill below is a markdown file you can read directly. Claude Code loads them automatically;
@@ -112,35 +124,36 @@ other tools should **open the file when its description matches the task**.
 
 ### `define`
 
-- **plan-product** *(action)* — Turn an accepted SPEC.md into PLAN.md — capabilities grouped
+- **plan-product** *(reference)* — Turn an accepted SPEC.md into PLAN.md — capabilities grouped
   into epics in build order, the module split (default: exactly one domain module), a per-module
   tool inventory carrying permission strings and approval flags, the tab list, the…  
   → [`plugins/define/skills/plan-product/SKILL.md`](plugins/define/skills/plan-product/SKILL.md)
-- **research-industry** *(action)* — Competitive research on one chosen industry, written to
+- **research-industry** *(reference)* — Competitive research on one chosen industry, written to
   research/<industry>.md: who the leading commercial vendors are, a capability comparison matrix
   built only from sources actually opened, the recurring UX patterns buyers already expe…  
   → [`plugins/define/skills/research-industry/SKILL.md`](plugins/define/skills/research-industry/SKILL.md)
-- **sync-backlog** *(action)* — Project PLAN.md into GitHub as the system of record: epic and
+- **sync-backlog** *(reference)* — Project PLAN.md into GitHub as the system of record: epic and
   feature issues upserted by a hidden marker so a re-run never fans out duplicates, features
   linked under their epic as sub-issues, and every card on the Projects v2 board in Ba…  
   → [`plugins/define/skills/sync-backlog/SKILL.md`](plugins/define/skills/sync-backlog/SKILL.md)
-- **synthesize-spec** *(action)* — Turn research/<industry>.md into SPEC.md — the one-sentence
-  framing, jobs to be done, personas and their authority tiers, the must-have / differentiator /
-  out-of-scope capability split, an RBAC model of dotted action-noun permissions, re…  
+- **synthesize-spec** *(reference)* — Turn research/<industry>.md into SPEC.md — the
+  one-sentence framing, jobs to be done, personas and their authority tiers, the must-have /
+  differentiator / out-of-scope capability split, an RBAC model of dotted action-noun permissions,
+  re…  
   → [`plugins/define/skills/synthesize-spec/SKILL.md`](plugins/define/skills/synthesize-spec/SKILL.md)
 
 ### `deliver`
 
-- **install-runbook** *(action)* — Install the execution + verification surface into a Plenipo
-  product repo so any agent can run it and prove a change works without rediscovering anything:
-  RUNBOOK.md, a discoverable `.claude/skills/run-<product>` skill, the Testcontainers…  
+- **install-runbook** *(reference)* — Install the execution + verification surface into a
+  Plenipo product repo so any agent can run it and prove a change works without rediscovering
+  anything: RUNBOOK.md, a discoverable `.claude/skills/run-<product>` skill, the Testcontainers…  
   → [`plugins/deliver/skills/install-runbook/SKILL.md`](plugins/deliver/skills/install-runbook/SKILL.md)
 - **plenipo-module-sdk** *(reference)* — Member-by-member reference for authoring a Plenipo
   domain module in C#: IModule, the ModuleManifest record and every field it accepts,
   ToolDescriptor versus ModuleTool and why a tool needs both, IModuleToolSource, TabDescriptor and
   its c…  
   → [`plugins/deliver/skills/plenipo-module-sdk/SKILL.md`](plugins/deliver/skills/plenipo-module-sdk/SKILL.md)
-- **request-platform-change** *(action)* — Handle a gap where the Plenipo platform cannot do
+- **request-platform-change** *(reference)* — Handle a gap where the Plenipo platform cannot do
   what a product needs: climb the escalation ladder first, apply a tagged local shim so the
   product loop keeps moving, and only then file a structured platform request that the steward
   can…  
@@ -148,20 +161,20 @@ other tools should **open the file when its description matches the task**.
 - **revise-pr** *(action)* — Close the loop on a pull request that came back — review comments,
   requested changes, a failing check, or a merge conflict.  
   → [`plugins/deliver/skills/revise-pr/SKILL.md`](plugins/deliver/skills/revise-pr/SKILL.md)
-- **scaffold-product** *(action)* — Create a brand-new product repo on the Plenipo platform: the
-  four-project skeleton — Aspire AppHost, thin Host, the domain module that holds all the real
+- **scaffold-product** *(reference)* — Create a brand-new product repo on the Plenipo platform:
+  the four-project skeleton — Aspire AppHost, thin Host, the domain module that holds all the real
   code, optional product-owned connectors — plus the two test projects, the vendored…  
   → [`plugins/deliver/skills/scaffold-product/SKILL.md`](plugins/deliver/skills/scaffold-product/SKILL.md)
 - **upgrade-platform** *(action)* — Move a product onto a newer Plenipo release deliberately:
   re-vendor the platform packages, bump the single version property, unwind the TODO(plenipo#N)
   shims whose requests that release closed, and prove the whole test ladder still passe…  
   → [`plugins/deliver/skills/upgrade-platform/SKILL.md`](plugins/deliver/skills/upgrade-platform/SKILL.md)
-- **verify-runtime** *(action)* — Drive one change on a Plenipo product from symptom to proof:
-  reproduce through the narrowest surface, diagnose from telemetry before source, fix one variable
-  per turn, then lock the behaviour in with a regression test seen red before the…  
+- **verify-runtime** *(reference)* — Drive one change on a Plenipo product from symptom to
+  proof: reproduce through the narrowest surface, diagnose from telemetry before source, fix one
+  variable per turn, then lock the behaviour in with a regression test seen red before the…  
   → [`plugins/deliver/skills/verify-runtime/SKILL.md`](plugins/deliver/skills/verify-runtime/SKILL.md)
-- **work-next-issue** *(action)* — Take exactly one Ready issue off the GitHub project board and
-  drive it to an open pull request: select the top item by build order, move the card to In
+- **work-next-issue** *(reference)* — Take exactly one Ready issue off the GitHub project board
+  and drive it to an open pull request: select the top item by build order, move the card to In
   Progress, cut a branch, implement it against the platform contract, climb the test la…  
   → [`plugins/deliver/skills/work-next-issue/SKILL.md`](plugins/deliver/skills/work-next-issue/SKILL.md)
 - **e2e-tester** *(agent — delegate)* — Boots a Plenipo product and exercises it end to end the
@@ -179,11 +192,11 @@ other tools should **open the file when its description matches the task**.
   through GitHub — the message envelope, the closed set of message kinds, the label vocabulary
   that is the state machine, and the rules for replying and handing off.  
   → [`plugins/harness/skills/agent-protocol/SKILL.md`](plugins/harness/skills/agent-protocol/SKILL.md)
-- **conduct** *(action)* — Drive one product from an idea to merged, runtime-proven code by
+- **conduct** *(reference)* — Drive one product from an idea to merged, runtime-proven code by
   sequencing the four loops — scout, define, shape, deliver — handing each phase off to its own
   slash command and refusing to advance until that phase's exit check passes.  
   → [`plugins/harness/skills/conduct/SKILL.md`](plugins/harness/skills/conduct/SKILL.md)
-- **install-agent-config** *(action)* — Give a repo cross-tool agent configuration so OpenAI
+- **install-agent-config** *(reference)* — Give a repo cross-tool agent configuration so OpenAI
   Codex, GitHub Copilot (VS Code, cloud agent, code review) and Claude Code all work from the same
   rules: AGENTS.md as the single source, a CLAUDE.md that imports it, a thin .github/copi…  
   → [`plugins/harness/skills/install-agent-config/SKILL.md`](plugins/harness/skills/install-agent-config/SKILL.md)
@@ -208,31 +221,66 @@ other tools should **open the file when its description matches the task**.
   built on the Plenipo platform — the launch modes, dev-auth headers, the keyless Mock provider,
   the AG-UI event contract, Aspire telemetry, and the five-rung test ladder from build to…  
   → [`plugins/harness/skills/plenipo-runbook/SKILL.md`](plugins/harness/skills/plenipo-runbook/SKILL.md)
-- **validate-product** *(action)* — Audit one Plenipo product repo without touching it: config
-  files parse and agree with each other, no committed secrets, the vendored package feed is
+- **validate-product** *(reference)* — Audit one Plenipo product repo without touching it:
+  config files parse and agree with each other, no committed secrets, the vendored package feed is
   pinned, the platform pin is not lagging, the greppable guardrail invariants hold, the ag…  
   → [`plugins/harness/skills/validate-product/SKILL.md`](plugins/harness/skills/validate-product/SKILL.md)
 
+### `plenipo`
+
+- **define** *(reference)* — One backlog tick that keeps a build loop fed: count what is
+  actually Ready, promote shaped items out of Backlog, triage the enhancement issues real usage
+  produced, and — only when the queue would otherwise run dry — extend the plan by on…  
+  → [`plugins/plenipo/skills/define/SKILL.md`](plugins/plenipo/skills/define/SKILL.md)
+- **deliver** *(reference)* — One build tick, safe to fire on a timer: decide whether building
+  is even the right move right now — a rejected PR to fix first, a p0 bug ahead of features, or
+  too many PRs already waiting on review — then hand the chosen item to the buil…  
+  → [`plugins/plenipo/skills/deliver/SKILL.md`](plugins/plenipo/skills/deliver/SKILL.md)
+- **fleet** *(reference)* — One tick across many products: read each repo's board, pull requests
+  and last-swept state, score which single product most needs attention right now, run exactly one
+  verb there, and journal it — so `/loop 20m /plenipo:fleet` is the only…  
+  → [`plugins/plenipo/skills/fleet/SKILL.md`](plugins/plenipo/skills/fleet/SKILL.md)
+- **launch** *(reference)* — Take a product from nothing to a repo with a Ready backlog in one
+  attended run, driving the whole scout → define → shape → scaffold chain through the conductor
+  rather than restating it, and pausing at exactly one human decision: the go/n…  
+  → [`plugins/plenipo/skills/launch/SKILL.md`](plugins/plenipo/skills/launch/SKILL.md)
+- **setup** *(reference)* — Make one repo safe to leave a timer pointed at: the run-and-prove
+  surface, the label vocabulary, the `autonomy` block recording what this product has earned, two
+  deterministic gate scripts and the workflows that run them, CODEOWNERS, bra…  
+  → [`plugins/plenipo/skills/setup/SKILL.md`](plugins/plenipo/skills/setup/SKILL.md)
+- **ship** *(reference)* — One review-and-merge tick: for every open pull request the loop
+  produced, get an adversarial second opinion from the `pr-reviewer` agent — a context that never
+  saw the code being written and is asked to refute it — then merge only what c…  
+  → [`plugins/plenipo/skills/ship/SKILL.md`](plugins/plenipo/skills/ship/SKILL.md)
+- **test** *(reference)* — One sweep tick: boot the product, delegate an end-to-end hunt to the
+  `e2e-tester` agent, then turn what it observed into deduplicated GitHub bug issues that the
+  build loop will pick up — each with a reproduction, a stable fingerprint key…  
+  → [`plugins/plenipo/skills/test/SKILL.md`](plugins/plenipo/skills/test/SKILL.md)
+- **pr-reviewer** *(agent — delegate)* — Reviews one open pull request as an adversary, from a
+  context that never saw the code being written: tries to refute the claim that it does what its
+  issue asked, and returns approve / request-changes / escalate.  
+  → [`plugins/plenipo/agents/pr-reviewer.md`](plugins/plenipo/agents/pr-reviewer.md)
+
 ### `scout`
 
-- **find-industry** *(action)* — Rank unclaimed industries as candidates for a new AI-first
+- **find-industry** *(reference)* — Rank unclaimed industries as candidates for a new AI-first
   product on Plenipo, by scoring each against what the platform's spine actually provides —
   chat-first UX, RBAC-before-the-model, human approval on every write, append-only audit,…  
   → [`plugins/scout/skills/find-industry/SKILL.md`](plugins/scout/skills/find-industry/SKILL.md)
-- **opportunity-brief** *(action)* — Deep-dive ONE shortlisted industry into a go/no-go brief:
-  the named buyer and the pain in units, the incumbent landscape and why an AI-first entrant wins
-  or doesn't, the killer approval-gated workflow traced end to end, the document and…  
+- **opportunity-brief** *(reference)* — Deep-dive ONE shortlisted industry into a go/no-go
+  brief: the named buyer and the pain in units, the incumbent landscape and why an AI-first
+  entrant wins or doesn't, the killer approval-gated workflow traced end to end, the document and…  
   → [`plugins/scout/skills/opportunity-brief/SKILL.md`](plugins/scout/skills/opportunity-brief/SKILL.md)
-- **scan-fleet** *(action)* — Inventory every system built on (or adjacent to) the Plenipo
+- **scan-fleet** *(reference)* — Inventory every system built on (or adjacent to) the Plenipo
   platform and produce FLEET.md — which repos are true products versus legacy pre-platform
   systems, which platform version each consumes, how many host seams each adopts, which i…  
   → [`plugins/scout/skills/scan-fleet/SKILL.md`](plugins/scout/skills/scan-fleet/SKILL.md)
 
 ### `shape`
 
-- **design-product** *(action)* — Turn PLAN.md into ARCH.md plus DECISIONS.md for a product on
-  the Plenipo platform, where architecture is a delta against a stack that is already chosen: the
-  module boundary and manifest, the tool surface with its permission strings and a…  
+- **design-product** *(reference)* — Turn PLAN.md into ARCH.md plus DECISIONS.md for a product
+  on the Plenipo platform, where architecture is a delta against a stack that is already chosen:
+  the module boundary and manifest, the tool surface with its permission strings and a…  
   → [`plugins/shape/skills/design-product/SKILL.md`](plugins/shape/skills/design-product/SKILL.md)
 
 ### `steward`

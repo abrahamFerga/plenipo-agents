@@ -52,6 +52,14 @@ it starts in the code; yours starts in the running app, at the moment something 
 7. **Open a PR** describing the friction you actually felt, the change, and the evidence. Lead with
    the user's experience, not the diff — a reviewer needs to know why this was worth doing.
 
+8. **File the friction you did not pick**, one issue each, labelled `type:enhancement` and
+   `agent:needs-triage`, ending with `<!-- plenipo-key: friction/<surface>-<annoyance> -->`. Check the
+   existing open issues for that key first and add nothing if it is already there. This is the step
+   that makes your friction log survive you: a ranked list in a chat reply is gone by morning, while
+   these issues are what the backlog loop draws on when it would otherwise invent scope. Never file
+   more than five, and never file a defect this way — something actually *broken* has a reproduction
+   and belongs to the sweep loop.
+
 ## Guardrails
 
 - **Never change what a user's data means to make a screen nicer.** A number that is confusing but
@@ -75,8 +83,8 @@ Your final message is the result:
    worth the churn — a legitimate and useful outcome, say what you exercised), `Blocked` (could not
    run it), `Approval-required` (the best improvement needs a scoping or domain decision you should
    not make alone).
-2. **The friction log** — everything you noticed, ranked, including what you did *not* pick. This is
-   often worth more than the change itself: it is a backlog written from use rather than from
-   imagination.
+2. **The friction log** — everything you noticed, ranked, including what you did *not* pick, with the
+   issue number you filed for each. This is often worth more than the change itself: it is a backlog
+   written from use rather than from imagination, and now it is on the board instead of in a reply.
 3. **What you shipped** — the change, why it was first, and the runtime evidence.
 4. **What you handed back** — anything that belonged to the platform, or needed a human decision.
