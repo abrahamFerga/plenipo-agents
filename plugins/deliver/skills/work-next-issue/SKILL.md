@@ -87,6 +87,9 @@ auto-merge. Do not wait for them, do not poll for them, and never report `Succes
    - An **In Progress** card with no PR → resume it at the step it reached. Do not select a new item.
    - More than one In Progress card → the invariant is already broken. Report it and ask which to
      resume; do not silently pick.
+   - An **In Review** card whose PR has unresolved threads, `CHANGES_REQUESTED`, or a red check →
+     **that PR is the work**, not a new item. Hand to `../revise-pr/SKILL.md` and stop. Starting
+     something new while a PR waits is how a board fills with abandoned PRs nobody owns.
 
 3. **Select the item.** From the item list, keep `Status == Ready`, sort by **Build order** ascending,
    tie-break on issue number. Field names come back lowercased in the JSON — inspect one item before
@@ -209,7 +212,8 @@ A human re-specifies. Rewriting the criteria yourself is scoring against a targe
 | Adding the tool to the manifest only | never registered, no error, and the runtime check "passes" because nothing was called | assert on `GET /api/admin/security/catalog` |
 | Polishing past pass 3 | budget burned on a specification defect | `Stalled` — comment on the issue with evidence |
 | Omitting `Closes #<n>` | the issue stays open forever and the board rots | put it in the PR body, not the title |
-| Moving the card to Done | the loop claims an outcome it never verified | In Review is the end; a human closes it — see `references/merge-policy.md` |
+| Moving the card to Done | the loop claims an outcome it never verified | In Review is the end **of this pass**; a human closes it — see `references/merge-policy.md` |
+| Treating In Review as the end of the item | review feedback is never acted on and the PR rots | when it comes back — comments, `CHANGES_REQUESTED`, a red check — that is `../revise-pr/SKILL.md`, not a new item |
 | Enabling auto-merge on a feature PR at autonomy level 0–1 | the agent becomes its own approver, and auto-merge does not wait for a review still running | check the product's recorded level; features auto-merge only from level 2, and only on an adversarial reviewer's approval |
 | Deciding you have earned a higher autonomy level | the self-approving loop wearing a different hat | the level is recorded in `workflow.json` by a human; read it, never infer it |
 | Committing the branch name or owner into a script | breaks on every fork and every other product | derive both at run time |

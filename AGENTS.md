@@ -145,6 +145,9 @@ other tools should **open the file when its description matches the task**.
   product loop keeps moving, and only then file a structured platform request that the steward
   can…  
   → [`plugins/deliver/skills/request-platform-change/SKILL.md`](plugins/deliver/skills/request-platform-change/SKILL.md)
+- **revise-pr** *(action)* — Close the loop on a pull request that came back — review comments,
+  requested changes, a failing check, or a merge conflict.  
+  → [`plugins/deliver/skills/revise-pr/SKILL.md`](plugins/deliver/skills/revise-pr/SKILL.md)
 - **scaffold-product** *(action)* — Create a brand-new product repo on the Plenipo platform: the
   four-project skeleton — Aspire AppHost, thin Host, the domain module that holds all the real
   code, optional product-owned connectors — plus the two test projects, the vendored…  
