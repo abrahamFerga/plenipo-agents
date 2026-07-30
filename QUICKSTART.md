@@ -164,5 +164,6 @@ repository. Each fact lives in exactly one place, so the tools cannot contradict
 ## Where to go deeper
 
 - **[README.md](README.md)** — every skill, and what each loop is for
+- **[WORKFLOWS.md](WORKFLOWS.md)** — the GitHub workflow templates, to copy or use as a base
 - **[HARNESS.md](HARNESS.md)** — why the repo is shaped this way *(read once, when curious)*
 - **[AUTHORING.md](AUTHORING.md)** — only if you're writing a skill yourself
