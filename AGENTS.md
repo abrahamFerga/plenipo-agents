@@ -30,9 +30,14 @@ plugins/<plugin>/
   .claude-plugin/plugin.json    manifest — ONLY this lives in .claude-plugin/
   skills/<name>/SKILL.md        a skill; optional references/ and assets/ alongside
 eng/validate-marketplace.mjs    the repo's own verifier
+WORKFLOWS.md                    index of every reusable workflow template in an assets/
 ```
 
 Six plugins, one per loop: `harness` (always on), `scout`, `define`, `shape`, `deliver`, `steward`.
+
+**Adding a workflow template to any `assets/` means adding it to `WORKFLOWS.md`** — the validator
+fails otherwise. Templates are invisible where they live, and that index is the only thing that
+makes them findable.
 
 ## Authoring rules
 

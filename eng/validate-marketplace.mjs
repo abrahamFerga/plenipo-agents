@@ -300,6 +300,43 @@ for (const { path } of [...allSkills, ...allAgents]) {
   }
 }
 
+// ── 6. Workflow-template catalogue ────────────────────────────────────────────
+// Templates ship inside the installing skill's assets/, which is correct for plugin isolation and
+// terrible for discovery — a repo's worth of reusable workflows sat here unfindable because nothing
+// outside one SKILL.md line ever mentioned them. WORKFLOWS.md is the index; this check is what stops
+// it going stale the first time someone adds a template and forgets.
+const workflowCatalogue = join(ROOT, 'WORKFLOWS.md');
+if (!existsSync(workflowCatalogue)) {
+  err(workflowCatalogue, 'missing — it is the only index of the reusable workflow templates');
+} else {
+  const catalogue = readFileSync(workflowCatalogue, 'utf8');
+
+  const walk = (dir) =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((d) =>
+      d.isDirectory() ? walk(join(dir, d.name)) : [join(dir, d.name)]
+    );
+
+  // Content-based, not extension-based: assets/ also holds runbooks, C# templates and JSON
+  // registries, and none of those belong in a workflow index.
+  const isAgenticWorkflow = (t) => /^---\r?\n/.test(t) && /^engine:/m.test(t) && /^safe-outputs:/m.test(t);
+  const isActionsWorkflow = (t) => /^on:/m.test(t) && /^jobs:/m.test(t);
+
+  for (const assetsDir of walk(join(ROOT, 'plugins'))
+    .filter((f) => f.split(sep).includes('assets'))
+    .filter((f) => /\.(md|ya?ml)$/.test(f))) {
+    const text = readFileSync(assetsDir, 'utf8');
+    if (!isAgenticWorkflow(text) && !isActionsWorkflow(text)) continue;
+
+    const base = assetsDir.split(sep).pop();
+    if (!catalogue.includes(base)) {
+      err(
+        assetsDir,
+        `is a reusable workflow template but is not listed in WORKFLOWS.md — it will not be found`
+      );
+    }
+  }
+}
+
 // ── Report ────────────────────────────────────────────────────────────────────
 function report() {
   const s = allSkills.length;

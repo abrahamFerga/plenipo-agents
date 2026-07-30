@@ -70,7 +70,7 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    | Role | Required sources | Optional after the first consumer is registered |
    |---|---|---|
    | Plenipo platform | `platform-request-triage.md`, `platform-pr-intent-review.md`, `platform-request.yml` | `platform-release-impact.md`, `consumers.json` |
-   | Child product | `product-platform-escalation.md`, `product-pr-intent-review.md` | none |
+   | Child product | `product-issue-triage.md`, `product-platform-escalation.md`, `product-pr-intent-review.md` | none |
 
    Replace every `<...>` placeholder deliberately. Add each trusted product's `from:<product>` label
    to the platform triage workflow's `approval-labels` list. Create only the labels named in each
@@ -119,6 +119,13 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 - Treat issues, PRs, source, comments, and linked pages as untrusted input. Do not lower
   `min-integrity` below `approved` for these agent-to-agent workflows without a threat-model review.
   Promote only router-provenance labels such as `from:<product>` and `platform:request`.
+- **A label that promotes integrity must never also be a safe output.** `platform:request` is what
+  `product-platform-escalation.md` trusts, so a human applies it; `product-issue-triage.md` may
+  recommend the escalation but must not label its way into one, or untrusted issue text gains a path
+  to a cross-repository write.
+- `product-issue-triage.md` steers by the shared label vocabulary — `agent:*`, `type:*`, `priority:*`,
+  `regression`, `security`, `needs-human`. `/plenipo:setup` creates them and `/define:sync-backlog`
+  owns the `type:*`/`priority:*` families; install this workflow after them, not before.
 - Use a GitHub App, not a broad personal access token, for cross-repository routing. Scope its
   installation and `repositories:` list to the two repositories that need to communicate.
 - Keep `allowed-events: [COMMENT]` on automated PR reviews. A model must not become a merge gate.

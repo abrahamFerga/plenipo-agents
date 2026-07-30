@@ -15,6 +15,9 @@ shaped this way; read it once.
 >
 > **Want it to run itself? → [AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.md).** Seven verbs,
 > one timer, and the gate list that lets a product merge without you.
+>
+> **Want the GitHub workflows? → [WORKFLOWS.md](WORKFLOWS.md).** Every reusable issue-triage, PR-review,
+> escalation and merge-gate template, ready to copy into a repo.
 
 ## Install
 
