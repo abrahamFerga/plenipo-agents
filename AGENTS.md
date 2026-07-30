@@ -107,6 +107,33 @@ If you are in a *product* repo rather than this one:
   you are never blocked. The full contract is in the `platform-protocol` skill.
 - Never weaken an invariant to unblock yourself: RBAC before the model, approval-first writes,
   tenant isolation, write-only secrets, append-only audit.
+- **Never edit this marketplace from a product either** — same rule, same reason. If a skill turns
+  out to be wrong, stale, or missing, record the correct fact in your own `AGENTS.md` so you are
+  never blocked, then file one issue here using the `report-harness-gap` skill.
+
+## When a skill is wrong
+
+The facts above are a snapshot of a platform that moves, so some of them will go stale. **A wrong
+skill is worse than a missing one**: agents trust skills, so a stale fact does not fail loudly — it
+propagates into every repo that loads the plugin. The "do not contradict these" list above exists
+because that already happened once.
+
+So the loop runs both ways. Products and the platform consume skills; when their work *disproves*
+one, that finding comes back here as an issue on the `harness-gap` form, and the strongest reports
+come from agents who have just read source for another reason:
+
+| Moment | What it proves |
+|---|---|
+| `/deliver:upgrade-platform` step 5 | a compile break after a version bump is the platform stating deterministically that a documented API changed |
+| `/steward:announce-release` step 2 | the steward has read the whole diff and knows which skill facts the release invalidated |
+| `/deliver:request-platform-change` step 1 | climbing the seam ladder is where an incomplete seam catalog shows up |
+
+Two rules keep the queue worth having. **Cite source, never documentation** — a report citing a doc
+is citing the thing most likely to be the defect. And **file at the end of a tick, never mid-flight**
+— a delivery loop that stops to improve the harness has stopped delivering. The full protocol,
+including the ladder that resolves most reports before they are filed, is the `report-harness-gap`
+skill; `product-harness-feedback.md` in `WORKFLOWS.md` is the GitHub-native route for when no
+session is running.
 
 ## Start here: the seven verbs
 
@@ -226,6 +253,10 @@ other tools should **open the file when its description matches the task**.
   built on the Plenipo platform — the launch modes, dev-auth headers, the keyless Mock provider,
   the AG-UI event contract, Aspire telemetry, and the five-rung test ladder from build to…  
   → [`plugins/harness/skills/plenipo-runbook/SKILL.md`](plugins/harness/skills/plenipo-runbook/SKILL.md)
+- **report-harness-gap** *(reference)* — Close the loop from a product or platform repo back to
+  the agent marketplace: when work proves a skill is wrong, stale, or missing — a type that was
+  renamed, a procedure that fails as written, a new platform seam no skill lists — record…  
+  → [`plugins/harness/skills/report-harness-gap/SKILL.md`](plugins/harness/skills/report-harness-gap/SKILL.md)
 - **validate-product** *(reference)* — Audit one Plenipo product repo without touching it:
   config files parse and agree with each other, no committed secrets, the vendored package feed is
   pinned, the platform pin is not lagging, the greppable guardrail invariants hold, the ag…  

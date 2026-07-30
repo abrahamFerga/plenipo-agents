@@ -188,3 +188,6 @@ Verified pins as of July 2026 — **re-check rather than trusting this table**, 
 - `plenipo-runbook` — how to run the thing and prove a change works.
 - `loop-discipline` — the verification ladder and terminal states every claim is graded on.
 - `/deliver:plenipo-module-sdk` — the member-by-member module authoring recipe.
+- `report-harness-gap` — **Load when:** source contradicts something on this page. This skill is a
+  snapshot of a moving platform, so it is the one most likely to go stale — and the "do not rebuild
+  these" table going stale is how a product quietly rebuilds a weaker copy of a seam that exists.

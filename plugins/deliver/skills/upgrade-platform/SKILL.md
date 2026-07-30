@@ -164,3 +164,7 @@ a behavioural change a human should see.
 - `platform-protocol` — why shims are tagged and what closing a request obliges you to do.
 - `../request-platform-change/SKILL.md` — what to do when the release still doesn't cover your need.
 - `plenipo-runbook` — the ladder this skill climbs.
+- `report-harness-gap` — **Load when:** step 5's compile breaks proved a skill's API facts wrong. A
+  break after a version bump is the platform stating deterministically that a documented type or
+  method changed, which is the strongest evidence this marketplace ever receives. File at the end of
+  the upgrade, never mid-flight.

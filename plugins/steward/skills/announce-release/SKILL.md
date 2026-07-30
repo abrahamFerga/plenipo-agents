@@ -160,3 +160,6 @@ anything is announced.
 - `agent-protocol` — the envelope, kinds, and labels used above.
 - `platform-protocol` — why shims are tagged, and what closing a request obliges a product to do.
 - `../triage-requests/SKILL.md` — the inbound half of this loop.
+- `report-harness-gap` — **Load when:** step 2's diff read shows the release invalidated a fact a
+  skill states. You are the only agent who has just read the whole diff, so you are the cheapest
+  place to catch a stale skill before every product inherits it.
