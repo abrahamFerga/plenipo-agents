@@ -13,7 +13,6 @@ reads a table better than `oneOf`/`$ref`/`pattern`.
 - [The settings.json pair](#the-settingsjson-pair)
 - [Worked example](#worked-example)
 - [Validation rules](#validation-rules)
-- [Migrating a product from my-skills](#migrating-a-product-from-my-skills)
 
 ## Fields
 
@@ -109,19 +108,3 @@ Each of these has a deterministic decision, which is the point:
 6. Every `skills.external[]` entry has a non-empty `reason`.
 7. No secret-shaped string appears anywhere in the file.
 8. `github.repo`'s owner is not hardcoded anywhere in the repo's skills or scripts.
-
-## Migrating a product from `my-skills`
-
-Existing products carry the predecessor's shape. Convert it:
-
-| Old | New |
-|---|---|
-| `"stage": "development"` | `"loop": "deliver"` |
-| `"stage": "system-definition"` | `"loop": "define"` |
-| `"stage": "architecture"` | `"loop": "shape"` |
-| *(absent)* | `"platform": { "version": …, "feed": "vendored" }` — read the version from the vendored `.packages/` folder |
-| `skills.self.marketplace: "my-skills"` with plugins `workflow-core`/`system-definition`/`architecture`/`development` | `plenipo-agents` with `harness`/`scout`/`define`/`shape`/`deliver` |
-| a `name` validated against `^the-[a-z]…$` | drop the rule entirely — real products already violate it |
-
-Do not enable both marketplaces' pipeline plugins at once. Their skill descriptions compete for the
-same intents, and ambiguous routing is the most common marketplace defect.

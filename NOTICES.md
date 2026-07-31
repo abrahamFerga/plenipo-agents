@@ -32,10 +32,6 @@ reader can go to the source.
   and Agent Skills conventions.
 - **The `USE FOR:` / `DO NOT USE FOR:` description formula** is borrowed from
   [`dotnet/skills`](https://github.com/dotnet/skills).
-- **The stage-scoped plugin architecture, the `workflow.json` + `settings.json` pairing, and the
-  GitHub-as-system-of-record mechanics** are inherited from this author's
-  [`my-skills`](https://github.com/abrahamFerga/my-skills), and before it from `TheWorkflow`. Several
-  design choices here are deliberate reversals of decisions made there; the README lists them.
 
 ## Platform
 

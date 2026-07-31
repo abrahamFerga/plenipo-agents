@@ -325,16 +325,6 @@ Stated plainly, because a harness that hides its own gaps is not one:
   operating rules are inline in `AGENTS.md` rather than behind a link, and why anything that must be
   *enforced* lives in CI, not in markdown.
 
-## Relationship to `my-skills`
-
-[`my-skills`](https://github.com/abrahamFerga/my-skills) builds greenfield .NET systems from
-scratch. `plenipo-agents` builds products **on an existing platform**, where the backbone already
-exists and must not be regenerated. The control plane is a descendant; the content is its dual.
-
-For a Plenipo product, use `plenipo-agents` **instead of** `my-skills`' `system-definition`,
-`architecture`, and `development` plugins — enabling both makes several skill descriptions compete
-for the same intent, and ambiguous routing is the most common marketplace defect.
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
