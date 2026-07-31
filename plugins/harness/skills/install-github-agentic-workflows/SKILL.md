@@ -41,7 +41,7 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 
 | Input | How to discover it | Why it matters |
 |---|---|---|
-| Repository role | `Plenipo.slnx` means platform; `workflow.json` and vendored `Plenipo.*` packages mean product | selects the safe template set |
+| Repository role | `Plenipo.slnx` means platform; `workflow.json` and vendored `Plenipo.*` packages mean product; `.claude-plugin/marketplace.json` means the marketplace itself | selects the safe template set |
 | Repository slug | `gh repo view --json nameWithOwner -q .nameWithOwner` | never hardcode an owner in a reusable setup |
 | Engine credential | a repository `COPILOT_GITHUB_TOKEN` fine-grained PAT | runs Copilot without embedding a credential in source |
 | Router GitHub App | App ID variable plus private-key secret, installed only in named repos | cross-repository reads/writes use short-lived tokens |
@@ -70,7 +70,8 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    | Role | Required sources | Optional after the first consumer is registered |
    |---|---|---|
    | Plenipo platform | `platform-request-triage.md`, `platform-pr-intent-review.md`, `platform-request.yml` | `platform-release-impact.md`, `consumers.json` |
-   | Child product | `product-issue-triage.md`, `product-platform-escalation.md`, `product-pr-intent-review.md` | none |
+   | Child product | `product-issue-triage.md`, `product-platform-escalation.md`, `product-pr-intent-review.md` | `product-harness-feedback.md` |
+   | Agent marketplace | `marketplace-harness-gap-triage.md`, `marketplace-pr-intent-review.md`, `harness-gap.yml` | none |
 
    Replace every `<...>` placeholder deliberately. Add each trusted product's `from:<product>` label
    to the platform triage workflow's `approval-labels` list. Create only the labels named in each
@@ -120,9 +121,13 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
   `min-integrity` below `approved` for these agent-to-agent workflows without a threat-model review.
   Promote only router-provenance labels such as `from:<product>` and `platform:request`.
 - **A label that promotes integrity must never also be a safe output.** `platform:request` is what
-  `product-platform-escalation.md` trusts, so a human applies it; `product-issue-triage.md` may
-  recommend the escalation but must not label its way into one, or untrusted issue text gains a path
-  to a cross-repository write.
+  `product-platform-escalation.md` trusts, and `harness:gap` is what `product-harness-feedback.md`
+  trusts, so a human applies both; `product-issue-triage.md` may recommend either escalation but must
+  not label its way into one, or untrusted issue text gains a path to a cross-repository write.
+- **`product-harness-feedback.md` routes to the marketplace, not the platform** — a different repo
+  and a different queue. Its router app needs this repo plus the marketplace repo, and nothing else.
+  Read the marketplace slug from `workflow.json` → `skills.self.repo`; the protocol it enforces is
+  the `report-harness-gap` skill.
 - `product-issue-triage.md` steers by the shared label vocabulary — `agent:*`, `type:*`, `priority:*`,
   `regression`, `security`, `needs-human`. `/plenipo:setup` creates them and `/define:sync-backlog`
   owns the `type:*`/`priority:*` families; install this workflow after them, not before.

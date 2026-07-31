@@ -32,17 +32,28 @@ From [`plugins/harness/skills/install-github-agentic-workflows/assets/`](plugins
 installed by `/harness:install-github-agentic-workflows`. All are read-only agents whose every write
 is declared, typed, and capped.
 
+Three roles, detected from the repo: `Plenipo.slnx` means **platform**, `workflow.json` plus vendored
+`Plenipo.*` packages means **product**, and `.claude-plugin/marketplace.json` means the
+**marketplace** itself. The role picks the template set — the platform and product PR reviewers check
+RBAC, tenant isolation and approval gates, which is meaningless in a markdown skills repo, so the
+marketplace has its own.
+
 | Template | Install into | Trigger | What it may write |
 |---|---|---|---|
 | [`product-issue-triage.md`](plugins/harness/skills/install-github-agentic-workflows/assets/product-issue-triage.md) | product | issue opened/reopened, or dispatch | ≤4 labels, remove `agent:needs-triage`, 1 comment |
 | [`product-platform-escalation.md`](plugins/harness/skills/install-github-agentic-workflows/assets/product-platform-escalation.md) | product | issue labeled `platform:request`, or dispatch | 1 issue **in the platform repo**, ≤1 label, 1 comment |
+| [`product-harness-feedback.md`](plugins/harness/skills/install-github-agentic-workflows/assets/product-harness-feedback.md) | product | issue labeled `harness:gap`, or dispatch | 1 issue **in the marketplace repo**, ≤1 label, 1 comment |
 | [`product-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/product-pr-intent-review.md) | product | pull request | ≤8 inline comments, 1 `COMMENT` review |
 | [`platform-request-triage.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-request-triage.md) | platform | issue opened/reopened/labeled | ≤3 labels, remove `needs-triage`, 1 comment |
 | [`platform-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-pr-intent-review.md) | platform | pull request | ≤8 inline comments, 1 `COMMENT` review |
 | [`platform-release-impact.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-release-impact.md) | platform | release published, or dispatch | 1 issue **in one named product repo** |
+| [`marketplace-harness-gap-triage.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-harness-gap-triage.md) | marketplace | issue opened/reopened/labeled | ≤3 labels, remove `needs-triage`, 1 comment |
+| [`marketplace-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-pr-intent-review.md) | marketplace | pull request | ≤8 inline comments, 1 `COMMENT` review |
 
-The two that write across repositories — escalation and release-impact — need a GitHub App installed
-on exactly the two repos involved, never a broad PAT. The rest need only `COPILOT_GITHUB_TOKEN`.
+The three that write across repositories — escalation, harness feedback, and release-impact — need a
+GitHub App installed on exactly the two repos involved, never a broad PAT. The rest need only
+`COPILOT_GITHUB_TOKEN`. Note that harness feedback targets a **different** repo from the other two:
+the marketplace, read from `workflow.json` → `skills.self.repo`.
 
 ### How the issue path fits together
 

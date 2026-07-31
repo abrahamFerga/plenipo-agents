@@ -1,0 +1,124 @@
+# .github/ISSUE_TEMPLATE/harness-gap.yml — this repo's intake for agents running in OTHER repos.
+#
+# An issue form rather than a markdown template, for the same reason the platform request is one:
+# the fields are a contract that a reporting agent writes and a maintainer parses. The evidence
+# fields are not bureaucracy — a wrong skill is worse than a missing one, so a report that cannot be
+# verified against source can turn a correct skill into an incorrect one.
+name: Harness gap
+description: A skill in this marketplace is wrong, stale, or missing — reported from a repo that uses it.
+title: "[harness-gap] "
+labels: ["harness-gap", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **Climb the ladder first.** Most reports resolve before this form:
+        1. Are you reading the current skill, or a **cached plugin**? Only `SKILL.md` is live;
+           `agents/`, `hooks/` and `scripts/` are cached by plugin version.
+        2. Was it the right skill? Read its `DO NOT USE FOR:` clause.
+        3. Is it wrong **in general**, or only for your product? A product-specific fact belongs in
+           your own `AGENTS.md`.
+        4. Write the correct fact into your repo now, tagged
+           `<!-- harness-gap: plenipo-agents#<n> -->`.
+
+        Filing this **must not block you.** The harness is guidance, not runtime — apply the local
+        note and keep going. Full protocol: the `report-harness-gap` skill.
+
+  - type: input
+    id: reporter
+    attributes:
+      label: Reporting repo
+      description: The repo you were working in, and the plugin version you were on.
+      placeholder: "networthy — harness plugin 0.3.1"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Kind of gap
+      options:
+        - "stale-fact — a skill states something source contradicts"
+        - "missing-seam — the platform grew a capability no skill lists"
+        - "procedure-failed — the steps do not work as written"
+        - "missing-skill — recurring work nothing covers"
+        - "wrong-routing — descriptions competed, or DO NOT USE FOR misled me"
+    validations:
+      required: true
+
+  - type: input
+    id: skill
+    attributes:
+      label: The skill, and the line
+      description: One skill per issue. An issue covering several never closes, because it is never fully true.
+      placeholder: "plugins/harness/skills/plenipo-platform/SKILL.md:118"
+    validations:
+      required: true
+
+  - type: textarea
+    id: claim
+    attributes:
+      label: What the skill claims
+      description: Quote the line you actually followed, not a paraphrase of it.
+    validations:
+      required: true
+
+  - type: textarea
+    id: truth
+    attributes:
+      label: What is true, cited to source
+      description: >
+        The `file:line` in the platform or product that proves it. The trust ranking is
+        source > tests > `.http` catalog > platform docs > product docs — a report citing a doc is
+        citing the thing most likely to be the defect itself. This field is what keeps the queue
+        survivable; without it the report cannot be acted on.
+      placeholder: "Cortex/src/Plenipo.Hosting/PlenipoHostExtensions.cs:42 — the method is AddPlenipoPlatform()."
+    validations:
+      required: true
+
+  - type: textarea
+    id: repro
+    attributes:
+      label: How you found it
+      description: The failing command and its output, the compile error, or the diff. A maintainer must be able to see it without cloning your repo.
+      render: shell
+    validations:
+      required: true
+
+  - type: dropdown
+    id: evidence
+    attributes:
+      label: Evidence level
+      description: Never present L4 as though something ran. An honest L4 is welcome; a mislabelled one is what makes a queue untrustworthy.
+      options:
+        - "L1 — a command's exit code decided it"
+        - "L2 — a linter, schema, or compiler decided it"
+        - "L3 — a suite, a deploy, or a real run decided it"
+        - "L4 — my reading of the code, and nothing ran"
+    validations:
+      required: true
+
+  - type: textarea
+    id: local-note
+    attributes:
+      label: Local note applied
+      description: >
+        Where the corrected fact now lives in your own repo, so you were not blocked. If you are
+        blocked instead, say so — but read the skill first, because a harness gap should not be able
+        to block a loop.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: ladder
+    attributes:
+      label: Ladder
+      options:
+        - label: I checked the plugin version and am not reporting a stale cache.
+          required: true
+        - label: This is wrong in general, not only for my product.
+          required: true
+        - label: I searched open and closed issues for this skill and found no duplicate.
+          required: true
+        - label: I am not blocked — the correct fact is recorded in my repo and my loop continued.
+          required: false

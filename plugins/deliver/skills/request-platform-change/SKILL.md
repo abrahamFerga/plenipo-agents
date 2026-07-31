@@ -144,3 +144,6 @@ stated in the request because it changes priority.
   want the reasoning rather than the steps.
 - `plenipo-platform` — the seam catalog and the invariants a request may not ask you to break.
 - `../upgrade-platform/SKILL.md` — consume the release that closes your request and unwind the shim.
+- `report-harness-gap` — **Load when:** climbing step 1's ladder showed the seam catalog itself was
+  wrong or incomplete. That is a harness defect, not a platform one, and it is worth separating:
+  a verdict of `already-possible` on a seam no skill lists means every product will re-derive it.

@@ -18,5 +18,15 @@
   "globs": ["**/*.md"],
   // assets/ holds copy-ready templates with placeholder syntax, not repo prose — linting them
   // flags the template markers, not real defects.
-  "ignores": ["node_modules/**", "**/assets/**"]
+  //
+  // The two agentic-workflows files are vendored by `gh aw init` and rewritten by the next init or
+  // version bump. Reformatting them to this repo's conventions would be edited-a-generated-file:
+  // the change does not survive, and the diff hides whether upstream actually changed anything.
+  // Scoped to those exact paths so a hand-written .github/agents/*.agent.md is still linted.
+  "ignores": [
+    "node_modules/**",
+    "**/assets/**",
+    ".github/agents/agentic-workflows.md",
+    ".github/skills/agentic-workflows/**"
+  ]
 }
