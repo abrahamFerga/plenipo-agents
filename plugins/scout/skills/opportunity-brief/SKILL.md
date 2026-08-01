@@ -3,9 +3,10 @@ name: opportunity-brief
 description: >
   Deep-dive ONE shortlisted industry into a go/no-go brief: the named buyer and the pain in units,
   the incumbent landscape and why an AI-first entrant wins or doesn't, the killer approval-gated
-  workflow traced end to end, the document and connector surface, RBAC tiers mapped to real job
-  titles, a v1 that is genuinely shippable, regulatory burden rated apart from build effort, and an
-  honest KILL CRITERIA check. The last gate before committing weeks of build — it never decides.
+  workflow traced end to end, the agent design that carries it and the single-prompt baseline it must
+  beat, the document and connector surface, RBAC tiers mapped to real job titles, a v1 that is
+  genuinely shippable, regulatory burden rated apart from build effort, and an honest KILL CRITERIA
+  check. The last gate before committing weeks of build — it never decides.
   USE FOR: writing opportunities/<industry>.md, pressure-testing a favourite candidate, killing an
   idea cheaply while it is still only prose. DO NOT USE FOR: generating or ranking candidates
   (../find-industry), taking stock of repos already built (../scan-fleet), or the competitor and
@@ -83,6 +84,8 @@ practitioner in that industry would raise in the first five minutes.
 
 | Kill criterion | Fires when | Why it is fatal |
 |---|---|---|
+| **The AI is a veneer** | delete the model and the product still works — the real work is arithmetic, scheduling, or record-keeping a rules engine does better | the model is cost, not value; you have built a database with a chat window, and a form-based incumbent beats it on reliability |
+| **One good prompt already does it** | the single-prompt baseline covers most of the workflow | there is no product here, only a system prompt — and the approval lane you would sell is free to every competitor on this platform |
 | **No approval-worthy write** | every valuable action is read-only | the platform's strongest feature is dead weight; you have built a search box |
 | **Nobody can check the output** | no one can say whether a proposal was right, even after the fact | no verifier — the goal is pure judgment, so it is not loopable and you cannot write an eval |
 | **The data is unreachable** | the system of record has no API, no export, and the connector needs a partner agreement | v1 degrades into a data-entry product |
@@ -131,44 +134,70 @@ until it is resolved.
    approval per commit.** If your trace needs a second AI step before the approval, that is two
    workflows; pick the one worth shipping.
 
-5. **Inventory the document surface.** For each document type: who produces it, the format you will
+5. **Design the agent surface, and name the baseline it must beat.** The shortlist claimed this
+   vertical has real AI work; here you say what actually gets built, and it is the section that most
+   often turns a confident brief into a `No-op`.
+
+   - **The agents.** One, or several — and if several, *why*: what one context cannot hold, or which
+     two roles must disagree for the output to be trustworthy. A drafting agent and a reviewing agent
+     that never disagree are one agent with extra latency.
+   - **What each one reasons over.** Named documents, retrieved passages, tool results, prior
+     decisions. "The case data" is not an answer.
+   - **Why it is multi-step.** Which step's output changes what the next step does. A fixed sequence
+     with a model in one slot is a pipeline, not an agent — say so if that is what it is.
+   - **The single-prompt baseline.** What would one good prompt, with the documents pasted in,
+     already achieve? State it plainly and without flattery. Everything past that line is the
+     product; if that line covers most of the workflow, the *one good prompt already does it*
+     criterion has fired.
+   - **How anyone knows the output was right.** The approval accept/reject rate is the platform's
+     built-in verifier; name what else — a downstream outcome, a checkable fact in a source document,
+     a number that reconciles. If nothing can check it, *nobody can check the output* has fired too.
+
+   This is where a vertical proves it needs an AI product rather than a well-designed form.
+
+6. **Inventory the document surface.** For each document type: who produces it, the format you will
    actually receive (scanned PDF, spreadsheet, portal screen), rough volume per tenant per month,
    whether it needs OCR, and **which RAG collection it lands in** — per case, per client, per tenant.
    Per-case scoping is the platform's shape; a single tenant-wide collection is a smell worth
-   arguing.
+   arguing. Tie each type back to step 5: which agent reads it, and what it extracts that a template
+   could not.
 
-6. **Inventory the connector surface.** For each system of record: name it, then state the access
+7. **Inventory the connector surface.** For each system of record: name it, then state the access
    path — public API, OAuth app with a review queue (say how long), CSV export, screen-scrape, or
    nothing. A connector gated behind a partner agreement is a **schedule risk, not a task**; label it
    that way. Rank the surface by what v1 truly needs versus what sounds impressive.
 
-7. **Derive RBAC tiers from job titles.** Three to five roles taken from real postings or org charts.
+8. **Derive RBAC tiers from job titles.** Three to five roles taken from real postings or org charts.
    For each, the **one write action** it may take that the tier below may not. If two roles differ
    only in what they can read, they are one role. Map each to a `AddPlenipoRole` baseline and the
    permission strings the module's tools will carry. This is where a vertical proves it has genuine
    authority structure rather than a single power user.
 
-8. **Scope a v1 that ships.** One module, the step-4 workflow end to end, a handful of tools of which
+9. **Scope a v1 that ships.** One module, the step-4 workflow end to end, a handful of tools of which
    **at least one is approval-gated**, one document type, and one connector — or zero connectors plus
    upload. Everything else goes to an explicit *deliberately not v1* list, which is the more useful
    half. The test: could this be demoed to a real buyer in one sitting and earn "when can I have it?"
    If v1 needs two connectors or two document types before it is demoable, it is not v1.
 
-9. **Rate the two burdens separately.** Engineering effort and regulatory burden move independently
-   and must never be averaged into one "difficulty". For compliance, a row per regime:
+   **Cut connectors and screens before you cut the reasoning.** The step-5 agent surface is what the
+   buyer is being sold; a v1 that trims it down to a form with a chat panel is a different, weaker
+   product that will not earn that sentence.
 
-   | Regime | What it obliges | What the platform contributes | What stays a business act |
-   |---|---|---|---|
-   | *(e.g. a records rule)* | retention, attribution, tamper evidence | append-only audit, RBAC before the model, tenant isolation, write-only secrets | the attestation, the insurance, the entity, data residency, the signed agreement |
+10. **Rate the two burdens separately.** Engineering effort and regulatory burden move independently
+    and must never be averaged into one "difficulty". For compliance, a row per regime:
 
-   The platform *supports* these regimes; it does not deliver compliance. Anything in the last column
-   is a decision for a human, and it is why this brief ends `Approval-required`.
+    | Regime | What it obliges | What the platform contributes | What stays a business act |
+    |---|---|---|---|
+    | *(e.g. a records rule)* | retention, attribution, tamper evidence | append-only audit, RBAC before the model, tenant isolation, write-only secrets | the attestation, the insurance, the entity, data residency, the signed agreement |
 
-10. **Check the kill criteria out loud.** Walk the step-1 list one by one — `fired` / `not fired` /
+    The platform *supports* these regimes; it does not deliver compliance. Anything in the last
+    column is a decision for a human, and it is why this brief ends `Approval-required`.
+
+11. **Check the kill criteria out loud.** Walk the step-1 list one by one — `fired` / `not fired` /
     `unknown`, each with the evidence. This section is the reason the brief is trustworthy; a brief
     where nothing even came close is usually a brief that did not look.
 
-11. **Write the file, state the level, name the state.** Include a recommendation if you have one,
+12. **Write the file, state the level, name the state.** Include a recommendation if you have one,
     labelled as the L4 opinion it is. End `Approval-required`, or `No-op` if a criterion fired —
     and in the `No-op` case say plainly that the skill succeeded.
 
@@ -178,15 +207,17 @@ until it is resolved.
 2. **Buyer and pain** — user, buyer, blocker; the pain in units, with sources.
 3. **Incumbents** — the named table, prices, their AI claims, and the entrant argument from step 3.
 4. **The killer workflow** — the four-arrow trace, expanded, with the platform pieces named.
-5. **Document surface** — types, formats, volumes, OCR, RAG collection scoping.
-6. **Connector surface** — systems of record, access path, and schedule risks.
-7. **RBAC tiers** — job title → the write it owns → permission string.
-8. **v1 scope** — what ships, and the longer *deliberately not v1* list.
-9. **Burdens** — effort rating and the compliance table, separately.
-10. **What the platform does not give you** — the honest gaps. A brief without this section is a
+5. **Agent design** — the agents and why there is more than one, what each reasons over, why it is
+   multi-step, the single-prompt baseline, and what verifies the output.
+6. **Document surface** — types, formats, volumes, OCR, RAG collection scoping.
+7. **Connector surface** — systems of record, access path, and schedule risks.
+8. **RBAC tiers** — job title → the write it owns → permission string.
+9. **v1 scope** — what ships, and the longer *deliberately not v1* list.
+10. **Burdens** — effort rating and the compliance table, separately.
+11. **What the platform does not give you** — the honest gaps. A brief without this section is a
     pitch.
-11. **KILL CRITERIA** — the frozen list from step 1, each marked fired / not fired / unknown.
-12. **Sources** — every one you actually read.
+12. **KILL CRITERIA** — the frozen list from step 1, each marked fired / not fired / unknown.
+13. **Sources** — every one you actually read.
 
 ## Guardrails
 
@@ -202,7 +233,10 @@ until it is resolved.
   actual rule. "Has compliance requirements" is not a finding.
 - **Name what the platform does not solve.** Audit and RBAC support a regime; they do not satisfy it.
 - **Do not claim the platform's capability as the product's value.** Approvals, audit, tenancy, and
-  RAG are the floor every product on this platform starts from. The brief argues about the *module*.
+  RAG are the floor every product on this platform starts from. The brief argues about the *module*,
+  and above all about what the model has to reason over inside it.
+- **Answer the single-prompt baseline honestly.** It is the cheapest way to discover there is no
+  product here, and the easiest question to quietly not ask. A brief that skips it is not a brief.
 - **`No-op` is a win.** Killing an industry in an afternoon is the highest return this loop produces.
   Report it as a success with the criterion that fired, not as a failure to find something.
 
@@ -213,6 +247,9 @@ until it is resolved.
 | Writing kill criteria after the research | none of them fire, by construction | freeze them in step 1 |
 | A persona instead of a buyer | nobody to sell to, discovered late | one job title, one budget line, one signer |
 | "The AI will just handle X" | hides a missing approval step or a missing verifier | write the four-arrow trace with a real role and a real record |
+| Naming a multi-agent design because it sounds ambitious | three agents that never disagree, built and paid for | say what one context cannot hold; otherwise it is one agent |
+| Skipping the single-prompt baseline | a wrapper gets a go decision and a quarter | answer it in step 5, in plain words, before scoping v1 |
+| Trimming the reasoning to make v1 smaller | ships the form the incumbent already has | cut connectors and screens first; the agent surface is the product |
 | Two AI steps before one approval | the gate stops meaning anything | one approval per commit; split the workflow |
 | Blending compliance into the effort rating | a single "hard" hides which kind of hard | two ratings, never averaged |
 | A v1 that spans the whole shortlist workflow | never ships, never gets feedback | one workflow, one document type, one connector |

@@ -106,9 +106,12 @@ rather than filling the gap with plausible-sounding claims.
 
 6. **Split what survives.** Must-have = table stakes without which nobody switches vendor; keep it
    small enough to ship. Differentiator = the reason to pick you over the vendors the research named
-   — two or three, and on this platform they are almost always agentic (propose-then-approve,
-   cited retrieval, a channel the incumbents don't have). Out-of-scope = named explicitly, each with
-   **the reason** and **the trigger that would reopen it**.
+   — two or three, and **at least one must be the reasoning work itself**: the multi-agent flow, the
+   extraction from messy documents, the retrieval that has to cite, the judgment a practitioner
+   currently spends hours on. Propose-then-approve, an audit trail, a working RAG pipeline and the
+   WhatsApp channel are the **floor** every product on this platform starts from — listing them as
+   differentiators means the spec is arguing for Plenipo, not for this product. Out-of-scope = named
+   explicitly, each with **the reason** and **the trigger that would reopen it**.
 
 7. **Bind every capability to exactly one primary seam.** This is the load-bearing step.
 
@@ -235,6 +238,7 @@ The human accepting the spec is `L5`, and it is the only signal that actually cl
 | A write capability with no approval statement | the agent mutates customer data unreviewed — a platform invariant violated at the spec level | mark it approval-gated and name who approves |
 | Inventing permission levels or an ACL matrix | the plan cannot be implemented; RBAC gets rebuilt inside the module | dotted `tools.<module>.<tool>` strings plus wildcards |
 | Every capability is a tab | you specified a CRUD app with a chatbot beside it, on a chat-first platform | if a human would ask for it in words, it is a tool first |
+| Differentiators that are all platform features | every product here would score identically; the build reduces to CRUD with a chat window | at least one differentiator is the reasoning work — name what the model reads and decides |
 | Ten differentiators in the must-have list | v1 never ships | must-have is table stakes only; two or three differentiators |
 | One role per persona | roles proliferate and no one is left who can approve | roles are authority tiers; merge personas that share all three |
 | A metric like "improve efficiency" | nothing can falsify the product | name the instrument and its endpoint |
