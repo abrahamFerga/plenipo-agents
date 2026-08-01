@@ -63,9 +63,11 @@ only remaining scope changes what the product *is*).
 
 ## Workflow
 
-1. **Preflight and count.** `gh auth status`, the board exists, `SPEC.md` and `PLAN.md` are
-   present. Then count items per column. Report the counts before doing anything — every decision
-   below is a function of them.
+1. **Preflight and count.** Read `workflow.json` → `stage` first: `platform` means there is no plan
+   to extend — stop as `No-op` and name `../steward/SKILL.md`, since the platform's scope arrives as
+   requests from products rather than from a `SPEC.md`. Then: `gh auth status`, the board exists,
+   `SPEC.md` and `PLAN.md` are present. Then count items per column. Report the counts before doing
+   anything — every decision below is a function of them.
 
 2. **Triage first; it is cheap and it is the best source of scope.** For each open issue labelled
    `agent:needs-triage`:

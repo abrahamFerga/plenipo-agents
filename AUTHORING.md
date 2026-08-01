@@ -58,8 +58,8 @@ disable-model-invocation: true  # action skills only — see below
 | Kind | Setting | Cost | Examples |
 |---|---|---|---|
 | **Knowledge / reference** — Claude should reach for it while working | omit `disable-model-invocation` | description is always-on when the plugin is enabled | `plenipo-platform`, `plenipo-runbook`, `loop-discipline`, `plenipo-module-sdk` |
-| **Loop body** — a `plenipo` verb or the conductor must be able to *call* it | omit `disable-model-invocation` | description always-on | `work-next-issue`, `sync-backlog`, `design-product`, `scaffold-product`, every `plenipo` verb |
-| **Human-fired op** — irreversible, or a decision only a person should start | `disable-model-invocation: true` | **zero** until invoked as `/<plugin>:<skill>` | `upgrade-platform`, the `steward` set |
+| **Loop body** — a `plenipo` verb or the conductor must be able to *call* it | omit `disable-model-invocation` | description always-on | `work-next-issue`, `sync-backlog`, `design-product`, `scaffold-product`, `triage-requests`, `announce-release`, every `plenipo` verb |
+| **Human-fired op** — irreversible, or a decision only a person should start | `disable-model-invocation: true` | **zero** until invoked as `/<plugin>:<skill>` | `upgrade-platform`, `install-request-surface` |
 
 **The loop-body category is not a style choice; it is a hard constraint.** A skill with
 `disable-model-invocation: true` is absent from the model's skill list entirely, so **no skill can

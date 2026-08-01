@@ -42,6 +42,8 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 
 ## Stop Signals
 
+- **You are in the Plenipo platform repo** (`workflow.json` → `stage: platform`) →
+  `../steward/SKILL.md`. Its work arrives as a request queue from products, not as a board.
 - **The board is empty or nothing is Ready** → `../define/SKILL.md`. Do not promote your own cards.
 - **Open PRs are piling up** → that is this skill reporting `No-op`; run `../ship/SKILL.md`
   instead.
@@ -61,9 +63,13 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 
 ## Workflow
 
-1. **Preflight.** `gh auth status` exits 0 · Docker is running · the working tree is clean ·
-   `RUNBOOK.md` exists. Any failure is `Blocked` — name which one and stop. Do not "fix" a dirty
-   tree by committing or stashing someone else's work.
+1. **Preflight.** Read `workflow.json` → `stage` **first**: if it is `platform`, stop as `No-op` and
+   name `../steward/SKILL.md`. The platform has no board, no `PLAN.md` and no `RUNBOOK.md` by
+   design, so every check below would fail for a reason that hides the real answer — reporting
+   *"Blocked: no RUNBOOK.md"* on the platform repo is a true statement about the wrong question.
+   Then: `gh auth status` exits 0 · Docker is running · the working tree is clean · `RUNBOOK.md`
+   exists. Any failure is `Blocked` — name which one and stop. Do not "fix" a dirty tree by
+   committing or stashing someone else's work.
 
 2. **Read the last two ticks** from `TICKS.md`. If the previous two both ended `No-op` or `Success`
    with **no card movement and no commit**, stop as `Stalled` and say so in the journal. A timer
@@ -141,4 +147,6 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 - `../ship/SKILL.md` — reviews and merges what this produces. **Load when:** PRs are piling up.
 - `../define/SKILL.md` — refills the board this drains. **Load when:** nothing is Ready.
 - `../test/SKILL.md` — files the bug issues rule 3 prioritizes.
+- `../steward/SKILL.md` — the platform's equivalent tick. **Load when:** preflight finds
+  `stage: platform`.
 - `loop-discipline` — the ladder and the terminal states named above.

@@ -63,9 +63,11 @@ is too unstable to sweep — one `Blocked`-class defect filed at p0, and stop) �
    Equal → `No-op`, journal it, stop. Sweeping an unchanged product burns tokens to re-derive
    yesterday's answer.
 
-2. **Preflight.** Docker running, `RUNBOOK.md` present, `gh auth status` green. Any failure is
-   `Blocked`, not a finding — a finding is a claim about the product, and you have not observed the
-   product yet.
+2. **Preflight.** Read `workflow.json` → `stage` first: `platform` means there is no product to
+   sweep — stop as `No-op` and name `../steward/SKILL.md`, whose `consumers_green` gate is the
+   platform's equivalent of a sweep. Then: Docker running, `RUNBOOK.md` present, `gh auth status`
+   green. Any failure is `Blocked`, not a finding — a finding is a claim about the product, and you
+   have not observed the product yet.
 
 3. **Delegate the sweep** to the `e2e-tester` agent. It boots the product, walks real journeys
    (first-run, the domain's core loop, the approval gate, RBAC with a narrowed role, the read

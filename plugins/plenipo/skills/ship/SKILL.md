@@ -9,7 +9,8 @@ description: >
   a human.
   USE FOR: `/loop 30m /plenipo:ship`, clearing a review backlog, letting a product merge without you.
   DO NOT USE FOR: writing or fixing the code under review (`../deliver/SKILL.md`), installing the
-  branch protection and CI gates this depends on (`../setup/SKILL.md`), or merging platform changes.
+  branch protection and CI gates this depends on (`../setup/SKILL.md`), or merging platform changes —
+  those need a conformance run across every consumer, which is `../steward/SKILL.md`.
 license: MIT
 ---
 
@@ -45,7 +46,9 @@ times for three different reasons — the *issue* is the defect, not the code).
 - **The repo has no branch protection or required checks** → `../setup/SKILL.md` first. Every gate
   below that matters is *derived* from branch protection; on an unprotected repo they read nothing
   and pass vacuously.
-- **The change touches the Plenipo platform** → human, always. Not a level, not a label: a rule.
+- **You are in the Plenipo platform repo** (`workflow.json` → `stage: platform`) →
+  `../steward/SKILL.md`. Platform merges need `consumers_green` on top of every gate here, and this
+  verb cannot evaluate it.
 - **You want the policy rationale** → `/deliver:work-next-issue`'s `merge-policy` reference argues
   who may merge and what GitHub can actually gate. This skill implements it.
 
@@ -94,17 +97,24 @@ Two consequences worth internalizing:
 | **2** | product features | all gates, including an `agent:approved` from the reviewer |
 | **3** | as level 2, unattended, inside a revert budget | all gates, plus a clean level-2 stretch |
 
-**Never at any level:** anything in the platform repo, and anything `spine_untouched` catches. Those
-do not get safer as a product's track record improves, because the cost of being wrong does not
-shrink.
+**Never at any level:** anything `spine_untouched` catches. That does not get safer as a product's
+track record improves, because the cost of being wrong does not shrink.
+
+**Never in this verb:** anything in the platform repo. Not because a platform change can never
+merge — `../steward/SKILL.md` merges them — but because the gate that makes one safe is
+`consumers_green`, a rebuild of every repo in `consumers.json` against the candidate, and nothing
+here evaluates it. A platform PR merged on a product's gate list has passed a weaker bar than its
+blast radius deserves.
 
 ## Workflow
 
-1. **Preflight.** `gh auth status` green · branch protection exists on the default branch (`gh api
-   repos/{owner}/{repo}/rulesets` or `.../branches/<default>/protection`) · read `autonomy.level`
-   from `workflow.json`. No protection, or no recorded level → `Blocked`, and point at
-   `../setup/SKILL.md`. An unrecorded level is **0**; never infer a higher one from how well the
-   loop has been doing.
+1. **Preflight.** Read `workflow.json` → `stage` **first**: if it is `platform`, stop as `No-op` and
+   name `../steward/SKILL.md` — do not proceed to check anything else, and do not report a missing
+   product artifact as the reason. Then `gh auth status` green · branch protection exists on the
+   default branch (`gh api repos/{owner}/{repo}/rulesets` or `.../branches/<default>/protection`) ·
+   read `autonomy.level` from `workflow.json`. No protection, or no recorded level → `Blocked`, and
+   point at `../setup/SKILL.md`. An unrecorded level is **0**; never infer a higher one from how well
+   the loop has been doing.
 
 2. **Run the gate script in dry-run — it is free, and it decides what deserves a review.** It lists
    every open PR, evaluates each gate, and checks the default branch is healthy on the way (a red
@@ -169,7 +179,9 @@ shrink.
 - **Never merge onto a red default branch**, and never merge more than the cap in one tick.
 - **Never touch a PR a human opened**, or one carrying `human-hold`.
 - **Never raise the autonomy level, and never write it.** A human records it in `workflow.json`.
-- **Platform and spine changes are human, always.** Not configurable, not levelled.
+- **Spine changes are human, always.** Not configurable, not levelled.
+- **Platform changes are never this verb's.** Hand them to `../steward/SKILL.md`, which owns the
+  conformance gate; do not merge one here because every gate you *can* see happens to be green.
 - **Never hand-evaluate a gate the script owns.** Paste its output. The moment you start deciding
   for yourself whether a check "basically passed", the gate is gone.
 - **Report gate names, not vibes.** "Blocked by `checks_green` and `spine_untouched`" is
@@ -193,6 +205,8 @@ shrink.
 - `../setup/SKILL.md` — installs branch protection, the required deterministic checks, the labels,
   and `CODEOWNERS` that both gate scripts depend on. **Load when:** preflight finds no protection.
 - `../deliver/SKILL.md` — fixes what this rejects; its rule 1 is the other half of this loop.
+- `../steward/SKILL.md` — the same job for the platform repo, plus the `consumers_green` gate.
+  **Load when:** preflight finds `stage: platform`.
 - `/deliver:work-next-issue` — writes the PR body this reads, and its `merge-policy` reference is
   the argument behind these gates. **Load when:** a PR body lacks the sections `pr-gates.mjs`
   requires.

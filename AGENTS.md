@@ -47,8 +47,10 @@ that are most often broken:
 - `name` in frontmatter **must equal the folder name**. Kebab-case, no `claude`/`anthropic`.
 - `description` is the only thing loaded for routing. Keep it under 1024 chars and **always include
   a `DO NOT USE FOR:` clause** — overlapping descriptions are the most common marketplace defect.
-- Action skills (anything that mutates or is a pipeline phase) set `disable-model-invocation: true`
-  and **name their terminal states**. Knowledge skills omit it.
+- Every action skill **names its terminal states**. The `disable-model-invocation: true` flag is
+  narrower than "it mutates": set it only for a human-fired op nothing calls. **Anything a verb
+  dispatches to must omit it** — the flag removes the skill from the model's list entirely, so a
+  verb calling it silently does nothing.
 - Body under 450 lines; depth goes in `references/`.
 - **Never link outside your own plugin.** Plugins install in isolation, so `../../<other-plugin>/…`
   and `../../../../HARNESS.md` do not exist at runtime. Use `/<plugin>:<skill>` for another
@@ -135,13 +137,18 @@ including the ladder that resolves most reports before they are filed, is the `r
 skill; `product-harness-feedback.md` in `WORKFLOWS.md` is the GitHub-native route for when no
 session is running.
 
-## Start here: the seven verbs
+## Start here: the eight verbs
 
 The `plenipo` plugin is the front door, and the only surface anyone needs to remember. Each verb is
-one bounded tick with a named terminal state, so it is safe on a timer:
-`setup` · `launch` · `deliver` · `ship` · `test` · `define` · `fleet`. Everything in the index below
-is an internal those verbs call. `/loop 20m /plenipo:fleet` is the whole steady state; the operator's
-manual is `AUTOMATED_CLAUDE_LOOPS.md`.
+one bounded tick with a named terminal state, so it runs the same typed on demand or fired by a
+timer: `setup` · `launch` · `deliver` · `ship` · `test` · `define` · `steward` · `fleet`. Everything
+in the index below is an internal those verbs call.
+
+The default mode is **one session per repo**, verbs typed when you want work done; `/loop <interval>
+/plenipo:<verb>` makes that session unattended, and `/loop 20m /plenipo:fleet` is the scale-up for
+more repos than you want to watch. Seven verbs run in a *product*; **`steward` runs in the platform
+repo**, which has a request queue instead of a board. Every product verb reads `workflow.json` →
+`stage` first and refuses on `platform`. The operator's manual is `AUTOMATED_CLAUDE_LOOPS.md`.
 
 **A skill with `disable-model-invocation: true` cannot be invoked by another skill** — only by a user
 typing it. That is why loop bodies omit the flag, and why adding it to something a verb calls silently
@@ -288,6 +295,10 @@ other tools should **open the file when its description matches the task**.
   produced, get an adversarial second opinion from the `pr-reviewer` agent — a context that never
   saw the code being written and is asked to refute it — then merge only what c…  
   → [`plugins/plenipo/skills/ship/SKILL.md`](plugins/plenipo/skills/ship/SKILL.md)
+- **steward** *(reference)* — One platform tick, safe to fire on a timer or on demand: work the
+  queue the products filed — verdict what is untriaged, implement one accepted request, announce a
+  tagged release — and merge only behind a conformance gate that rebuilds ev…  
+  → [`plugins/plenipo/skills/steward/SKILL.md`](plugins/plenipo/skills/steward/SKILL.md)
 - **test** *(reference)* — One sweep tick: boot the product, delegate an end-to-end hunt to the
   `e2e-tester` agent, then turn what it observed into deduplicated GitHub bug issues that the
   build loop will pick up — each with a reproduction, a stable fingerprint key…  
@@ -321,7 +332,7 @@ other tools should **open the file when its description matches the task**.
 
 ### `steward`
 
-- **announce-release** *(action)* — Push a Plenipo release out to every product built on it:
+- **announce-release** *(reference)* — Push a Plenipo release out to every product built on it:
   classify what changed, then open an issue in each consumer repo — carrying step-by-step
   migration instructions when the release breaks them, or the shims it now retires when it doe…  
   → [`plugins/steward/skills/announce-release/SKILL.md`](plugins/steward/skills/announce-release/SKILL.md)
@@ -329,8 +340,8 @@ other tools should **open the file when its description matches the task**.
   the Plenipo repo: the platform-request issue form, the triage label taxonomy, the consumer
   registry, and the conformance workflow that builds and tests every registered product agains…  
   → [`plugins/steward/skills/install-request-surface/SKILL.md`](plugins/steward/skills/install-request-surface/SKILL.md)
-- **triage-requests** *(action)* — Work the platform-request queue from every product: cluster
-  requests by capability so demand across products is visible, give each one a verdict the
+- **triage-requests** *(reference)* — Work the platform-request queue from every product:
+  cluster requests by capability so demand across products is visible, give each one a verdict the
   requesting agent can act on without a human relaying it, and convert what is accepted in…  
   → [`plugins/steward/skills/triage-requests/SKILL.md`](plugins/steward/skills/triage-requests/SKILL.md)
 

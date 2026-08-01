@@ -160,8 +160,13 @@ Per product, graduating on artifacts that make green trustworthy — not on a pr
 Record the level in the product's `workflow.json`. **Never infer it** — an agent deciding it has
 earned autonomy is the self-approving loop wearing a different hat.
 
-Two things never graduate: **platform changes** and **spine changes**. Those stay human at every
-level, because the cost of being wrong does not shrink with the product's track record.
+**Spine changes never graduate.** They stay human at every level, because the cost of being wrong
+does not shrink with the product's track record.
+
+**Platform changes do not use this ladder at all.** The platform repo has no autonomy level; its
+merges are gated on `consumers_green` — every repo in `consumers.json` rebuilt and retested against
+the candidate — and a breaking public-surface change still needs a human. That is `/plenipo:steward`,
+not this loop.
 
 ## What the build loop must do
 
