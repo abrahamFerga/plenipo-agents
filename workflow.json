@@ -1,0 +1,26 @@
+{
+  "//": "Policy for this repo, read by .github/scripts/merge-gate.mjs. Strict JSON — that script JSON.parse()s it, so comments must be \"//\" keys, never // lines.",
+
+  "name": "plenipo-agents",
+  "kind": "marketplace",
+
+  "github": {
+    "owner": "abrahamFerga",
+    "repo": "plenipo-agents"
+  },
+
+  "autonomy": {
+    "//": "level: 0 nothing · 1 docs+tests · 2 features on review · 3 unattended. Set by a human, never inferred — an agent deciding it has earned autonomy is the self-approving loop wearing a different hat.",
+
+    "//set-by": "A human set this to 3 in words on 2026-08-01, having been told the ladder's stated entry requirement ('level 2 clean over a stretch') was unmet: this repo had never merged autonomously at any level. Recorded here because that is the fact a future tick needs and the conversation is gone.",
+
+    "//what-3-means-here": "merge-gate.mjs treats *.md as low-risk, so in an all-markdown repo levels 1 and 3 both merge the whole product. They differ on exactly one class of file: non-markdown, i.e. eng/*.mjs and .github/scripts/*.mjs — the verifier and the gates themselves. Level 3 permits merging those. The remaining brake is pr-gates.mjs, whose spine_untouched rule demands the `human-approved` label on any diff editing eng/, .claude-plugin/, .github/ or workflow.json. Do not weaken that rule while this number is 3 — together they are the whole safety argument.",
+
+    "level": 3,
+    "maxOpenPRs": 3,
+    "maxMergesPerTick": 2,
+    "readyFloor": 3,
+    "maxIssuesPerSweep": 8,
+    "maxNewCapabilities": 5
+  }
+}

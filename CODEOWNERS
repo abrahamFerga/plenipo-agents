@@ -1,0 +1,28 @@
+# CODEOWNERS is the human-visibility half of the spine policy: it puts a named person on the review
+# of anything whose blast radius is every repo that installs this marketplace. The ENFORCING half is
+# `.github/scripts/pr-gates.mjs`, which fails as a required status check — CODEOWNERS only requests a
+# review, and only blocks if you also turn on "Require review from Code Owners" in branch protection.
+#
+# Keep both. The check is what stops an agent; the ownership is what tells you it happened.
+#
+# This repo ships no application code, so the product-shaped paths in the shared asset
+# (plugins/plenipo/skills/setup/assets/CODEOWNERS — /src/**/Authorization/ and friends) do not exist
+# here. The spine is instead the machinery that decides whether a skill is fit to publish.
+
+* @abrahamFerga
+
+# The verifier. An agent that can edit its own checks has no checks.
+/eng/                      @abrahamFerga
+
+# The manifests. A bad one breaks installation for every repo downstream, not just this one.
+/.claude-plugin/           @abrahamFerga
+/plugins/*/.claude-plugin/ @abrahamFerga
+
+# The contract the validator enforces, and the "do not contradict these" fact list.
+/AUTHORING.md              @abrahamFerga
+/AGENTS.md                 @abrahamFerga
+
+# The harness itself. An agent that can edit its own gates has no gates.
+/.github/                  @abrahamFerga
+/CODEOWNERS                @abrahamFerga
+/workflow.json             @abrahamFerga
