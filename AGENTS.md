@@ -300,12 +300,12 @@ other tools should **open the file when its description matches the task**.
 ### `scout`
 
 - **find-industry** *(reference)* — Rank unclaimed industries as candidates for a new AI-first
-  product on Plenipo, by scoring each against what the platform's spine actually provides —
-  chat-first UX, RBAC-before-the-model, human approval on every write, append-only audit,…  
+  product on Plenipo by testing two things in order: whether the work needs deep AI — multi-agent
+  orchestration, long-horizon agentic workflows, document processing over messy arti…  
   → [`plugins/scout/skills/find-industry/SKILL.md`](plugins/scout/skills/find-industry/SKILL.md)
 - **opportunity-brief** *(reference)* — Deep-dive ONE shortlisted industry into a go/no-go
   brief: the named buyer and the pain in units, the incumbent landscape and why an AI-first
-  entrant wins or doesn't, the killer approval-gated workflow traced end to end, the document and…  
+  entrant wins or doesn't, the killer approval-gated workflow traced end to end, the agent design…  
   → [`plugins/scout/skills/opportunity-brief/SKILL.md`](plugins/scout/skills/opportunity-brief/SKILL.md)
 - **scan-fleet** *(reference)* — Inventory every system built on (or adjacent to) the Plenipo
   platform and produce FLEET.md — which repos are true products versus legacy pre-platform
