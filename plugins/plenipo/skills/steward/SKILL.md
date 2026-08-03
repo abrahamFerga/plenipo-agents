@@ -72,16 +72,24 @@ is rebuilt and retested against the candidate, and a single red consumer blocks 
 ## The extra gate
 
 Everything `../ship/SKILL.md` enforces applies here unchanged — `checks_exist`, `checks_green`,
-`spine_untouched`, `no_human_hold`, the lot. This verb adds one gate on top and never removes one:
+`spine_untouched`, `no_human_hold`, `level_permits`, the lot. `merge-gate.mjs` adds two gates on a
+repo whose `workflow.json` says `stage: platform`, and removes none:
 
 | Gate | Passes when | Why it exists |
 |---|---|---|
-| `consumers_green` | every repo in `consumers.json` builds **and** its tests pass against the candidate | a platform change that compiles is not a platform change that is safe; the products are the test suite |
-| `surface_declared` | any public-type or endpoint change is classified in the PR body as additive or breaking | an unclassified break is announced without migration steps, which starts N agents down an unverified path |
+| `consumers_green` | a consumer-conformance check ran on the PR **and** concluded success | a platform change that compiles is not a platform change that is safe; the products are the test suite |
+| `surface_declared` | the body carries `Surface: additive`, `Surface: breaking` or `Surface: none`; `breaking` also needs the `human-approved` label | an unclassified break is announced without migration steps, which starts N agents down an unverified path |
 
-`consumers_green` is what makes merging here defensible at all. It is deliberately expensive: it is
-the only evidence that survives contact with the thing the platform exists for. **A conformance run
-that was skipped is a red gate, not a missing one** — if it did not run, it did not pass.
+`consumers_green` is what makes merging here defensible at all, and it is a **named** gate rather
+than something `checks_green` covers for a specific reason: `consumer-conformance.yml` carries a
+`paths:` filter, so a PR that misses `src/**` never triggers it, the rollup never contains it, and
+green would mean *"it did not run"*. **A conformance run that was skipped is a red gate, not a
+missing one.**
+
+**The autonomy level still applies.** Conformance decides whether a change is *safe*; the level
+recorded in `workflow.json` decides whether this repo may act on that answer *unattended*, and absent
+config is level 0. Both, or no merge — do not read "the platform has a stronger gate" as "the
+platform skips the level."
 
 **Still human, always:** a breaking public-surface change, and anything `spine_untouched` catches.
 Those need the `human-approved` label on the PR — a human act, recorded. The spine is the five
@@ -118,8 +126,13 @@ reason anything was built on it.
 5. **Build one accepted request.** One request per tick, on its own branch, with the requester's
    acceptance test attached as a conformance test — that test is what makes the next release's
    `consumers_green` mean something for this capability. Climb the test ladder, then open a PR whose
-   body classifies the public-surface change as additive or breaking. Never start a second request
-   while one is in flight.
+   body carries the classification line `surface_declared` reads — literally, on its own line:
+
+   ```text
+   Surface: additive
+   ```
+
+   `additive`, `breaking` or `none`. Never start a second request while one is in flight.
 
 6. **Merge, behind conformance.** Re-run the gate script with `--merge`, and confirm the conformance
    run is green for **every** consumer at the candidate SHA before it:

@@ -49,6 +49,15 @@ const HOLD_LABELS = ['human-hold', 'needs-human', 'agent:blocked'];
 // Docs, tests and the runbook are the only class a level-1 product may land on its own.
 const LOW_RISK = [/\.md$/i, /^tests\//, /\.http$/i, /^\.http$/i];
 
+// ── Platform repos are gated differently, not more leniently ─────────────────
+// A product merge risks one product; a platform merge risks every product built on it, and that
+// asymmetry GROWS with each consumer rather than shrinking with a good track record. So the platform
+// has no autonomy level to earn — it has a stronger verifier: consumer-conformance.yml packs the
+// platform as a release candidate and rebuilds every registered consumer against it.
+const IS_PLATFORM = String(cfg.stage ?? cfg.kind ?? 'product').toLowerCase() === 'platform';
+const CONFORMANCE_CHECK = /consumer.?conformance|conformance verdict/i;
+const SURFACE_RE = /^\s*(?:public[- ])?surface:\s*(additive|breaking|none)\b/im;
+
 const PR_FIELDS = [
   'number', 'title', 'body', 'isDraft', 'headRefName', 'baseRefName', 'labels',
   'mergeable', 'mergeStateStatus', 'reviewDecision', 'statusCheckRollup', 'files', 'author',
@@ -110,6 +119,43 @@ function evaluate(pr) {
   if (LEVEL === 0) fail.push('level_permits: autonomy level 0 merges nothing — a human decides');
   else if (LEVEL === 1 && changeClass !== 'low-risk') {
     fail.push('level_permits: level 1 may merge docs, tests and the runbook only');
+  }
+
+  // ── Platform-only gates ────────────────────────────────────────────────────
+  // `checks_green` CANNOT stand in for consumers_green, and this is the whole reason it is a named
+  // gate rather than a comment: consumer-conformance.yml carries a `paths:` filter, so a pull
+  // request that misses `src/**` never triggers it, the rollup never contains it, and green means
+  // "it did not run". That is the `checks_exist` failure mode one level up — a check nobody ran
+  // reads exactly like a check that passed.
+  if (IS_PLATFORM) {
+    const conformance = checks.filter((c) => CONFORMANCE_CHECK.test(c.name || c.context || ''));
+    const notGreen = conformance.filter((c) => state(c) !== 'SUCCESS');
+
+    if (conformance.length === 0) {
+      fail.push(
+        'consumers_green: no consumer-conformance check ran on this PR — a skipped conformance ' +
+          'run is a red gate, not a missing one'
+      );
+    } else if (notGreen.length) {
+      fail.push(
+        `consumers_green: ${notGreen.map((c) => `${c.name || c.context} (${state(c) || 'no conclusion'})`).join(', ')} ` +
+          '— a registered consumer does not build or does not pass against this change'
+      );
+    }
+
+    const surface = SURFACE_RE.exec(pr.body ?? '');
+    if (!surface) {
+      fail.push(
+        'surface_declared: the body has no "Surface: additive|breaking|none" line — an ' +
+          'unclassified break gets announced without migration steps, which starts N agents down ' +
+          'an unverified path'
+      );
+    } else if (surface[1].toLowerCase() === 'breaking' && !labels.includes('human-approved')) {
+      fail.push(
+        'surface_declared: "Surface: breaking" needs the `human-approved` label — a human writes ' +
+          'the migration before every consumer is told to follow it'
+      );
+    }
   }
 
   return { pr, fail, changeClass };

@@ -271,17 +271,25 @@ the thing it was built on.
 
 A bad product merge hurts one product; a bad platform merge hurts every product built on it. That
 asymmetry does not shrink as the platform's track record improves — it *grows*, because each new
-consumer adds to it. So the platform does not get an autonomy level at all. It gets a **stronger
-verifier**:
+consumer adds to it. So the platform does not get a *weaker* bar with a good track record; it gets
+two extra gates on top of every one a product must clear:
 
 | Gate | Passes when |
 |---|---|
-| `consumers_green` | every repo in `consumers.json` builds **and** its tests pass against the candidate |
-| `surface_declared` | any public-type or endpoint change is classified in the PR body as additive or breaking |
+| `consumers_green` | a consumer-conformance check ran on the PR **and** concluded success — every repo in `consumers.json` builds and passes its own tests against the candidate |
+| `surface_declared` | the body carries a `Surface: additive \| breaking \| none` line, and `breaking` additionally requires the `human-approved` label |
 
-Plus every gate a product merge must clear. `consumers_green` is the whole argument: the platform's
-own tests passing means the platform compiles, and **the products are the actual test suite**. A
-conformance run that was skipped counts as red, never as missing — the same rule as `checks_exist`.
+The autonomy level still applies as well, and still means what it always did: **a human recording, in
+`workflow.json`, that this repo may merge without them.** Absent config is level 0 and merges
+nothing. Conformance decides *whether a change is safe*; the level decides *whether this repo may act
+on that answer unattended*. Both, or no merge.
+
+`consumers_green` is the argument that makes the rest defensible: the platform's own tests passing
+proves the platform compiles, and **the products are the actual test suite**. It is a named gate
+rather than a line in `checks_green` for one specific reason — `consumer-conformance.yml` carries a
+`paths:` filter, so a PR that misses `src/**` never triggers it, the rollup never contains it, and
+green would mean *"it did not run"*. **A conformance run that was skipped counts as red, never as
+missing** — the `checks_exist` failure mode one level up.
 
 Two things still stop at a human here: a **breaking** public-surface change, and anything
 `spine_untouched` catches. Both need the `human-approved` label — a human act, recorded on the PR.
@@ -368,12 +376,19 @@ deserves:
 - **The verbs have never driven a real product end to end** — this is the largest gap. The dispatch
   chain, the tick ordering and the fleet scheduling are **L4**: reasoned, internally consistent, and
   unobserved. Run one product at level 0 for a week before believing any of it.
-- **`consumers_green` is a design, not a running gate** — **L4**, and the newest thing here. Unlike
-  `pr-gates.mjs` and `merge-gate.mjs`, no script implements it yet: `/plenipo:steward` reads the
-  conformance workflow `/steward:install-request-surface` installs, and that workflow has never been
-  observed red-then-green against a real breaking platform change. Until it has, **platform merges
-  are prose, not a gate** — treat the platform as human-merge-only in practice, however this document
-  reads. Proving that gate is the single highest-value thing anyone can do to this repo.
+- **`consumers_green` and `surface_declared` are implemented and fixture-proven** — L1. They live in
+  `merge-gate.mjs` beside every other gate, and were run against six fixtures: conformance absent,
+  conformance red, no `Surface:` line, `Surface: breaking` without the label, and both green cases —
+  plus a product-repo control confirming they do not fire outside a platform repo. Red before, green
+  after, the fixture the only variable.
+- **What conformance *asserts* has never been observed on a real break** — **L4**, and the weakest
+  link in the platform-merge argument. The gate correctly demands that `consumer-conformance.yml` ran
+  and concluded success; whether that workflow actually *catches* a breaking platform change is
+  unobserved, because it has never faced one. The workflow also states its own blind spots plainly —
+  CSP hashes over platform-authored inline HTML, bundle shape, behavioural drift that still compiles
+  — so a green run means *"the registered consumers still build and pass their own tests"*, never
+  *"this release is safe"*. **Watch it go red against a deliberate break before trusting a platform
+  auto-merge**; that is the single highest-value thing anyone can do to this repo.
 - **Cloud review is a separate, optional surface.** The local `pr-reviewer` needs no secret and no
   bill, and is the default. If review must keep running with the machine off, use
   `/harness:install-github-agentic-workflows` rather than a hand-rolled workflow: it compiles
