@@ -101,10 +101,10 @@ Two consequences worth internalizing:
 track record improves, because the cost of being wrong does not shrink.
 
 **Never in this verb:** anything in the platform repo. Not because a platform change can never
-merge — `../steward/SKILL.md` merges them — but because the gate that makes one safe is
-`consumers_green`, a rebuild of every repo in `consumers.json` against the candidate, and nothing
-here evaluates it. A platform PR merged on a product's gate list has passed a weaker bar than its
-blast radius deserves.
+merge — `../steward/SKILL.md` merges them — but because this verb stops at preflight on
+`stage: platform` and never reaches the gates. The two that make a platform merge defensible,
+`consumers_green` and `surface_declared`, are in the same `merge-gate.mjs` you run here; the script
+switches them on by reading `stage` itself, so they are never something this verb decides to skip.
 
 ## Workflow
 
