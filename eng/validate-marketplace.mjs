@@ -259,6 +259,45 @@ for (const { path, plugin, dir } of [...allSkills, ...allAgents.map((a) => ({ ..
   }
 }
 
+// ── 3c. A dispatched skill must be model-invocable ────────────────────────────
+// `disable-model-invocation: true` removes a skill from the model's list entirely, so a verb whose
+// step says "invoke /steward:triage-requests" invokes nothing and improvises the phase instead.
+// Nothing fails: no error, no missing file, just a tick that quietly did less than it claimed —
+// which makes this the least visible way to break automation in this repo, and the reason it is a
+// check rather than a paragraph in AUTHORING.md.
+//
+// Matched narrowly, on the same line, and only on verbs that unambiguously mean "call this skill
+// now": a `DO NOT USE FOR:` clause naming a human-fired op is correct, and so is prose about what
+// some *other* repo's loop does ("hand off to the products — each one's /deliver:upgrade-platform
+// unwinds the shims"). Both read as dispatch to a loose matcher, and a check that cries wolf is one
+// people learn to skip. Missing a rare wrapped dispatch is the cheaper error.
+const flagged = new Set(
+  allSkills
+    .filter(({ fm }) => String(fm['disable-model-invocation'] ?? '').trim() === 'true')
+    .map(({ plugin, skill }) => `${plugin}:${skill}`)
+);
+
+const DISPATCH = /\b(invoke|invokes|invoking|delegates? to)\b/i;
+
+for (const { path } of [...allSkills, ...allAgents]) {
+  const lines = readFileSync(path, 'utf8').replace(/\r\n/g, '\n').split('\n');
+  const seen = new Set();
+
+  for (const line of lines) {
+    if (!DISPATCH.test(line)) continue;
+
+    for (const m of line.matchAll(/\/([a-z][a-z0-9-]*):([a-z][a-z0-9-]*)/g)) {
+      const ref = `${m[1]}:${m[2]}`;
+      if (!flagged.has(ref) || seen.has(ref)) continue;
+      seen.add(ref);
+      err(
+        path,
+        `dispatches to /${ref}, which sets "disable-model-invocation: true" — no skill can invoke it, so that step silently does nothing at runtime`
+      );
+    }
+  }
+}
+
 // ── 4. Description overlap ────────────────────────────────────────────────────
 // Overlapping descriptions cause wrong activation or hesitation between options —
 // the single most common skill-marketplace defect.

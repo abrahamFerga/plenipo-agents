@@ -1,23 +1,28 @@
 # Automated loops
 
-How to run products on autopilot: **seven commands, one timer per loop, and a gate list that cannot
-be argued with.** This is the operator's manual. [HARNESS.md](HARNESS.md) explains *why* it is
-shaped this way; you do not need it to start.
+How to run products and the platform they sit on: **eight commands, one session per repo, and a gate
+list that cannot be argued with.** This is the operator's manual. [HARNESS.md](HARNESS.md) explains
+*why* it is shaped this way; you do not need it to start.
 
 The design goal is a portfolio you supervise in minutes a day, in domains you do not know, without
-becoming the bottleneck on ten products at once.
+becoming the bottleneck on ten products at once. Timers and the fleet scheduler are how you get
+there once it is working — **they are not the entry point**, and a verb typed by hand at one repo is
+the same unit of work either way.
 
-## The whole thing in one command
+## One session per repo
 
-```bash
-/loop 20m /plenipo:fleet
+**The default mode is one Claude Code session per repo you are actually focused on**, opened when
+you want work done and closed when you don't. Every verb is a single bounded tick with a named
+terminal state, so it works exactly the same typed on demand as fired by a timer:
+
+```text
+/plenipo:deliver
 ```
 
-That is the steady state. Each tick, `fleet` looks at every product you own, decides which one is
-most starved and what it needs — build the next issue, review and merge what is waiting, sweep for
-bugs, or refill the backlog — does exactly that one thing, and writes down what it did.
+That is the whole interface. Point a session at `networthy`, type a verb, read the terminal state.
+Nothing about the design requires a scheduler — a verb is a unit of work, not a unit of automation.
 
-If you only have one product, run its four loops directly instead and skip the scheduler:
+Want that session to keep going without you? Wrap the same verb in a timer:
 
 ```bash
 /loop 20m /plenipo:deliver     # next Ready issue → a pull request
@@ -29,22 +34,51 @@ If you only have one product, run its four loops directly instead and skip the s
 **Why not `5m`?** A build tick usually runs longer than five minutes, and a sweep boots the whole
 stack. The interval is the *gap between ticks*, so 20 minutes for building and hours for sweeping
 keeps the token bill proportional to work done rather than to polling. Drop the interval entirely
-(`/loop /plenipo:fleet`) to let it pace itself.
+(`/loop /plenipo:deliver`) to let it pace itself.
 
-## The seven verbs
+**Sessions are the isolation boundary, and that is a feature.** Two repos in two sessions cannot
+corrupt each other's context, and a session that goes wrong is closed rather than debugged. The one
+real constraint is Docker: `deliver` and `test` boot the product, so **do not run two booting verbs
+at the same moment** even in separate sessions. `ship`, `define` and `steward` never boot anything
+and can run alongside anything.
+
+### When to add the fleet scheduler
+
+`/loop 20m /plenipo:fleet` is the **scale-up**, not the starting point. It exists for when you have
+more repos than attention — it reads every product's board, picks the one most starved, runs exactly
+one verb there, and serialises so nothing collides. Reach for it when watching each repo yourself
+has stopped being possible, and not before:
+
+| You have | Use |
+|---|---|
+| one or two repos you are actively steering | a session each, verbs on demand |
+| those same repos, but overnight | a session each, four timers each |
+| more repos than you want to think about | one session, `/loop 20m /plenipo:fleet` |
+
+Adding the scheduler early buys nothing and costs you the clearest signal available — which repo you
+chose to open. Note also that fleet's scheduling is the **least proven** part of this system (see
+*Honest status*), while a verb typed at a repo is the part that has actually been exercised.
+
+## The eight verbs
 
 That is the entire surface. Everything else in this marketplace is an internal the verbs call — you
 never type those names.
 
-| Verb | One tick does | How often |
-|---|---|---|
-| `/plenipo:setup` | make a repo safe to point a timer at: runbook, labels, gate scripts, branch protection, autonomy level | once per repo |
-| `/plenipo:launch` | nothing → a product with a Ready backlog. Pauses once, for the go/no-go and the name | once per product |
-| `/plenipo:deliver` | pick what deserves this tick, hand it to the build loop, journal it | 20 min |
-| `/plenipo:ship` | adversarial review, then merge only what clears every gate | 30 min |
-| `/plenipo:test` | boot it, hunt end to end, file deduplicated bug issues | 3 h |
-| `/plenipo:define` | triage friction, promote Backlog → Ready, extend the plan only if it would run dry | 6 h |
-| `/plenipo:fleet` | one tick on the one product that most needs it, across the whole portfolio | 20 min |
+| Verb | One tick does | Runs in | How often |
+|---|---|---|---|
+| `/plenipo:setup` | make a repo safe to point a timer at: runbook, labels, gate scripts, branch protection, autonomy level | any repo | once per repo |
+| `/plenipo:launch` | nothing → a product with a Ready backlog. Pauses once, for the go/no-go and the name | a new product | once per product |
+| `/plenipo:deliver` | pick what deserves this tick, hand it to the build loop, journal it | a product | 20 min |
+| `/plenipo:ship` | adversarial review, then merge only what clears every gate | a product | 30 min |
+| `/plenipo:test` | boot it, hunt end to end, file deduplicated bug issues | a product | 3 h |
+| `/plenipo:define` | triage friction, promote Backlog → Ready, extend the plan only if it would run dry | a product | 6 h |
+| `/plenipo:steward` | work the request queue products filed, build one accepted item, merge behind a conformance run | **the platform** | 45 min |
+| `/plenipo:fleet` | one tick on the one product that most needs it, across the whole portfolio | a fleet root | 20 min |
+
+**The platform is not a product, and the product verbs know it.** `plenipo` has no board, no
+`PLAN.md` and no `RUNBOOK.md` — by design, not by neglect. Point `deliver` at it and it now reports
+`No-op` naming `steward`, rather than the misleading *"Blocked: no `RUNBOOK.md`"* it used to. Every
+product verb reads `workflow.json` → `stage` before anything else for exactly this reason.
 
 Every verb ends in exactly one named state — `Success`, `No-op`, `Blocked`, `Stalled`, `Exhausted`,
 `Approval-required` — and **an error or a spent budget is never `Success`**. A tick that reports
@@ -67,16 +101,20 @@ settings, to cover every repo). The template is
 ```jsonc
 {
   "enabledPlugins": {
-    "plenipo@plenipo-agents": true,   // the seven verbs
+    "plenipo@plenipo-agents": true,   // the eight verbs
     "harness@plenipo-agents": true,
     "scout@plenipo-agents":   true,
     "define@plenipo-agents":  true,
     "shape@plenipo-agents":   true,
     "deliver@plenipo-agents": true,
-    "steward@plenipo-agents": false   // only in the Plenipo platform repo
+    "steward@plenipo-agents": false   // true in the Plenipo platform repo — /plenipo:steward calls it
   }
 }
 ```
+
+**In the platform repo, `steward` must be `true`.** `/plenipo:steward` dispatches to
+`/steward:triage-requests` and `/steward:announce-release`, so a platform session with that plugin
+off reports `Blocked` on its first tick and cannot fix itself.
 
 **Everything on, always.** An unattended run cannot reload its own plugin set mid-flight, so a
 narrower set means a loop that stops halfway and cannot fix itself. The cost is every skill's
@@ -104,20 +142,26 @@ that matter most:
 It proves both scripts fail before it trusts them to pass. **A check never seen red may be asserting
 nothing** — and an inert gate is worse than no gate, because then a green tick implies safety.
 
-### 3. Start the loop
+### 3. Open a session and type a verb
 
-```bash
-/loop 20m /plenipo:fleet
+Start attended, in the repo you care about. One session, one verb, read the terminal state:
+
+```text
+/plenipo:deliver
 ```
 
-`/loop` runs inside an open Claude Code session. To survive a reboot, schedule the headless form
-instead — one scheduled task per verb, staggered:
+When you trust what it does unattended, wrap the same verb in a timer in that same session —
+`/loop 20m /plenipo:deliver`. `/loop` runs inside an open Claude Code session, so to survive a
+reboot schedule the headless form instead, one scheduled task per verb, staggered:
 
 ```bash
-claude -p "/plenipo:fleet" --permission-mode acceptEdits
+claude -p "/plenipo:deliver" --permission-mode acceptEdits
 ```
 
 Check the flags against `claude --help` on your version before relying on them; they move.
+
+Only once you have more repos than you want to open by hand does `/loop 20m /plenipo:fleet` earn its
+place — and it needs a `fleet.json` first (see *Many repos, one machine*).
 
 ## What a night actually looks like
 
@@ -218,13 +262,33 @@ Start at 0 for a week and read the reviews it would have posted. The way out of 
 defers and enlarges it, and it costs the loop the one thing it needs even with nobody watching —
 attribution, so a red check points at a cause.
 
-**Two things never graduate**, at any level, for any product with any track record:
+**The spine never graduates**, at any level, in any repo, for any track record — RBAC before the
+model, approval-first writes, tenant isolation, append-only audit, write-only secrets. Those five
+*are* the platform's value. Anything that can merge a change to them unsupervised has already lost
+the thing it was built on.
 
-- **Anything in the Plenipo platform.** A bad product merge hurts one product; a bad platform merge
-  hurts every product built on it.
-- **The spine** — RBAC before the model, approval-first writes, tenant isolation, append-only
-  audit, write-only secrets. Those five *are* the platform's value. A product that can merge a
-  change to them unsupervised has already lost the thing it was built on.
+### The platform merges through a different gate
+
+A bad product merge hurts one product; a bad platform merge hurts every product built on it. That
+asymmetry does not shrink as the platform's track record improves — it *grows*, because each new
+consumer adds to it. So the platform does not get an autonomy level at all. It gets a **stronger
+verifier**:
+
+| Gate | Passes when |
+|---|---|
+| `consumers_green` | every repo in `consumers.json` builds **and** its tests pass against the candidate |
+| `surface_declared` | any public-type or endpoint change is classified in the PR body as additive or breaking |
+
+Plus every gate a product merge must clear. `consumers_green` is the whole argument: the platform's
+own tests passing means the platform compiles, and **the products are the actual test suite**. A
+conformance run that was skipped counts as red, never as missing — the same rule as `checks_exist`.
+
+Two things still stop at a human here: a **breaking** public-surface change, and anything
+`spine_untouched` catches. Both need the `human-approved` label — a human act, recorded on the PR.
+
+This is deliberately the expensive path. It is also the only one that makes the claim "this platform
+change is safe" mean anything, and it follows the same doctrine as everything else here: the way out
+of the loop is a stronger verifier, never a bigger batch.
 
 ### Do not add GitHub's auto-merge
 
@@ -232,7 +296,10 @@ It waits only for conditions you explicitly configured, so a PR can merge while 
 running. And GitHub's own AI review leaves **comments only** — it never Approves, so it satisfies no
 required-reviewers rule. Useful as a second pair of eyes; useless as a gate.
 
-## Ten products, one machine
+## Many repos, one machine
+
+**Optional, and worth skipping until it hurts.** Everything above works one session per repo; this
+section is only for when opening them by hand has stopped being realistic.
 
 `fleet.json` at the directory holding your repos — paths only, so no policy value is ever
 duplicated:
@@ -241,6 +308,10 @@ duplicated:
 { "products": [ { "name": "networthy", "path": "networthy" },
                 { "name": "casewise",  "path": "casewise" } ] }
 ```
+
+**Products only.** The platform repo does not belong in `fleet.json`: the scheduler's seven rules
+are all product conditions (Ready count, open PRs, p0 bugs, last swept), none of which the platform
+has. Give it its own session and `/plenipo:steward`.
 
 Everything else is read from each product's own `workflow.json`. Two properties keep it honest
 overnight: it serves the **least-recently-served** product on ties, so a noisy repo cannot starve a
@@ -274,7 +345,8 @@ pass them merge at a rate 24 points lower than implied — so the only score is 
 
 Five minutes, once a week:
 
-1. `/plenipo:fleet` in report mode — anything quarantined? any product not served in days?
+1. Per repo, the last few lines of its `TICKS.md` — or `/plenipo:fleet` in report mode if you run
+   the scheduler: anything quarantined? any product not served in days?
 2. Open PRs older than two days — is review the constraint, or is a gate stuck?
 3. Skim two merged PRs: was the runtime evidence real, or a heading with prose under it?
 4. Any `agent:blocked` or `needs-human` issue is a decision waiting on you. That queue *is* your
@@ -296,6 +368,12 @@ deserves:
 - **The verbs have never driven a real product end to end** — this is the largest gap. The dispatch
   chain, the tick ordering and the fleet scheduling are **L4**: reasoned, internally consistent, and
   unobserved. Run one product at level 0 for a week before believing any of it.
+- **`consumers_green` is a design, not a running gate** — **L4**, and the newest thing here. Unlike
+  `pr-gates.mjs` and `merge-gate.mjs`, no script implements it yet: `/plenipo:steward` reads the
+  conformance workflow `/steward:install-request-surface` installs, and that workflow has never been
+  observed red-then-green against a real breaking platform change. Until it has, **platform merges
+  are prose, not a gate** — treat the platform as human-merge-only in practice, however this document
+  reads. Proving that gate is the single highest-value thing anyone can do to this repo.
 - **Cloud review is a separate, optional surface.** The local `pr-reviewer` needs no secret and no
   bill, and is the default. If review must keep running with the machine off, use
   `/harness:install-github-agentic-workflows` rather than a hand-rolled workflow: it compiles

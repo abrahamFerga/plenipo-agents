@@ -10,7 +10,6 @@ description: >
   (../install-request-surface/SKILL.md), or filing a request from a product
   (/deliver:request-platform-change).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Triage the platform request queue

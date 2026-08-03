@@ -9,7 +9,6 @@ description: >
   DO NOT USE FOR: triaging incoming requests (../triage-requests/SKILL.md) or performing an upgrade
   inside a product (/deliver:upgrade-platform).
 license: MIT
-disable-model-invocation: true
 ---
 
 # Announce a release to the products

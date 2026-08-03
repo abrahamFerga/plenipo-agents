@@ -44,8 +44,11 @@ your code).
 - **The repo has no way to be run or tested** → `install-runbook` is step 1 below and is not
   optional; a product nobody can run is a product nobody can verify, and every gate downstream is
   then decorative.
-- **This is the Plenipo platform repo** → do not install autonomy here. Platform merges are human
-  at every level; use `/steward:install-request-surface` instead.
+- **This is the Plenipo platform repo** (`workflow.json` → `stage: platform`) → install items 5–8
+  below (the gate scripts, `CODEOWNERS`, branch protection) and **skip items 1 and 3**: the platform
+  has no product runbook, and its merge bar is not an autonomy level but the `consumers_green` gate
+  in `../steward/SKILL.md`. Run `/steward:install-request-surface` for the queue, registry and
+  conformance workflow that gate reads.
 
 ## Inputs
 

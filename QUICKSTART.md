@@ -42,13 +42,13 @@ Paste this into your product's `.claude/settings.json`:
     "plenipo-agents": { "source": { "source": "github", "repo": "abrahamFerga/plenipo-agents" } }
   },
   "enabledPlugins": {
-    "plenipo@plenipo-agents": true,     // the seven verbs
+    "plenipo@plenipo-agents": true,     // the eight verbs
     "harness@plenipo-agents": true,     // always on
     "deliver@plenipo-agents": true,     // the coding loop
     "scout@plenipo-agents": false,
     "define@plenipo-agents": false,
     "shape@plenipo-agents": false,
-    "steward@plenipo-agents": false     // only in the Plenipo platform repo
+    "steward@plenipo-agents": false     // true in the Plenipo platform repo — /plenipo:steward needs it
   }
 }
 ```
