@@ -5,6 +5,7 @@
 //   node .github/scripts/merge-gate.mjs --pr 131         evaluate one
 //   node .github/scripts/merge-gate.mjs --merge          merge what passes, up to the cap
 //   node .github/scripts/merge-gate.mjs --fixture f.json evaluate fixture data (used to test itself)
+//   node .github/scripts/merge-gate.mjs --runs-fixture r.json   feed main_is_green a run list
 //
 // This file is the ONE implementation of the merge gates. `/plenipo:ship` runs it rather than
 // re-deriving the list in prose, and `agent-merge.yml` runs it on a schedule so merging keeps
@@ -29,6 +30,7 @@ const value = (name) => {
 const DO_MERGE = flag('--merge');
 const ONE_PR = value('--pr');
 const FIXTURE = value('--fixture');
+const RUNS_FIXTURE = value('--runs-fixture');
 
 const gh = (args) => {
   const r = spawnSync('gh', args, { encoding: 'utf8', shell: process.platform === 'win32' });
@@ -76,15 +78,40 @@ if (FIXTURE) {
 // ── The default branch must be green before anything lands on it ─────────────
 // Merging onto a red base multiplies one failure into N, and the next agent cannot tell which
 // change broke what.
+//
+// Only a run triggered BY the branch's code can speak to whether that code is healthy — an
+// issue-triggered triage agent or a nightly maintenance job cannot. Reading a single run across
+// every workflow let whichever job finished most recently decide the entire queue, in BOTH
+// directions: a cancelled triage run blocked every merge, and a successful one would have waved a
+// merge onto genuinely red CI. So this reads `push` events only, and takes the latest verdict per
+// WORKFLOW rather than one run overall.
+//
+// `cancelled` and `skipped` are not evidence of breakage — concurrency groups cancel superseded
+// runs constantly — so only a real failure blocks. A gate that blocks on the ABSENCE of evidence
+// stops the queue permanently the first time a workflow is skipped.
+const BROKEN = ['failure', 'timed_out', 'startup_failure'];
+
+// `gh run list` returns newest first, so the first entry per workflow name is that workflow's
+// current verdict. Kept out of the gh call so `--runs-fixture` can prove it red before green.
+function brokenWorkflows(runs) {
+  const latest = new Map();
+  for (const r of runs) if (!latest.has(r.name)) latest.set(r.name, r);
+  return [...latest.values()].filter((r) => BROKEN.includes(String(r.conclusion ?? '').toLowerCase()));
+}
+
 let mainGreen = true;
 let mainWhy = '';
-if (!FIXTURE) {
+if (!FIXTURE || RUNS_FIXTURE) {
   const base = prs[0]?.baseRefName ?? JSON.parse(gh(['repo', 'view', '--json', 'defaultBranchRef']))
     .defaultBranchRef.name;
-  const runs = JSON.parse(gh(['run', 'list', '--branch', base, '--limit', '1', '--json', 'conclusion,name']));
-  if (runs.length && runs[0].conclusion && runs[0].conclusion !== 'success') {
+  const runs = RUNS_FIXTURE
+    ? JSON.parse(readFileSync(RUNS_FIXTURE, 'utf8'))
+    : JSON.parse(gh(['run', 'list', '--branch', base, '--event', 'push', '--status', 'completed',
+      '--limit', '30', '--json', 'conclusion,name']));
+  const broken = brokenWorkflows(runs);
+  if (broken.length) {
     mainGreen = false;
-    mainWhy = `the last run on ${base} concluded "${runs[0].conclusion}"`;
+    mainWhy = `on ${base}: ${broken.map((r) => `${r.name} concluded "${r.conclusion}"`).join(', ')}`;
   }
 }
 
