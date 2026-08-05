@@ -20,11 +20,20 @@ credentials, and proof steps live.
 | Runs | GitHub Copilot, via `gh aw` | a Node script or shell |
 | Committed artifact | source `.md` **plus** compiled `.lock.yml` | the `.yml` itself |
 | Writes | only what `safe-outputs:` declares | whatever the job's `permissions:` allow |
-| May gate a merge | **no** — comment only | **yes** — that is the point |
+| May gate a merge | **no** — never merges; one may apply a label a deterministic gate reads | **yes** — that is the point |
 
-An agentic workflow can be argued out of an opinion; a required status check cannot. That is why
-merge safety lives entirely in the deterministic family, and why every agentic review here is pinned
-to `allowed-events: [COMMENT]`.
+An agentic workflow can be argued out of an opinion; a required status check cannot. That is why no
+agentic workflow here merges anything, and why every agentic *review* is pinned to
+`allowed-events: [COMMENT]`.
+
+One template is a deliberate, bounded exception.
+[`pr-approval-verdict.md`](plugins/harness/skills/install-github-agentic-workflows/assets/pr-approval-verdict.md)
+applies the `agent:approved` label that `merge-gate.mjs` requires before it will merge anything. It
+still merges nothing itself: the label is an **input** to a deterministic gate that independently
+re-checks that every status check is green, that the branch is mergeable, that no hold label is set,
+that the spine guard passed, and that `autonomy.level` permits the change class. Necessary, never
+sufficient. Install it only when you want merges to happen with nobody at the machine, and read the
+risk note in the installing skill before you do.
 
 ## Agentic workflows
 
@@ -49,6 +58,7 @@ marketplace has its own.
 | [`platform-release-impact.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-release-impact.md) | platform | release published, or dispatch | 1 issue **in one named product repo** |
 | [`marketplace-harness-gap-triage.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-harness-gap-triage.md) | marketplace | issue opened/reopened/labeled | ≤3 labels, remove `needs-triage`, 1 comment |
 | [`marketplace-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-pr-intent-review.md) | marketplace | pull request | ≤8 inline comments, 1 `COMMENT` review |
+| [`pr-approval-verdict.md`](plugins/harness/skills/install-github-agentic-workflows/assets/pr-approval-verdict.md) | any role — **opt-in** | pull request, or dispatch | 1 verdict label, remove `agent:changes-requested`, ≤6 inline comments, 1 comment |
 
 The three that write across repositories — escalation, harness feedback, and release-impact — need a
 GitHub App installed on exactly the two repos involved, never a broad PAT. The rest need only
@@ -76,13 +86,14 @@ From [`plugins/plenipo/skills/setup/assets/`](plugins/plenipo/skills/setup/asset
 |---|---|---|
 | [`agent-gates.yml`](plugins/plenipo/skills/setup/assets/agent-gates.yml) | pull request, incl. `edited`/`labeled` | runs `pr-gates.mjs`; **make it a required check** or it gates nothing |
 | [`agent-merge.yml`](plugins/plenipo/skills/setup/assets/agent-merge.yml) | schedule every 15 min, or dispatch | runs `merge-gate.mjs`; needs `agent:approved` and `autonomy.level >= 1` |
-| [`agent-review.yml`](plugins/plenipo/skills/setup/assets/agent-review.yml) | pull request | **optional** cloud reviewer; comments and labels only, never merges |
 | [`pr-gates.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.mjs) · [`merge-gate.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.mjs) | — | the one implementation of the gate list, shared with `/plenipo:ship` |
 | [`CODEOWNERS`](plugins/plenipo/skills/setup/assets/CODEOWNERS) | — | the paths an agent may never merge unreviewed |
 
-`agent-review.yml` carries a verify-before-enabling banner: it depends on Claude Code CLI headless
-flags that move between versions. `/plenipo:ship` already runs the same review locally for free, so
-this workflow is only for when nobody is at the machine.
+There is no deterministic cloud reviewer here, because a reviewer is the one job in this list that is
+irreducibly a judgement. `/plenipo:ship` runs that review locally for free under the subscription you
+already have, and it is the default. When nobody is at the machine, the cloud stand-in is the agentic
+`pr-approval-verdict.md` above — the only thing anywhere that produces the `agent:approved` label
+`merge-gate.mjs` waits for.
 
 From [`plugins/steward/skills/install-request-surface/assets/`](plugins/steward/skills/install-request-surface/assets),
 installed by `/steward:install-request-surface` into the platform repo:
