@@ -73,6 +73,9 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    | Child product | `product-issue-triage.md`, `product-platform-escalation.md`, `product-pr-intent-review.md` | `product-harness-feedback.md` |
    | Agent marketplace | `marketplace-harness-gap-triage.md`, `marketplace-pr-intent-review.md`, `harness-gap.yml` | none |
 
+   `pr-approval-verdict.md` is role-neutral and **opt-in for every role** — see step 7, and do not
+   install it as a matter of course.
+
    Replace every `<...>` placeholder deliberately. Add each trusted product's `from:<product>` label
    to the platform triage workflow's `approval-labels` list. Create only the labels named in each
    workflow's `safe-outputs.add-labels.allowed` list. A label allowlist is a security boundary, not
@@ -113,6 +116,28 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    `APPROVE`, `REQUEST_CHANGES`, `push-to-pull-request-branch`, or merging without a separate human
    decision and a GitHub Environment protection gate.
 
+8. **Optionally let the cloud produce a merge verdict.** `pr-approval-verdict.md` is the one template
+   whose output a merge gate reads. `merge-gate.mjs` refuses to merge anything without the
+   `agent:approved` label, and nothing else in this marketplace produces it — so installing this is
+   precisely what makes unattended merging work, and precisely the moment the human leaves the loop.
+   Treat it as `Approval-required` and confirm with the owner before compiling it live.
+
+   It merges nothing itself. The label is an input to a deterministic gate that independently
+   re-checks green status checks, mergeability, hold labels, the spine guard and the autonomy
+   level — necessary, never sufficient. That containment only holds if the pieces below are actually
+   in place, so verify each one rather than assuming it:
+
+   | Precondition | Why it is load-bearing |
+   |---|---|
+   | `agent-gates.yml` running `pr-gates.mjs` is a **required** status check | it is what refuses a spine change without `human-approved`; without it the verdict label is the only thing between an agent and the default branch |
+   | branch protection exists and names contexts that really report | on an unprotected branch `merge-gate.mjs` reads an empty check list and `checks_green` passes vacuously |
+   | `autonomy.level` was set by a human for this repo | the level decides which change classes may land; the label only says a reviewer looked |
+   | `agent:approved`, `agent:changes-requested`, `needs-human` all exist | `/plenipo:setup` creates them; a safe output naming a missing label fails at write time |
+   | `human-approved` appears in no workflow's `add-labels.allowed` | it overrides the spine guard, so only a human may ever apply it |
+
+   Prove it staged first per step 6, dispatched against a disposable pull request, and confirm the
+   run requested exactly one verdict label and nothing else.
+
 ## Guardrails
 
 - Keep the agent read-only. All writes must be declared in `safe-outputs:` and constrained by type,
@@ -124,6 +149,10 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
   `product-platform-escalation.md` trusts, and `harness:gap` is what `product-harness-feedback.md`
   trusts, so a human applies both; `product-issue-triage.md` may recommend either escalation but must
   not label its way into one, or untrusted issue text gains a path to a cross-repository write.
+  `agent:approved` is a different shape and that difference is the whole argument for allowing it:
+  it unlocks nothing on its own, it is consumed by a deterministic gate that re-verifies every other
+  condition from the live API, and it can never widen what that gate permits. A label that grants an
+  agent *new reach* stays a human's act; a label that feeds a gate which still says no may not.
 - **`product-harness-feedback.md` routes to the marketplace, not the platform** — a different repo
   and a different queue. Its router app needs this repo plus the marketplace repo, and nothing else.
   Read the marketplace slug from `workflow.json` → `skills.self.repo`; the protocol it enforces is
@@ -133,7 +162,12 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
   owns the `type:*`/`priority:*` families; install this workflow after them, not before.
 - Use a GitHub App, not a broad personal access token, for cross-repository routing. Scope its
   installation and `repositories:` list to the two repositories that need to communicate.
-- Keep `allowed-events: [COMMENT]` on automated PR reviews. A model must not become a merge gate.
+- Keep `allowed-events: [COMMENT]` on automated PR reviews. A model must never submit GitHub's own
+  `APPROVE`, which a branch protection may count as the required approving review — that is a model
+  becoming the merge gate. `pr-approval-verdict.md` is the single sanctioned way a model may
+  influence a merge, and it stays sanctioned only while it applies a label a deterministic gate
+  consumes. Never widen it to `APPROVE`, never give it merge or push permission, and never point it
+  at a repo whose `pr-gates.mjs` check is not required.
 - Apply repository Actions variables/secrets and GitHub labels only after the owner confirms the
   target slug. Never create or reveal a secret value.
 
@@ -144,7 +178,8 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 | Editing `.lock.yml` | next compilation discards the change | edit `.md`, then compile |
 | Letting cross-repo output target `*` | one compromised prompt can route to another repo | literal target plus `allowed-github-references` |
 | Running before App installation/secrets exist | the first workflow fails and teaches agents to ignore red runs | configure credentials, then stage a proof |
-| Letting review automation approve or block | a model becomes an unsafe policy gate | `allowed-events: [COMMENT]` |
+| Letting review automation submit `APPROVE` | a model satisfies branch protection's human review | `allowed-events: [COMMENT]`; use the verdict label instead |
+| Installing `pr-approval-verdict.md` where `pr-gates.mjs` is not required | the verdict label becomes the only gate, and the spine guard never runs | check protection first — step 8's table |
 | Treating compiler green as full proof | trigger/output wiring can still be wrong | stage, then exercise a real issue and PR |
 
 ## Related skills
