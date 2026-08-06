@@ -33,6 +33,12 @@ jobs:
       - name: Check the cross-tool skill index is in sync
         run: node eng/generate-agent-docs.mjs --check
 
+      # L1 — merge-gate.mjs is shipped as an asset and copied verbatim into every product and the
+      # platform, so a defect here is a defect in five repos at once. It is also the last automated
+      # thing before `main` in each of them. This ran red against the previous asset.
+      - name: Prove the merge gate's check-rollup handling
+        run: node plugins/plenipo/skills/setup/assets/merge-gate.test.mjs
+
       # L2 — prose conventions.
       - name: Lint markdown
         run: npx --yes markdownlint-cli2 "**/*.md" "#node_modules"
