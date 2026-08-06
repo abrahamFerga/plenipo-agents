@@ -179,7 +179,21 @@ paperwork. Each numbered step is one check group; every row states its own decis
    Also flag **stale**: a `RUNBOOK.md` naming a project, port, or module id that no longer exists in
    the repo is worse than a missing one, because an agent will trust it.
 
-9. **Doc drift.** A product that moved onto the platform usually deleted infrastructure its own docs
+9. **The loop can close its own loop.** Only when `.github/workflows/agent-merge.yml` exists. Every
+   rule here fails **silently, on the happy path** — the run is green, the merge lands, and only the
+   board shows the damage days later.
+
+   | Detector | Fails when |
+   |---|---|
+   | `agent-merge.yml` `permissions:` omits `issues: write` | GitHub closes a `Closes #N` issue as the *merging actor*; a `GITHUB_TOKEN` merge without it closes the PR and leaves the issue open forever |
+   | `merge-gate.mjs` never mentions `closingIssuesReferences` | the merger predates the explicit close and is trusting the implicit behaviour that failed |
+   | `agent-gates.yml`'s job name is not a required status check on the default branch | `checks_exist` is then the only thing between the loop and a vacuous green |
+
+   Confirm the first one against the **live** repo, not just the file: read
+   `gh api repos/<owner>/<repo>/actions/permissions/workflow` and check whether the default
+   `GITHUB_TOKEN` scope is restricted below what the workflow asks for.
+
+10. **Doc drift.** A product that moved onto the platform usually deleted infrastructure its own docs
    still describe. Condition every rule on the csproj referencing `Plenipo.*`.
 
    | Detector | Fails when |
@@ -189,7 +203,7 @@ paperwork. Each numbered step is one check group; every row states its own decis
    | `DECISIONS.md` has no ADR mentioning the platform | the csproj references it — an undocumented platform migration |
    | a doc names a different product as the reference implementation | that product is not the newest platform consumer — actively misdirecting |
 
-10. **Report and exit.** Write the report described below to stdout. **Exit non-zero if any check
+11. **Report and exit.** Write the report described below to stdout. **Exit non-zero if any check
     failed.** Do not fix anything, do not open a PR, do not stage a change.
 
 ## The report
