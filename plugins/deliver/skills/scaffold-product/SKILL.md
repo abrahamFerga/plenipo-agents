@@ -46,6 +46,9 @@ check it rather than editing more csprojs).
 - **The brand or the module id is not decided** → stop. Both leak permanently into namespaces,
   schema names, migration files, container names, permission strings and the AG-UI route. Renaming
   later is a migration, not a rename.
+- **The brand was decided but never probed against existing products** → `/scout:name-product`
+  first. This step is the moment the name is spent, and it is the last one where finding a live
+  commercial product of the same name costs an hour instead of a migration.
 - **The platform nupkgs cannot be fetched** → `Blocked`. Do **not** fall back to nuget.org; the
   packages are not there, and a package of that name appearing publicly would be an attack.
 - **You are inside the platform checkout** (`Plenipo.slnx` at the root) → this skill scaffolds
@@ -55,7 +58,7 @@ check it rather than editing more csprojs).
 
 | Input | Source | Used for |
 |---|---|---|
-| Brand (PascalCase) | a human's product-naming decision | assembly prefix, `<Brand>.slnx`, root namespaces, container names |
+| Brand (PascalCase) | a human's decision, on candidates `/scout:name-product` probed | assembly prefix, `<Brand>.slnx`, root namespaces, container names |
 | Domain suffix (PascalCase) | the module in `ARCH.md` | `src/<Brand>.<Domain>`, the tests project |
 | Module id (lowercase) | `ARCH.md`; becomes `ModuleManifest.Id` | AG-UI route `/api/agui/{moduleId}`, plan `Modules`, permission strings |
 | Product id (lowercase slug) | the repo/brand slug | `ProductOffering.ProductId` |
@@ -192,7 +195,9 @@ scheduler, a tenancy filter helper, or a permissions library. Each of those is t
    for that contract.
 
 8. **Root documents and CI.** Carry `SPEC.md`, `PLAN.md`, `ARCH.md`, `DECISIONS.md` in from the
-   define and shape loops; write `SECURITY.md`, `docs/`, `research/`, and a `<Brand>.slnx` listing
+   define and shape loops, and the naming record from discovery in as `docs/naming.md` — the
+   collisions a human accepted are part of why the product is called this, and they are unreadable
+   from the namespaces alone. Write `SECURITY.md`, `docs/`, `research/`, and a `<Brand>.slnx` listing
    every project under `/src/` and `/tests/` folders. `ci.yml` restores, builds and runs both test
    projects **with no secrets configured** — the Mock chat provider, the Mock embedder and dev-auth
    are what make that possible, and a scaffold that needs a key in CI is wrong.

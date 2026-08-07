@@ -131,6 +131,7 @@ Full operator's manual in **[AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.m
 | `scan-fleet` | `/scout:scan-fleet` | Inventories every Plenipo product → `FLEET.md`: membership, version drift, seam adoption, coverage, stale docs |
 | `find-industry` | `/scout:find-industry` | Ranks unclaimed verticals against the platform's spine → a shortlist plus a rejection log |
 | `opportunity-brief` | `/scout:opportunity-brief` | Deep-dives one candidate to a go/no-go, with kill criteria |
+| `name-product` | `/scout:name-product` | Probes brand candidates against registries, live products and trademark classes → survivors with their residual risk |
 
 ### `define` — the definition loop
 

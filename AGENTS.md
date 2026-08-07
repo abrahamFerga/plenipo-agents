@@ -314,6 +314,8 @@ other tools should **open the file when its description matches the task**.
   product on Plenipo by testing two things in order: whether the work needs deep AI — multi-agent
   orchestration, long-horizon agentic workflows, document processing over messy arti…  
   → [`plugins/scout/skills/find-industry/SKILL.md`](plugins/scout/skills/find-industry/SKILL.md)
+- **name-product** *(reference)* — Clear a brand name before it is spent.  
+  → [`plugins/scout/skills/name-product/SKILL.md`](plugins/scout/skills/name-product/SKILL.md)
 - **opportunity-brief** *(reference)* — Deep-dive ONE shortlisted industry into a go/no-go
   brief: the named buyer and the pain in units, the incumbent landscape and why an AI-first
   entrant wins or doesn't, the killer approval-gated workflow traced end to end, the agent design…  
