@@ -1,6 +1,6 @@
 {
   "name": "scout",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "license": "MIT",
   "author": { "name": "Abraham Fernandez" },
   "description": "The discovery loop: inventory every product already built on Plenipo, map industry coverage, and rank unclaimed verticals by how well the platform's spine (chat-first, RBAC-before-the-model, approvals, audit, multi-tenancy, documents, RAG, connectors, channels) fits them — ending in a go/no-go opportunity brief. Enable when choosing what to build next; disable once a vertical is picked."
