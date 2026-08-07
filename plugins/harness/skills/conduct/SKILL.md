@@ -96,7 +96,7 @@ it until the run ends**.
 | # | Phase | Loop | Command | In | Out | Exit condition (level) |
 |---|---|---|---|---|---|---|
 | 1 | Pre-flight | — | *inline glue* | — | a verified environment | `gh auth status` exits 0, Docker is running, and the plugin set above is present (L1) |
-| 2 | Discovery | scout | `/scout:scan-fleet` → `/scout:find-industry` → `/scout:opportunity-brief` | sibling repos on disk | `FLEET.md`, `opportunities/SHORTLIST.md`, one brief | a brief exists with an explicit go/no-go **and a human chose** (L5 — say so) |
+| 2 | Discovery | scout | `/scout:scan-fleet` → `/scout:find-industry` → `/scout:opportunity-brief` → `/scout:name-product` | sibling repos on disk | `FLEET.md`, `opportunities/SHORTLIST.md`, one brief, a naming record | a brief exists with an explicit go/no-go, the name candidates were probed, **and a human chose both** (L5 — say so) |
 | 3 | Definition | define | `/define:research-industry` → `/define:synthesize-spec` → `/define:plan-product` | the chosen industry | `research/<industry>.md`, `SPEC.md`, `PLAN.md` | `PLAN.md` names every module, its tools, the RBAC model, and epics in build order (L2) |
 | 4 | Ground | deliver | `/deliver:scaffold-product` → `/deliver:install-runbook` | `PLAN.md` | repo + board, the host, `RUNBOOK.md`, the E2E fixture | `dotnet build <Product>.slnx` and `dotnet test tests/<Product>.IntegrationTests` both exit 0, and `/harness:validate-product` exits 0 (L1+L2) |
 | 5 | Backlog | define | `/define:sync-backlog` | `PLAN.md` + the repo | epic and feature issues on the board | the board returns ≥1 item and every epic has ≥1 feature under it (L1) |
@@ -185,6 +185,7 @@ Every piece of run state is therefore a file or a GitHub object:
 |---|---|---|
 | What already exists in the fleet | `FLEET.md` | phase 2 |
 | Candidates and the rejection log | `opportunities/SHORTLIST.md`, the brief | phase 2 |
+| Which names were probed, killed, and why | `opportunities/<industry>-naming.md` | phase 2 |
 | What the product is | `research/<industry>.md`, `SPEC.md` | phase 3 |
 | Modules, tools, RBAC, build order | `PLAN.md` | phase 3 |
 | How to run and prove it | `RUNBOOK.md`, the `.http` catalog, the E2E fixture | phase 4 |
