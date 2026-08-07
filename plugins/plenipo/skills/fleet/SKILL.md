@@ -81,7 +81,8 @@ there is never a second copy of an autonomy level to drift:
 
 3. **Gather state, read-only, for every non-quarantined product.** One pass per product: board
    counts, open PRs with labels, open p0 bugs, HEAD on the default branch. Do not boot anything
-   here.
+   here. Record open PRs as two numbers — total, and the loop-branch subset the scoring rules
+   actually use — so a queue full of PRs no verb can merge is visible rather than merely felt.
 
 4. **Score each product** by the first rule that matches. The rule number *is* the priority — lower
    wins:
@@ -89,13 +90,26 @@ there is never a second copy of an autonomy level to drift:
    | Rule | Condition | Verb |
    |---|---|---|
    | 1 | `main` is red, or a merged PR broke the default branch | `../deliver/SKILL.md` (fix first) |
-   | 2 | a PR is `agent:approved` and clears its gates, or one is `agent:changes-requested` | `../ship/SKILL.md` |
-   | 3 | an open `type:bug` at `priority:p0` | `../deliver/SKILL.md` |
-   | 4 | open PRs ≥ `maxOpenPRs` | `../ship/SKILL.md` — review is the constraint, not build capacity |
-   | 5 | `Ready` > 0 and open PRs < `maxOpenPRs` | `../deliver/SKILL.md` |
-   | 6 | HEAD moved since the last sweep, or the last sweep is older than 24 h | `../test/SKILL.md` |
-   | 7 | `Ready` < `readyFloor` | `../define/SKILL.md` |
+   | 2 | a PR is `agent:changes-requested` | `../deliver/SKILL.md` — its rule 1 owns a rejected PR |
+   | 3 | a PR is `agent:approved`, or one carries no verdict label yet | `../ship/SKILL.md` |
+   | 4 | an open `type:bug` at `priority:p0` | `../deliver/SKILL.md` |
+   | 5 | open loop PRs ≥ `maxOpenPRs` | `../ship/SKILL.md` — review is the constraint, not build capacity |
+   | 6 | `Ready` > 0 and open loop PRs < `maxOpenPRs` | `../deliver/SKILL.md` |
+   | 7 | HEAD moved since the last sweep, or the last sweep is older than 24 h | `../test/SKILL.md` |
+   | 8 | `Ready` < `readyFloor` | `../define/SKILL.md` |
    | — | nothing matched | idle |
+
+   Two of those rules are worth stating plainly, because getting either wrong stops a product
+   without ever reporting a failure:
+
+   - **A rejected PR goes to `deliver`, not `ship`.** `ship` reviews PRs that carry *no* verdict
+     label and skips the rest, so routing `agent:changes-requested` there spends the tick and
+     changes nothing — the product looks served and stands still. `deliver` rule 1 is the owner:
+     it hands to `/deliver:revise-pr` and strips the label so `ship` picks the PR up next time.
+   - **Rules 5 and 6 count only loop PRs** — head branch `feat/`, `fix/` or `chore/`. A Dependabot
+     PR fails `is_loop_pr` in `merge-gate.mjs`, so no verb in this marketplace can ever clear it;
+     counting it against `maxOpenPRs` makes rule 5 fire forever and starves rule 6 of every tick.
+     Report both numbers per product so the filter is visible.
 
 5. **Pick one product**: lowest rule number wins; on a tie, the one served longest ago. Say which
    product, which rule fired, and what the runner-up was — a fleet whose scheduling is inspectable
@@ -112,12 +126,13 @@ there is never a second copy of an autonomy level to drift:
    At 3, record the quarantine and the reason.
 
    ```text
-   2026-07-30T02:20Z · networthy · rule 5 · deliver · Success · PR #131 · streak 0
-   2026-07-30T02:41Z · casewise  · rule 6 · test    · Blocked (docker) · streak 3 → QUARANTINED
+   2026-07-30T02:20Z · networthy · rule 6 · deliver · Success · PR #131 · streak 0
+   2026-07-30T02:41Z · casewise  · rule 7 · test    · Blocked (docker) · streak 3 → QUARANTINED
    ```
 
 8. **Report**: the product served and why, its verb's terminal state, and a one-line-per-product
-   table of the whole fleet — Ready, In Progress, open PRs, p0 bugs, autonomy level, last swept,
+   table of the whole fleet — Ready, In Progress, open PRs (loop / total), p0 bugs, autonomy level,
+   last swept,
    quarantine. That table is the deliverable in report mode, and the reason a portfolio can be
    supervised in a couple of minutes a day.
 
@@ -153,7 +168,8 @@ for a few days before letting it choose.
 | Silent quarantine | a product is dead for a fortnight and the reports looked fine | name it every tick |
 | Newest-first or alphabetical selection | the last product in the list never gets served | least-recently-served on ties |
 | Duplicating autonomy levels into `fleet.json` | a stale copy quietly grants a product permission it never earned | read `workflow.json` |
-| Skipping rule 4 | every product accumulates unreviewable PRs in parallel | review debt outranks new work |
+| Skipping rule 5 | every product accumulates unreviewable PRs in parallel | review debt outranks new work |
+| Counting PRs no verb can merge | the ceiling becomes a deadlock and the build loop reports `No-op` forever | count loop branches only |
 | Starting a fleet before one product has run a night unattended | ten products' worth of the same undiagnosed failure | one product, one night, then add |
 
 ## Related skills

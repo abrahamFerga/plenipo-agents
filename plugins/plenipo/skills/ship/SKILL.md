@@ -125,12 +125,25 @@ switches them on by reading `stage` itself, so they are never something this ver
    node .github/scripts/merge-gate.mjs
    ```
 
-   It prints `READY` / `BLOCK` per PR with every failed gate accumulated, and exits 0 either way (a
-   queue full of PRs waiting on CI is a healthy queue, not a failed run). For anything blocked,
-   comment the reasons once — **edit your previous gate comment rather than adding another**, or a
-   PR that waits two days collects a hundred identical comments.
+   It prints `READY` / `STALE` / `BLOCK` per PR with every failed gate accumulated, and exits 0
+   either way (a queue full of PRs waiting on CI is a healthy queue, not a failed run). For anything
+   blocked, comment the reasons once — **edit your previous gate comment rather than adding
+   another**, or a PR that waits two days collects a hundred identical comments.
 
-3. **Review what survives, and only that.** For each remaining PR with no `agent:approved` or
+   `STALE` means the PR clears every gate but is behind the base branch; step 4 updates it rather
+   than merging it. `BLOCK` on an unreviewed PR is expected and is not a reason to skip it — read
+   the next step before concluding the queue has nothing to review.
+
+   The run ends with a warning naming any PR blocked for two days or more. **Treat that as the
+   output, not as decoration.** This script exits 0 whatever it finds, so a frozen queue and a
+   fully drained one produce the same green checkmark on the schedule; that line is the only thing
+   distinguishing them, and a fleet once ran this cron successfully every fifteen minutes for weeks
+   while merging nothing at all.
+
+3. **Review every PR carrying no verdict yet.** Not "every PR the dry run passed" — `agent_approved`
+   is itself one of the gates, so an unreviewed PR *always* prints `BLOCK`, and reading step 2 as a
+   filter on what to review leaves nothing to review and reports `No-op` on a queue that is merely
+   waiting for you. For each PR with no `agent:approved` or
    `agent:changes-requested` label, delegate to the `pr-reviewer` agent with the PR number. It reads
    the diff, the issue's acceptance criteria, and the evidence in the body — never this conversation
    — and returns `approve`, `request-changes`, or `escalate` with reasons. Apply its verdict as a
@@ -148,6 +161,12 @@ switches them on by reading `stage` itself, so they are never something this ver
    ```bash
    node .github/scripts/merge-gate.mjs --merge
    ```
+
+   The same run also updates any `STALE` branch — a PR that passes everything but has fallen behind
+   the base — and deliberately does **not** merge it in that tick. The update writes a new head
+   commit, so the checks that just passed refer to a base that no longer exists; the next tick
+   merges it once they have re-run green. A `ship` run reporting only `UPDATE` lines is `Success`,
+   not `No-op`: it moved the queue.
 
    Then confirm each issue closed and its card moved to `Done`; `Closes #<n>` does both, but verify
    rather than assuming — a board that lies is worse than an empty one. **Never merge with a bare
