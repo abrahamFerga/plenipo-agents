@@ -54,6 +54,7 @@ remote repo).
 |---|---|---|
 | Industry | the invocation argument, else the discovery loop ranks and proposes | the whole chain's subject |
 | Brand + module id | **a human**, at the pause | namespaces, schema, permission strings, the repo name |
+| Probed name candidates | `/scout:name-product`, before the pause | what the human chooses between — never an unprobed name |
 | GitHub owner | `gh api user`, or an existing `workflow.json` | the remote and the board — **never hardcode it** |
 | Autonomy level for the run | declared here, in writing, before the first phase | how far each phase may go alone |
 | Budget | default: 2 attempts per gate, one whole-pipeline run | the `Exhausted` ceiling |
@@ -74,21 +75,27 @@ remote repo).
    gate. Your only jobs while it runs are to answer the pause and to refuse to advance a phase whose
    exit check did not actually pass.
 
-4. **Answer the one pause.** Discovery ends in a go/no-go, which is **L5 — a human decision, not a
-   check**. Present the brief's recommendation and its kill criteria, ask for the brand name and
-   module id at the same moment, and stop. Say plainly that this is the only pause: everything after
-   it is automatic, and the next thing that will happen is a public GitHub repo being created under
-   the resolved owner.
+4. **Clear the names before you offer any.** Invoke `/scout:name-product`. Never put a name in front
+   of a human that has not been probed: the category-obvious names are exactly the taken ones, and a
+   run that proposes three of them wastes the only pause it gets. It hands back at most three
+   survivors with their residual risk, or `Exhausted` with the rejection log — either is an answer;
+   an unprobed shortlist is not.
 
-5. **Let the rest run.** Scaffolding creates the repo, installs the run-and-prove surface,
+5. **Answer the one pause.** Discovery ends in a go/no-go, which is **L5 — a human decision, not a
+   check**. Present the brief's recommendation and its kill criteria, the probed candidates and what
+   each one collides with, ask for the brand name and module id at the same moment, and stop. Say
+   plainly that this is the only pause: everything after it is automatic, and the next thing that
+   will happen is a public GitHub repo being created under the resolved owner.
+
+6. **Let the rest run.** Scaffolding creates the repo, installs the run-and-prove surface,
    publishes the backlog, and shapes the first epic to `Ready`. Do not narrate these; `conduct`
    gates each one and the artifacts are the evidence.
 
-6. **Make it loop-ready.** Invoke `../setup/SKILL.md`. Until it has run, the product has no
+7. **Make it loop-ready.** Invoke `../setup/SKILL.md`. Until it has run, the product has no
    autonomy level, no labels, no gates and no branch protection — which means the timers would
    either refuse to merge anything or, worse, be tempted to.
 
-7. **Report the handover.** The repo URL, the board URL, the number of `Ready` items, the recorded
+8. **Report the handover.** The repo URL, the board URL, the number of `Ready` items, the recorded
    autonomy level (it will be **0**), and the exact commands that now drive the product:
 
    ```text
@@ -109,6 +116,9 @@ remote repo).
 - **The autonomy level starts at 0.** A brand-new product has no runbook history, no golden evals
   and no track record. It cannot merge anything yet, and it does not get to decide otherwise.
 - **Read the owner, never hardcode it.**
+- **Never offer a name you have not probed.** The name that sounds obviously right for the category
+  is the one a commercial product already has, and the pause is the only chance to find that out
+  cheaply. Probed candidates or none.
 - **There is no naming prefix.** Products get real brand names; do not add, require or suggest one.
 
 ## Common Pitfalls
@@ -117,14 +127,17 @@ remote repo).
 |---|---|---|
 | Enabling plugins as each phase arrives | the phase's command does not exist until a reload nobody can trigger from inside the run | enable all of them in preflight |
 | Choosing the brand to avoid stopping | a permanent name nobody agreed to, embedded in schemas | stop; it is one question |
-| Skipping `setup` because the code builds | the timers have no gates, no labels, and no recorded level | step 6 is part of `Success` |
+| Offering names straight out of the category's naming grammar | every candidate turns out to be a live product, and the one pause is spent | step 4 before step 5, always |
+| Skipping `setup` because the code builds | the timers have no gates, no labels, and no recorded level | step 7 is part of `Success` |
 | Reporting `Success` with an empty board | the build loop starts by reporting `No-op` forever | at least one `Ready` item, verified by query |
 | Launching a second product before the first runs a night | two half-driven products and no evidence either loop works | earn the fleet one product at a time |
 
 ## Related skills
 
 - `conduct` — the phase table, gates and journal this delegates to. **Load when:** step 3.
-- `../setup/SKILL.md` — the loop-readiness install step 6 runs. **Load when:** the chain is green.
+- `/scout:name-product` — probes brand candidates against registries, live products and the
+  trademark classes software sits in. **Load when:** step 4, before any name reaches a human.
+- `../setup/SKILL.md` — the loop-readiness install step 7 runs. **Load when:** the chain is green.
 - `../define/SKILL.md`, `../deliver/SKILL.md`, `../test/SKILL.md`, `../ship/SKILL.md` — the four
   timers that own the product from here on.
 - `loop-discipline` — why the go/no-go is L5 and must be labelled as such.

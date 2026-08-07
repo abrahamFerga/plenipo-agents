@@ -264,6 +264,9 @@ until it is resolved.
   sentence step 4 expands. **Load when:** there is no candidate, or more than one.
 - `../scan-fleet/SKILL.md` — the coverage map that settles greenfield vs. supersede.
   **Load when:** `FLEET.md` is missing or older than the last build.
+- `../name-product/SKILL.md` — probes brand candidates for live commercial collisions before any of
+  them reach a human. **Load when:** the brief is written and the go/no-go is about to be asked, so
+  the name is decided in the same breath.
 - `plenipo-platform` — what the platform already provides, so the brief neither rebuilds it nor takes
   credit for it.
 - `loop-discipline` — the ladder level this brief sits at and the terminal states it may end in.
