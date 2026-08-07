@@ -70,6 +70,7 @@ your code).
 | 5 | `pr-gates.mjs` + `agent-gates.yml` | `.github/` | **the evidence and spine checks — the real gate** |
 | 6 | `merge-gate.mjs` + `agent-merge.yml` | `.github/` | one implementation of the merge policy, local and cloud |
 | 6b | `agent-approval-reset.yml` | `.github/workflows/` | **expires `agent:approved` on new commits — without it a PR reviewed at commit A merges commit B unreviewed, the one way the whole gate list goes green over code nothing looked at.** The reviewer's `add-labels` can only ADD, so expiry cannot live there |
+| 6c | `loop-heartbeat.mjs` + `agent-heartbeat.yml` | `.github/` | **the only check that answers "is anything happening at all?"** Every other gate answers "may this merge?", and a stopped loop reports green on all of them — starved runners never fail, and a merger with nothing mergeable is indistinguishable from a healthy one |
 | 7 | `CODEOWNERS` | repo root | a named human on every spine change |
 | 8 | branch protection | GitHub settings | what makes 5 and 6 mandatory instead of advisory |
 | 9 | `.claude/settings.json` | the repo | plugins on, permissions scoped, destructive verbs denied |
