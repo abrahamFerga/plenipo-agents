@@ -166,8 +166,31 @@ if (levelled.status !== 0) {
   }
 }
 
+// ── `--fixture --merge` must never touch the network ─────────────────────────
+// Fixture data describes pull requests numbered 901-910 that exist nowhere. If `--merge` did not
+// degrade to a simulation, running this very test file with the merge flag would try to squash
+// pull request #901 in whatever repo the runner happened to be sitting in — and on a product repo
+// those numbers are real. The failure mode is not a wrong verdict, it is a wrong merge.
+const simulated = spawnSync(process.execPath, [gate, '--fixture', fixture, '--merge'], {
+  encoding: 'utf8',
+  cwd: scratch,
+});
+
+if (simulated.status !== 0) {
+  console.log(`  FAIL — \`--fixture --merge\` exited ${simulated.status}; it must simulate, not call gh\n${(simulated.stderr || simulated.stdout).split('\n').slice(0, 4).join('\n')}`);
+  failed++;
+} else if (!/WOULD (MERGE|UPDATE)/.test(simulated.stdout)) {
+  console.log(`  FAIL — \`--fixture --merge\` produced no WOULD MERGE/UPDATE line, so nothing proves it simulated`);
+  failed++;
+} else if (/^\s{2}(MERGED|UPDATE) /m.test(simulated.stdout)) {
+  console.log(`  FAIL — \`--fixture --merge\` reported a REAL merge or branch update on fixture data`);
+  failed++;
+} else {
+  console.log('  ok   simulate — `--fixture --merge` simulates and never reaches the network');
+}
+
 if (failed) {
   console.log(`\n${failed} rollup case(s) wrong. merge-gate is the last automated thing before main — do not merge this.\n`);
   process.exit(1);
 }
-console.log(`\nOK — ${cases.length} rollup, ${closeCases.length} linked-issue, ${mergeableCases.length} mergeable and 3 stale-routing case(s) behave correctly.\n`);
+console.log(`\nOK — ${cases.length} rollup, ${closeCases.length} linked-issue, ${mergeableCases.length} mergeable, 3 stale-routing and 1 simulation case(s) behave correctly.\n`);
