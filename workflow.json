@@ -16,6 +16,10 @@
 
     "//what-3-means-here": "merge-gate.mjs treats *.md as low-risk, so in an all-markdown repo levels 1 and 3 both merge the whole product. They differ on exactly one class of file: non-markdown, i.e. eng/*.mjs and .github/scripts/*.mjs — the verifier and the gates themselves. Level 3 permits merging those. The remaining brake is pr-gates.mjs, whose spine_untouched rule demands the `human-approved` label on any diff editing eng/, .claude-plugin/, .github/ or workflow.json. Do not weaken that rule while this number is 3 — together they are the whole safety argument.",
 
+    "//merges-by-hand": "DELIBERATE, and not a misconfiguration to fix. This repo's ruleset requires one approving review from a CODEOWNER, and CODEOWNERS is `* @abrahamFerga` — so every pull request here waits for a named human, and the scheduled merger in agent-merge.yml will never merge anything however green it goes. setup/SKILL.md forbids pairing a required review with the scheduled merger because it is normally how a queue stops silently; this repo is the deliberate exception, chosen by a human on 2026-08-08 when the alternative was offered. The reason is blast radius: this marketplace is almost entirely skill prose that agents load and trust without verifying, so a wrong merge here does not break one product, it propagates a false fact into every repo that installs the plugin. The level above still governs what MAY merge; this decides who presses the button. If you want unattended merging here, delete the pull_request rule from the ruleset — do not weaken spine_untouched to work around the review.",
+
+    "//no-cloud-approver-here": "pr-approval-verdict.md is installed in all five product repos but NOT here, and that is consistent with the line above rather than an omission: a cloud verdict that cannot lead to a merge is tokens spent on a label nobody reads. If it is ever installed here, agent-approval-reset.yml must go in at the same time — the reviewer can only ADD labels, so nothing else can withdraw an approval that later commits invalidated.",
+
     "level": 3,
     "maxOpenPRs": 3,
     "maxMergesPerTick": 2,

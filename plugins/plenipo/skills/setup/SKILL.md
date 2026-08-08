@@ -69,6 +69,7 @@ your code).
 | 4 | labels | the repo | the verbs' state machine — without them the loops cannot find work |
 | 5 | `pr-gates.mjs` + `agent-gates.yml` | `.github/` | **the evidence and spine checks — the real gate** |
 | 6 | `merge-gate.mjs` + `agent-merge.yml` | `.github/` | one implementation of the merge policy, local and cloud |
+| 6b | `agent-approval-reset.yml` | `.github/` | expires `agent:approved` on new commits — **required before any cloud approval is trusted** |
 | 7 | `CODEOWNERS` | repo root | a named human on every spine change |
 | 8 | branch protection | GitHub settings | what makes 5 and 6 mandatory instead of advisory |
 | 9 | `.claude/settings.json` | the repo | plugins on, permissions scoped, destructive verbs denied |
@@ -110,8 +111,15 @@ your code).
    duplicate its taxonomy here, only add what the loop verbs need.
 
 4. **Copy the two gate scripts and their workflows** from `assets/` into `.github/scripts/` and
-   `.github/workflows/`. Copy them **verbatim** — resist "improving" them in transit, because the
-   one property that matters is that the same file runs in CI and locally.
+   `.github/workflows/`, plus `agent-approval-reset.yml`. Copy them **verbatim** — resist
+   "improving" them in transit, because the one property that matters is that the same file runs in
+   CI and locally.
+
+   Verbatim cuts both ways, and the direction people forget is the one that bit this marketplace:
+   if a product has already improved its copy, **port the improvement up to `assets/` and re-vendor
+   from there** rather than overwriting it. Three products were once found running a gate 47 lines
+   ahead of the asset while two others were ~100 lines behind, and CI was green in all five because
+   nothing compared a copy to its source. Diff before you copy.
 
 5. **Prove both scripts before trusting either.** This is not optional and it is not ceremony: a
    check never seen red may be asserting nothing.
@@ -189,7 +197,13 @@ your code).
   reason, and this is also why `CODEOWNERS` covers it.
 - **Never require an approving review *and* expect the scheduled merger to work.** Choose: a human
   gate, or an automated one. Configuring both and assuming the automation still runs is how a queue
-  silently stops.
+  silently stops. If you deliberately want a repo to merge by hand — the marketplace itself is one,
+  since its blast radius is every product built on it — say so in `autonomy`, so the next tick reads
+  a decision rather than diagnosing a contradiction.
+- **Never install a cloud approver without `agent-approval-reset.yml`.** `safe-outputs.add-labels`
+  can only add, so nothing in the reviewer can withdraw a verdict that its own later commits
+  invalidated: approve at commit A, push commit B, and every gate is green over code nothing read.
+  The reviewer and the reset ship as a pair.
 - **Never pair GitHub's own auto-merge with any of this.** Auto-merge waits only for explicitly
   configured conditions, so a PR can merge while a review is still running.
 - **Never commit a secret.** The optional workflow reads one from repository secrets; nothing else

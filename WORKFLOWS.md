@@ -86,6 +86,7 @@ From [`plugins/plenipo/skills/setup/assets/`](plugins/plenipo/skills/setup/asset
 |---|---|---|
 | [`agent-gates.yml`](plugins/plenipo/skills/setup/assets/agent-gates.yml) | pull request, incl. `edited`/`labeled` | runs `pr-gates.mjs`; **make it a required check** or it gates nothing |
 | [`agent-merge.yml`](plugins/plenipo/skills/setup/assets/agent-merge.yml) | schedule every 15 min, or dispatch | runs `merge-gate.mjs`; needs `agent:approved` and `autonomy.level >= 1` |
+| [`agent-approval-reset.yml`](plugins/plenipo/skills/setup/assets/agent-approval-reset.yml) | pull request `synchronize` | drops `agent:approved` when new commits land — **install it before trusting any auto-merge** |
 | [`pr-gates.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.mjs) · [`merge-gate.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.mjs) | — | the one implementation of the gate list, shared with `/plenipo:ship` |
 | [`CODEOWNERS`](plugins/plenipo/skills/setup/assets/CODEOWNERS) | — | the paths an agent may never merge unreviewed |
 
@@ -94,6 +95,15 @@ irreducibly a judgement. `/plenipo:ship` runs that review locally for free under
 already have, and it is the default. When nobody is at the machine, the cloud stand-in is the agentic
 `pr-approval-verdict.md` above — the only thing anywhere that produces the `agent:approved` label
 `merge-gate.mjs` waits for.
+
+**`pr-approval-verdict.md` and `agent-approval-reset.yml` are a pair, and installing the first
+without the second is worse than installing neither.** `agent:approved` is a statement about a diff,
+not about a pull request, and `safe-outputs.add-labels` can only ever *add* — so nothing in the
+reviewer can withdraw a verdict its own new commits invalidated. Approve at commit A, push commit B,
+and the scheduled merger finds every gate green over code nothing has read. That is the one path by
+which the whole list can pass on unreviewed changes. The reset is deliberately dumb — no AI, no
+secrets, no third-party actions — and it never fails the pull request, because a check people
+disable is not a check.
 
 From [`plugins/steward/skills/install-request-surface/assets/`](plugins/steward/skills/install-request-surface/assets),
 installed by `/steward:install-request-surface` into the platform repo:
