@@ -86,7 +86,7 @@ From [`plugins/plenipo/skills/setup/assets/`](plugins/plenipo/skills/setup/asset
 |---|---|---|
 | [`agent-gates.yml`](plugins/plenipo/skills/setup/assets/agent-gates.yml) | pull request, incl. `edited`/`labeled` | runs `pr-gates.mjs`; **make it a required check** or it gates nothing |
 | [`agent-merge.yml`](plugins/plenipo/skills/setup/assets/agent-merge.yml) | schedule every 15 min, or dispatch | runs `merge-gate.mjs`; needs `agent:approved` and `autonomy.level >= 1` |
-| [`agent-approval-reset.yml`](plugins/plenipo/skills/setup/assets/agent-approval-reset.yml) | pull request `synchronize` | drops `agent:approved` when new commits land — **install it before trusting any auto-merge** |
+| [`agent-approval-reset.yml`](plugins/plenipo/skills/setup/assets/agent-approval-reset.yml) | pull request `synchronize`/`edited`/`reopened`, or dispatch | drops `agent:approved` when the diff changes — **install it before trusting any auto-merge** |
 | [`pr-gates.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.mjs) · [`merge-gate.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.mjs) | — | the one implementation of the gate list, shared with `/plenipo:ship` |
 | [`CODEOWNERS`](plugins/plenipo/skills/setup/assets/CODEOWNERS) | — | the paths an agent may never merge unreviewed |
 
