@@ -1,0 +1,83 @@
+# Approval expiry. Deterministic — no AI, no secrets, no third-party actions.
+#
+# `agent:approved` is a statement about a diff, not about a pull request. Without this, a PR reviewed
+# at commit A keeps the label through commit B, and the scheduled merger — which re-reads the world
+# but cannot tell a fresh label from a stale one — merges code nothing ever looked at. That is the
+# one way the whole gate list can be green over unreviewed changes.
+#
+# `add-labels` in the reviewer can only ADD, so expiry has to live here. The reviewer re-runs on the
+# same events and re-labels from scratch; this job finishes in seconds while that takes minutes, so
+# the new verdict lands after the reset, not before it. If that race ever inverts, it loses an
+# approval rather than keeping a stale one — the safe direction.
+name: Reset agent approval
+
+on:
+  # `synchronize` alone is NOT enough, and this is the subtle half of the file. A base-branch
+  # retarget arrives as `edited` carrying `changes.base`, and it changes the effective diff WITHOUT
+  # changing the head SHA — so no `synchronize` fires, nothing resets, `pr-approval-verdict.md` does
+  # not re-review either, and the cron merges an old verdict over a new diff. `reopened` republishes
+  # a head that may differ from what was reviewed. `agent-gates.yml` already listens to both for
+  # exactly this reason; a narrower list here silently reopens the hole this file exists to close.
+  pull_request:
+    types: [synchronize, edited, reopened]
+  # So the thing can be PROVEN rather than assumed. Without this there is no way to make the job run
+  # on demand, and "it has never executed here" is indistinguishable from "it works".
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number to clear the verdict on.
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: approval-reset-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: false
+
+jobs:
+  reset:
+    name: Drop a verdict the new commits have not earned
+    runs-on: ubuntu-latest
+    # A title or body edit is not a diff change. Only react to `edited` when the BASE moved.
+    if: >-
+      github.event_name != 'pull_request'
+      || github.event.action != 'edited'
+      || github.event.changes.base != null
+    steps:
+      # A label that is not set is the normal case, not a failure — this must never be the reason a
+      # pull request goes red, or it becomes the thing people disable.
+      #
+      # But it must go red on a REAL failure. An earlier version wrote
+      #   if gh api -X DELETE ... >/dev/null 2>&1; then "cleared"; else "not set"; fi
+      # which discarded the status and made 403, 401, a 429 secondary rate limit and any 5xx
+      # indistinguishable from a 404. The run went green, the log said "not set  agent:approved",
+      # and the stale label survived into a merge cron that gates on nothing more than the label
+      # being present. The one control this file adds was silent in exactly the case it exists for.
+      #
+      # `gh api` has no curl-style `-w %{http_code}`; on failure it exits non-zero and writes
+      # `gh: <message> (HTTP <code>)` to stderr, so the status is matched from the captured output.
+      # Verified against a live 404: exit 1, `gh: Label does not exist (HTTP 404)`.
+      - name: Clear the review verdict
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR: ${{ github.event.pull_request.number || inputs.pr_number }}
+          REPO: ${{ github.repository }}
+        run: |
+          failed=
+          for label in 'agent:approved' 'agent:changes-requested'; do
+            if out=$(gh api -X DELETE "repos/$REPO/issues/$PR/labels/$label" 2>&1); then
+              echo "cleared  $label"
+              continue
+            fi
+            case "$out" in
+              *'(HTTP 404)'*) echo "not set  $label" ;;
+              *) echo "::error::could not clear $label — the approval may be stale: $out"; failed=1 ;;
+            esac
+          done
+          if [ -n "$failed" ]; then
+            echo "Failing the run: a verdict that could not be cleared must not look cleared." >&2
+            exit 1
+          fi
