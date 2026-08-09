@@ -188,6 +188,11 @@ paperwork. Each numbered step is one check group; every row states its own decis
    | `agent-merge.yml` `permissions:` omits `issues: write` | GitHub closes a `Closes #N` issue as the *merging actor*; a `GITHUB_TOKEN` merge without it closes the PR and leaves the issue open forever |
    | `merge-gate.mjs` never mentions `closingIssuesReferences` | the merger predates the explicit close and is trusting the implicit behaviour that failed |
    | `agent-gates.yml`'s job name is not a required status check on the default branch | `checks_exist` is then the only thing between the loop and a vacuous green |
+   | `agent-approval-reset.yml` is absent while `autonomy.level` >= 2 | `agent:approved` never expires, so a PR reviewed at commit A merges commit B unreviewed — the reviewer's `add-labels` can only ADD, so nothing else drops it |
+
+   Read the required checks from the live repo, and compare against the **job `name:`** in
+   `agent-gates.yml` — not the file name and not the workflow `name:`. A required check configured
+   under a name no job produces blocks every merge instead of gating one.
 
    Confirm the first one against the **live** repo, not just the file: read
    `gh api repos/<owner>/<repo>/actions/permissions/workflow` and check whether the default

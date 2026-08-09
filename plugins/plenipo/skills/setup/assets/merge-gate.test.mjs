@@ -189,8 +189,32 @@ if (simulated.status !== 0) {
   console.log('  ok   simulate — `--fixture --merge` simulates and never reaches the network');
 }
 
+// ── The second merge of a run must not act on a first-merge verdict ──────────
+// Gates are evaluated once, up front. `mergeable`, `checks_green` and `main_is_green` are all
+// assertions about the world RIGHT NOW, so the moment one merge lands they are stale for every
+// pull request still queued — the base moved and their checks ran against a commit that is no
+// longer the tip. `/plenipo:ship` documents this script as re-evaluating every gate "before
+// touching anything"; that was true per run and false within one.
+//
+// Reuses the simulation run above: `maxMergesPerTick` defaults to 2, so a level-3 policy with no
+// explicit cap already drives more than one merge, which is the whole precondition.
+if (simulated.status === 0) {
+  const wouldMerge = simulated.stdout.match(/^\s{2}WOULD MERGE #(\d+)/gm) ?? [];
+  const rechecks = simulated.stdout.match(/^\s{2}RECHECK #(\d+)/gm) ?? [];
+
+  if (wouldMerge.length < 2) {
+    console.log(`  FAIL recheck — the fixture must offer at least two mergeable PRs to exercise this; got ${wouldMerge.length}`);
+    failed++;
+  } else if (rechecks.length === wouldMerge.length - 1) {
+    console.log(`  ok   recheck — every merge after the first re-reads the world (${rechecks.length} re-check(s) for ${wouldMerge.length} merges)`);
+  } else {
+    console.log(`  FAIL recheck — expected ${wouldMerge.length - 1} re-check(s) after the first merge, got ${rechecks.length}.\n       A second merge on a first-merge verdict is the bug this asserts.\n${simulated.stdout}`);
+    failed++;
+  }
+}
+
 if (failed) {
   console.log(`\n${failed} rollup case(s) wrong. merge-gate is the last automated thing before main — do not merge this.\n`);
   process.exit(1);
 }
-console.log(`\nOK — ${cases.length} rollup, ${closeCases.length} linked-issue, ${mergeableCases.length} mergeable, 3 stale-routing and 1 simulation case(s) behave correctly.\n`);
+console.log(`\nOK — ${cases.length} rollup, ${closeCases.length} linked-issue, ${mergeableCases.length} mergeable, 3 stale-routing, 1 simulation and 1 re-check case(s) behave correctly.\n`);

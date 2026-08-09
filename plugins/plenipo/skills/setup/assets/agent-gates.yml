@@ -28,6 +28,25 @@ jobs:
         with:
           node-version: '22'
 
+      # First, because these are the two steps here that do not depend on the diff: the merger
+      # decides what lands on `main` unattended and the heartbeat is the only thing that reports a
+      # stopped loop, so a change that quietly weakens either must fail on the PR rather than at 3am
+      # on a schedule. Behind the spine guard they would be skipped on exactly the PRs that edit
+      # them. Both are fixture-driven: no network, no `gh`, no token.
+      - name: Test the merge gate
+        run: node --test .github/scripts/merge-gate.test.mjs
+
+      # Skipped when absent so this workflow can be installed before the heartbeat is — but once
+      # the file exists it gates every pull request, because a detector that never fires looks
+      # exactly like a healthy loop and nothing else would ever catch it.
+      - name: Test the loop heartbeat
+        run: |
+          if [ -f .github/scripts/loop-heartbeat.test.mjs ]; then
+            node --test .github/scripts/loop-heartbeat.test.mjs
+          else
+            echo "no loop-heartbeat.test.mjs — skipping"
+          fi
+
       # --unified=0 keeps context lines out of the removal scan, so an unchanged HasQueryFilter
       # sitting next to an edit does not read as an edit to it.
       - name: Compute the diff
