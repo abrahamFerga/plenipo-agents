@@ -39,6 +39,19 @@ jobs:
       - name: Prove the merge gate's check-rollup handling
         run: node plugins/plenipo/skills/setup/assets/merge-gate.test.mjs
 
+      # L1 — this repo runs the gate it ships, so its installed copy must BE the asset. The step
+      # above proves the ASSET is correct and says nothing about the copies, and the comment above
+      # it asserted "copied verbatim into every product" without ever checking. The first time
+      # anyone checked: this repo's own copy was ~100 lines behind, the platform's was ~50 behind,
+      # and three products were 47 lines AHEAD, carrying two fixes that never came back here. CI
+      # was green through all of it, because nothing compared them.
+      - name: Prove the installed merge gate has not drifted from the asset
+        run: |
+          diff --strip-trailing-cr \
+            plugins/plenipo/skills/setup/assets/merge-gate.mjs \
+            .github/scripts/merge-gate.mjs \
+            || { echo "::error::.github/scripts/merge-gate.mjs has drifted from the asset it is vendored from — re-copy it, or port the local change up"; exit 1; }
+
       # L2 — prose conventions.
       - name: Lint markdown
         run: npx --yes markdownlint-cli2 "**/*.md" "#node_modules"

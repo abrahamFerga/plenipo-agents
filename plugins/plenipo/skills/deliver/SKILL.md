@@ -55,7 +55,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 | Input | Where it comes from | Used for |
 |---|---|---|
 | Owner / repo / project | `workflow.json` → `github`, else `gh repo view`, else `gh api user` | every query — **never hardcode an owner** |
-| Open PRs and their labels | `gh pr list --state open --json number,labels,headRefName` | admission control, and finding rejected work |
+| Open **loop** PRs and their labels | `gh pr list --state open --json number,labels,headRefName`, keeping only `headRefName` matching `^(feat\|fix\|chore)/` | admission control, and finding rejected work |
 | Board items and columns | `gh project item-list` | what is Ready, what is In Progress |
 | Bug issues | `gh issue list --label type:bug --state open` | p0 bugs preempt features |
 | Ceilings | `workflow.json` → `autonomy.maxOpenPRs` (default 3) | the back-pressure limit |
@@ -83,13 +83,22 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    | 1 | an open PR labelled `agent:changes-requested` | fix that PR — it is closer to done than anything else, and an unaddressed rejection blocks the merge queue |
    | 2 | a card `In Progress` with no PR | resume it; never start a second item |
    | 3 | an open `type:bug` issue at `priority:p0` | a shipped defect outranks new scope |
-   | 4 | `Ready` cards exist and open PRs < `maxOpenPRs` | take the top one by Build order |
+   | 4 | `Ready` cards exist and open loop PRs < `maxOpenPRs` | take the top one by Build order |
    | 5 | otherwise | `No-op`, with the reason |
 
-4. **Check the back-pressure ceiling before rule 4.** If open PRs ≥ `maxOpenPRs`, report `No-op`
-   with *"review is the constraint, not build capacity"* and name the waiting PRs. This is the
-   single most important line in the skill: an unattended builder with no ceiling converts a review
-   backlog into an unreviewable one, and every extra branch makes the next rebase worse.
+4. **Check the back-pressure ceiling before rule 4.** If open **loop** PRs ≥ `maxOpenPRs`, report
+   `No-op` with *"review is the constraint, not build capacity"* and name the waiting PRs. This is
+   the single most important line in the skill: an unattended builder with no ceiling converts a
+   review backlog into an unreviewable one, and every extra branch makes the next rebase worse.
+
+   **Count only PRs this loop could actually merge** — head branch `feat/`, `fix/` or `chore/`.
+   Anything else, Dependabot above all, fails `is_loop_pr` in `merge-gate.mjs` and can therefore
+   never leave the queue by any action this loop takes. Counting them turns the ceiling into a
+   deadlock rather than back-pressure: it was measured at 8 Dependabot PRs against a `maxOpenPRs`
+   of 3 in one repo and 6 against 3 in another, and both build loops reported `No-op` every tick
+   for weeks while the board still had Ready cards and only one or two loop PRs were genuinely in
+   flight. Name the excluded count in the report — *"9 open, 1 loop PR, 8 Dependabot"* — because a
+   filter nobody can see is indistinguishable from a ceiling that is not being enforced.
 
 5. **Hand off.** Invoke `/deliver:work-next-issue` and let it own the whole procedure — branch, implement,
    climb the ladder, prove at runtime, open the PR, move the card to In Review. Pass it the issue
