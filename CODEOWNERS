@@ -1,7 +1,7 @@
-# CODEOWNERS puts a named person on changes whose blast radius is every repo that installs this
-# marketplace. The main-branch ruleset requires both an approving review and a CODEOWNER review;
-# because the wildcard below covers every path, no pull request can merge on automation alone.
-# `Validate marketplace` is the sole required status check and handles deterministic correctness.
+# CODEOWNERS requests human visibility on changes whose blast radius is every repo that installs
+# this marketplace. It is advisory here: the unattended loop binds approval to the exact reviewed
+# revision and re-runs protected-base policy before merging. `Validate marketplace` and `PR gates`
+# are the two branch-required contexts.
 #
 # This repo ships no application code, so the product-shaped paths in the shared asset
 # (plugins/plenipo/skills/setup/assets/CODEOWNERS — /src/**/Authorization/ and friends) do not exist

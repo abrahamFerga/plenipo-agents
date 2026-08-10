@@ -46,7 +46,7 @@ asking for something that changes scope, weakens an invariant, or contradicts th
 | Review decision | `gh pr view <n> --json reviewDecision` | whether changes are formally requested |
 | Check runs | `gh pr checks <n>` | what is red, and since when |
 | The originating issue | the PR's `Closes #n` | the scope boundary |
-| `RUNBOOK.md` | the product repo | how to re-prove the fix |
+| `RUNBOOK.md` or a repo-local `.claude/skills/run-*` skill | the repository | how to re-prove the fix; platform repos use their run skill because they intentionally have no product runbook |
 
 ## Workflow
 

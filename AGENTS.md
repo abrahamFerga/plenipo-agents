@@ -295,8 +295,8 @@ other tools should **open the file when its description matches the task**.
   deterministic gate scripts and the workflows that run them, CODEOWNERS, bra…  
   → [`plugins/plenipo/skills/setup/SKILL.md`](plugins/plenipo/skills/setup/SKILL.md)
 - **ship** *(reference)* — One review-and-merge tick: for every open pull request the loop
-  produced, get an adversarial second opinion from the `plenipo:pr-reviewer` agent — a context
-  that never saw the code being written and is asked to refute it — then merge onl…  
+  produced, recover an independent verdict bound to its exact revision, then merge only what
+  clears a fixed list of deterministic gates at or below the autonomy level this rep…  
   → [`plugins/plenipo/skills/ship/SKILL.md`](plugins/plenipo/skills/ship/SKILL.md)
 - **steward** *(reference)* — One platform tick, safe to fire on a timer or on demand: work the
   queue the products filed — verdict what is untriaged, implement one accepted request, announce a

@@ -30,7 +30,8 @@ One template is a deliberate, bounded exception.
 [`pr-approval-verdict.md`](plugins/harness/skills/install-github-agentic-workflows/assets/pr-approval-verdict.md)
 applies the `agent:approved` label that `merge-gate.mjs` requires before it will merge anything. It
 still merges nothing itself: the label is an **input** to a deterministic gate that independently
-re-checks that every status check is green, that the branch is mergeable, that no hold label is set,
+re-checks that every required status check is green, that the branch is mergeable, that no hold
+label is set,
 that the spine guard passed, and that `autonomy.level` permits the change class. Necessary, never
 sufficient. Install it only when you want merges to happen with nobody at the machine, and read the
 risk note in the installing skill before you do.
@@ -84,26 +85,29 @@ From [`plugins/plenipo/skills/setup/assets/`](plugins/plenipo/skills/setup/asset
 
 | Template | Trigger | Purpose |
 |---|---|---|
-| [`agent-gates.yml`](plugins/plenipo/skills/setup/assets/agent-gates.yml) | pull request, incl. `edited`/`labeled` | runs `pr-gates.mjs`; **make it a required check** or it gates nothing |
-| [`agent-merge.yml`](plugins/plenipo/skills/setup/assets/agent-merge.yml) | schedule every 15 min, or dispatch | runs `merge-gate.mjs`; needs `agent:approved` and `autonomy.level >= 1` |
-| [`agent-approval-reset.yml`](plugins/plenipo/skills/setup/assets/agent-approval-reset.yml) | pull request `synchronize`/`edited`/`reopened`, or dispatch | drops `agent:approved` when the diff changes — **install it before trusting any auto-merge** |
-| [`pr-gates.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.mjs) · [`merge-gate.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.mjs) | — | the one implementation of the gate list, shared with `/plenipo:ship` |
+| [`agent-gates.yml`](plugins/plenipo/skills/setup/assets/agent-gates.yml) | pull request, incl. `edited`/`labeled` | runs the protected base's `pr-gates.mjs`; **make it a required check** or it gates nothing |
+| [`agent-merge.yml`](plugins/plenipo/skills/setup/assets/agent-merge.yml) | schedule every 15 min, or dispatch | recovers missing verdicts, then runs `merge-gate.mjs`; needs `agent:approved` and `autonomy.level >= 1` |
+| [`agent-approval-reset.yml`](plugins/plenipo/skills/setup/assets/agent-approval-reset.yml) | pull request `synchronize`/`edited`/`reopened`, or dispatch | drops verdict labels when the diff or evidence body changes — **install it before trusting any auto-merge** |
+| [`approval-proof.mjs`](plugins/plenipo/skills/setup/assets/approval-proof.mjs) · [`pr-gates.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.mjs) · [`merge-gate.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.mjs) · [`verdict-retry.mjs`](plugins/plenipo/skills/setup/assets/verdict-retry.mjs) | — | approval provenance, deterministic evidence/merge policy and bounded same-head verdict recovery |
+| [`approval-proof.test.mjs`](plugins/plenipo/skills/setup/assets/approval-proof.test.mjs) · [`pr-gates.test.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.test.mjs) · [`merge-gate.test.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.test.mjs) · [`verdict-retry.test.mjs`](plugins/plenipo/skills/setup/assets/verdict-retry.test.mjs) · [`agent-approval-reset.test.mjs`](plugins/plenipo/skills/setup/assets/agent-approval-reset.test.mjs) | — | no-network regression proof for the policy scripts and verdict lifecycle |
 | [`CODEOWNERS`](plugins/plenipo/skills/setup/assets/CODEOWNERS) | — | the paths an agent may never merge unreviewed |
 
-There is no deterministic cloud reviewer here, because a reviewer is the one job in this list that is
-irreducibly a judgement. `/plenipo:ship` runs that review locally for free under the subscription you
-already have, and it is the default. When nobody is at the machine, the cloud stand-in is the agentic
-`pr-approval-verdict.md` above — the only thing anywhere that produces the `agent:approved` label
-`merge-gate.mjs` waits for.
+The reviewer is irreducibly a judgement, so the unattended profile installs one agentic
+`pr-approval-verdict.md` — the only component that produces both `agent:approved` and the
+approval-specific safe-output artifact `merge-gate.mjs` trusts. It replaces the role-specific PR intent
+reviewer; installing both spends two model calls on the same diff and makes provider throttling more
+likely without adding an independent gate. It runs as `pull_request_target` with checkout disabled,
+so the reviewer policy already on the protected base judges the proposed diff. Every merge proves
+the exact output, head, base and body revision; control-plane changes also run `pr-gates.mjs`
+downloaded from the protected base, independent of the PR-owned required-check wrapper.
 
 **`pr-approval-verdict.md` and `agent-approval-reset.yml` are a pair, and installing the first
 without the second is worse than installing neither.** `agent:approved` is a statement about a diff,
-not about a pull request, and `safe-outputs.add-labels` can only ever *add* — so nothing in the
-reviewer can withdraw a verdict its own new commits invalidated. Approve at commit A, push commit B,
-and the scheduled merger finds every gate green over code nothing has read. That is the one path by
-which the whole list can pass on unreviewed changes. The reset is deliberately dumb — no AI, no
-secrets, no third-party actions — and it never fails the pull request, because a check people
-disable is not a check.
+not about a pull request, and `safe-outputs.add-labels` can only ever *add*. Approve at commit A,
+push commit B, or replace the runtime evidence in the body, and the scheduled merger otherwise sees
+a verdict for state that no longer exists. The reset is deliberately dumb — no AI, no secrets and
+no third-party actions — and it fails visibly if a non-404 API error prevents stale labels from
+being removed.
 
 From [`plugins/steward/skills/install-request-surface/assets/`](plugins/steward/skills/install-request-surface/assets),
 installed by `/steward:install-request-surface` into the platform repo:
