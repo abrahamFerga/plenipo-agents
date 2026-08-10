@@ -94,9 +94,11 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 4. **Configure credentials with least privilege.** Add `COPILOT_GITHUB_TOKEN` as a repository Actions
    secret. It must be a fine-grained PAT owned by an account with a Copilot license and
    **Copilot Requests: Read**. For an unattended verdict/merge loop it also needs repository
-   **Actions, Contents, Issues and Pull requests: write**: GitHub suppresses downstream events caused
-   by its built-in `GITHUB_TOKEN`, so that token cannot wake the gate after a label/branch update or
-   start post-merge delivery. Do not use an OAuth token (`gho_…`) or store the token in source.
+   **Actions: read** plus **Contents, Issues and Pull requests: write**: GitHub suppresses downstream
+   events caused by its built-in `GITHUB_TOKEN`, so that token cannot wake the gate after a
+   label/branch update or start post-merge delivery. Verdict dispatch/rerun deliberately uses the
+   scoped built-in token with Actions write; the reviewer allowlists `github-actions[bot]`. Do not
+   use an OAuth token (`gho_…`) or store the token in source.
    For cross-repository routing, create one GitHub App installed only on Plenipo and the named child
    repositories. Grant metadata read plus `Contents: read`, `Issues: read/write`, and
    `Pull requests: read/write`; do not grant administration, workflows, or contents write. In every

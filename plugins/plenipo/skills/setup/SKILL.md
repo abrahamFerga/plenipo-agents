@@ -23,8 +23,9 @@ one number — the autonomy level — that decides what may merge without a huma
 
 Autonomy level 1 or higher needs one write-capable user/App token so GitHub emits the workflow
 events that its built-in `GITHUB_TOKEN` deliberately suppresses. The same fine-grained
-`COPILOT_GITHUB_TOKEN` used for inference may be used when it has Actions, Contents, Issues and Pull
-requests write on this repository.
+`COPILOT_GITHUB_TOKEN` used for inference may be used when it has Actions read plus Contents, Issues
+and Pull requests write on this repository. Verdict dispatch/rerun uses the workflow's built-in
+token with scoped Actions write; the reviewer explicitly permits that bot bootstrap.
 
 **Terminal states:** `Success` (every item in the checklist below is present and the gate scripts
 were each seen fail and pass) · `No-op` (already installed and current) · `Blocked` (`gh`
@@ -193,8 +194,9 @@ your code).
    `/harness:install-github-agentic-workflows`; do not hand-roll it. The merger verifies the exact
    reviewer run's safe-output artifact, head, base and body revision, so a local label or a generic
    successful run is intentionally insufficient. Configure `COPILOT_GITHUB_TOKEN` with Copilot
-   Requests read plus Actions, Contents, Issues and Pull requests write. That user token is also
-   used by `agent-merge.yml` so label, branch-update and merge events trigger downstream workflows.
+   Requests read, Actions read, and Contents, Issues and Pull requests write. That user token is
+   used for labels, branch updates and merges so downstream workflows run; the scoped built-in token
+   owns verdict dispatch/rerun because it already has Actions write.
 
 10. **Report the checklist** — each of the ten items as present or missing, the recorded autonomy
     level, both gate-script outcomes from step 5 with their exit codes, the protection state, and
