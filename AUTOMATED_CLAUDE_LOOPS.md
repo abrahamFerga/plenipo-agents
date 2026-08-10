@@ -288,6 +288,9 @@ evidence and can leave bounded findings. If the provider returns 429 or dies bef
 initial run is dispatched only with the exact PR head SHA and base, and an unproven label is repaired
 rather than trusted. The mutation path uses a fine-grained user/App token because GitHub suppresses
 label, synchronize and push events caused by its built-in `GITHUB_TOKEN`.
+Verdict dispatch/rerun itself uses the workflow's scoped built-in token with Actions write; the
+reviewer explicitly allowlists `github-actions[bot]`, and safe-output mutations still use the user/App
+token so their follow-up events are emitted.
 Body edits expire the old verdict and trigger review again because runtime evidence is part of what
 was judged, not decorative PR prose.
 
