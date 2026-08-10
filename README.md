@@ -23,6 +23,9 @@ shaped this way; read it once.
 
 ### Claude Code
 
+The Opus 5 development workers require Claude Code 2.1.219 or newer. Check with
+`claude --version` and upgrade with `claude update` before installing.
+
 ```text
 /plugin marketplace add abrahamFerga/plenipo-agents
 ```
@@ -163,8 +166,8 @@ Full operator's manual in **[AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.m
 
 | Agent | Claude route | Delegate when |
 |---|---|---|
-| `deliver:product-developer` | Opus · medium · 60 turns | `/plenipo:deliver` has selected one issue or rejected PR. Loads the one matching build/revision skill on demand, writes and proves the change, never reviews or merges it |
-| `deliver:product-improver` | Opus · high · 60 turns | you want the product made *better* rather than an issue closed — uses the app as its intended user, logs friction, and ships **one** proven improvement as a PR |
+| `deliver:product-developer` | Opus 5 · medium · 60 turns | `/plenipo:deliver` has selected one issue or rejected PR. Loads the one matching build/revision skill on demand, writes and proves the change, never reviews or merges it |
+| `deliver:product-improver` | Opus 5 · high · 60 turns | you want the product made *better* rather than an issue closed — uses the app as its intended user, logs friction, and ships **one** proven improvement as a PR |
 | `plenipo:pr-reviewer` | Sonnet · medium · 24 turns | a pull request needs an independent second opinion — reads the issue, evidence and diff, tries to *refute* it, and cannot edit, push, label or merge |
 | `deliver:e2e-tester` | Sonnet · medium · 40 turns | the system needs a sweep for observed breakage — boots it, walks real journeys, drives the UI, and returns ranked findings with reproductions; never edits |
 
@@ -180,14 +183,16 @@ claude --model sonnet
 If Claude Code is already open, use `/model` and press `s`. Typing `/model sonnet` directly on
 recent versions also saves Sonnet as your user default, which may be broader than intended.
 
-The worker boundary promotes only code-changing work to Opus: `/plenipo:deliver` does its cheap
+The worker boundary promotes only code-changing work to pinned Opus 5: `/plenipo:deliver` does its cheap
 checks first, then delegates a real issue or rejected PR to `deliver:product-developer`. The `ship`
-and `test` verbs stay on Sonnet workers. Model aliases select the current allowed family member; do
-not set `CLAUDE_CODE_SUBAGENT_MODEL` or pass a per-invocation model override when you want this
+and `test` verbs stay on Sonnet workers. Those cheap workers use family aliases, while development
+agents use the exact `claude-opus-5` model ID so an older provider alias cannot silently downgrade
+them. Claude Code 2.1.219 or newer and provider access to Opus 5 are therefore hard requirements.
+Do not set `CLAUDE_CODE_SUBAGENT_MODEL` or pass a per-invocation model override when you want this
 routing, because both take precedence over agent frontmatter. Invoking `/deliver:work-next-issue`
 directly also bypasses the worker boundary and uses the current session model: launch that direct
-session with `claude --model opus`, or use `/plenipo:deliver` to route automatically. See Claude
-Code's
+session with `claude --model claude-opus-5`, or use `/plenipo:deliver` to route automatically. See
+Claude Code's
 [subagent reference](https://code.claude.com/docs/en/subagents) and
 [model configuration](https://code.claude.com/docs/en/model-config).
 

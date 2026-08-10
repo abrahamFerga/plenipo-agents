@@ -143,7 +143,7 @@ Constraints specific to plugin-shipped agents:
 Every agent also declares a concrete cost envelope:
 
 ```yaml
-model: sonnet       # a family alias, never inherit or a dated model id
+model: sonnet       # cheap tiers use aliases; Opus development pins claude-opus-5
 effort: medium      # low / medium / high; omit only for Haiku
 maxTurns: 24        # a runaway circuit breaker, not a promised token budget
 ```
@@ -152,12 +152,15 @@ maxTurns: 24        # a runaway circuit breaker, not a promised token budget
 |---|---|
 | deterministic inventory, classification, or formatting | a script first; Haiku only when judgement is unavoidable |
 | bounded research, test driving, or rubric-based review | Sonnet |
-| code changes, architecture, or ambiguous cross-layer diagnosis | Opus |
+| code changes, architecture, or ambiguous cross-layer diagnosis | `claude-opus-5` (Opus 5) |
 
-Use family aliases so Claude Code selects the current allowed member. This marketplace deliberately
-rejects `inherit`: otherwise a Sonnet review silently becomes Opus whenever the parent session does.
-`maxTurns` prevents runaway recursion; it does not replace the skill's named terminal states, and a
-tight cap that causes a restart costs more than the turns it saved.
+Use family aliases for cheap tiers so Claude Code selects the current allowed member. Pin development
+to `claude-opus-5`: the requirement is Opus 5, not merely whichever older Opus a provider maps from
+the `opus` alias. This requires Claude Code 2.1.219 or newer and provider access to that model. The
+marketplace deliberately rejects both `inherit` and bare `opus`; otherwise a route can silently
+change model tier or generation. `maxTurns` prevents runaway recursion; it does not replace the
+skill's named terminal states, and a tight cap that causes a restart costs more than the turns it
+saved.
 
 ## Hooks
 

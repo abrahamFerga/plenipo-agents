@@ -221,7 +221,7 @@ other tools should **open the file when its description matches the task**.
   confirming what was just built.  
   → [`plugins/deliver/agents/e2e-tester.md`](plugins/deliver/agents/e2e-tester.md)
 - **deliver:product-developer** *(agent — delegate)* — Executes exactly one already-selected
-  product implementation or pull-request revision in an isolated Opus context.  
+  product implementation or pull-request revision in an isolated Opus 5 context.  
   → [`plugins/deliver/agents/product-developer.md`](plugins/deliver/agents/product-developer.md)
 - **deliver:product-improver** *(agent — delegate)* — Runs a Plenipo product, uses it as its
   intended user would, and improves what it finds — features that stop half-finished, screens that

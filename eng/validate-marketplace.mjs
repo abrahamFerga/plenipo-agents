@@ -26,10 +26,10 @@ const MAX_NAME = 64;
 const MAX_DESCRIPTION = 1024;
 const MAX_BODY_LINES = 450;
 const MAX_REFERENCE_LINES = 600;
-// Claude Code accepts inherit, dated ids, fable and higher effort levels too. This marketplace uses
-// the narrower portable policy below so a parent session or provider change cannot silently alter
-// an agent's cost tier. See AUTHORING.md.
-const AGENT_MODEL_TIERS = new Set(['haiku', 'sonnet', 'opus']);
+// Claude Code accepts inherit, other full ids, fable and higher effort levels too. This marketplace
+// uses the narrower policy below so cheap workers track their family while development is guaranteed
+// to use Opus 5 instead of whichever older Opus a provider alias happens to expose. See AUTHORING.md.
+const AGENT_MODELS = new Set(['haiku', 'sonnet', 'claude-opus-5']);
 const AGENT_EFFORT_LEVELS = new Set(['low', 'medium', 'high']);
 
 // ── Minimal frontmatter reader ────────────────────────────────────────────────
@@ -197,14 +197,14 @@ for (const plugin of [...onDisk].sort()) {
       if (!fm.description) err(agentPath, 'missing description — it is always-on context whenever the plugin is enabled');
       if (!fm.model) {
         err(agentPath, 'missing model — plugin agents must use an explicit cost tier rather than inherit the session model');
-      } else if (!AGENT_MODEL_TIERS.has(fm.model)) {
+      } else if (!AGENT_MODELS.has(fm.model)) {
         err(
           agentPath,
-          `model "${fm.model}" must be haiku, sonnet or opus — do not use inherit or pin a dated model id`
+          `model "${fm.model}" must be haiku, sonnet or claude-opus-5 — do not use inherit or an unpinned Opus alias`
         );
       }
       if (fm.model !== 'haiku' && !fm.effort) {
-        err(agentPath, 'missing effort — sonnet and opus agents must declare low, medium or high');
+        err(agentPath, 'missing effort — non-Haiku agents must declare low, medium or high');
       } else if (fm.effort && !AGENT_EFFORT_LEVELS.has(fm.effort)) {
         err(agentPath, `effort "${fm.effort}" must be low, medium or high for portable model routing`);
       }

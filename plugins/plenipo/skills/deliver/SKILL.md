@@ -3,7 +3,7 @@ name: deliver
 description: >
   One build tick, safe to fire on a timer: decide whether building is even the right move right now
   — a rejected PR to fix first, a p0 bug ahead of features, or too many PRs already waiting on review
-  — then delegate the chosen item to the Opus `deliver:product-developer` agent and journal the tick so a
+  — then delegate the chosen item to the Opus 5 `deliver:product-developer` agent and journal the tick so a
   repeated timer cannot spin invisibly. Admission control and stagnation detection stay cheap in
   this context; `/deliver:work-next-issue` still owns the branch → code → runtime proof → PR
   procedure inside the worker.
@@ -102,7 +102,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    filter nobody can see is indistinguishable from a ceiling that is not being enforced.
 
 5. **Hand off.** Delegate `build issue #<n>` to the `deliver:product-developer` agent. It is
-   configured for Opus with a turn circuit breaker and invokes `/deliver:work-next-issue` on demand;
+   pinned to Opus 5 with a turn circuit breaker and invokes `/deliver:work-next-issue` on demand;
    that skill owns the whole procedure — branch, implement, climb the ladder, prove at runtime,
    open the PR, move the card to In Review. **Do not implement inline**, re-perform any of its steps
    here, or summarize its procedure into this tick. The cheap coordinator should not carry a
@@ -139,7 +139,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
   delete that text — it is drifting from `/deliver:work-next-issue`, and the drift is invisible
   until it produces wrong work.
 - **Never develop inline.** Admission control stays in this context; code changes belong to the
-  `deliver:product-developer` agent so Opus is paid only after the tick has found real work.
+  `deliver:product-developer` agent so Opus 5 is paid only after the tick has found real work.
 - **Read the owner, never hardcode it.**
 - **A tick that ends `No-op` is a good tick.** Manufacturing work to look productive is the failure
   this ordering exists to prevent.

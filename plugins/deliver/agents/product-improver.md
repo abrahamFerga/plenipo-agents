@@ -5,7 +5,7 @@ description: >
   that stop half-finished, screens that make the user do the system's work, flows where the assistant
   is unhelpful. Delegate when you want the product made better rather than a specific issue closed.
   Ships ONE improvement per run, proven at runtime, as a PR — never a sweep of speculative changes.
-model: opus
+model: claude-opus-5
 effort: high
 maxTurns: 60
 disallowedTools: Agent

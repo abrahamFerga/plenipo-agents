@@ -171,7 +171,7 @@ your code).
    right for some products and too slow for others.
 
 8. **Write `.claude/settings.json`** from `assets/settings.json`, substituting the owner. Its Sonnet
-   default keeps the outer loop cheap; `deliver:product-developer` selects Opus only for code in its
+   default keeps the outer loop cheap; `deliver:product-developer` selects Opus 5 only for code in its
    own context. Keep the deny list; it is what stops an improvised force-push or repo deletion. Note
    in the report that the deny list matches Bash strings only and cannot see inside the gate script,
    so `autonomy.level` remains the authoritative control over merging.

@@ -2,11 +2,11 @@
 name: product-developer
 description: >
   Executes exactly one already-selected product implementation or pull-request revision in an
-  isolated Opus context. Delegate from `/plenipo:deliver` after admission control has chosen an issue
+  isolated Opus 5 context. Delegate from `/plenipo:deliver` after admission control has chosen an issue
   or rejected PR; this worker loads the matching deliver skill on demand, writes and proves the
   change, and returns only the terminal state and evidence. It never selects new work, reviews its
   own code, merges, or invents adjacent scope.
-model: opus
+model: claude-opus-5
 effort: medium
 maxTurns: 60
 disallowedTools: Agent
