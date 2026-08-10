@@ -35,8 +35,9 @@ approval gate fires, or the tenant filter holds.
 | `Exhausted` | the budget ceiling was hit mid-implementation — push the branch, open no PR, say where you stopped |
 | `Approval-required` | the change needs a human decision first: a deviation from `DECISIONS.md`, a new role baseline or permission string, or a destructive migration |
 
-**This loop ends at In Review.** Merging and the move to Done belong to a human reviewer or to
-auto-merge. Do not wait for them, do not poll for them, and never report `Success` as "Done".
+**This loop ends at In Review.** Independent verdict, revision, deterministic merge and the move to
+Done belong to the review/merge loop. Do not wait or poll for it, and never report `Success` as
+"Done".
 
 ## When to Use
 

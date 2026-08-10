@@ -5,8 +5,8 @@ description: >
   opinion from the `pr-reviewer` agent — a context that never saw the code being written and is asked
   to refute it — then merge only what clears a fixed list of deterministic gates at or below the
   autonomy level this repo has actually earned. Nothing merges on an agent's opinion alone, and a
-  diff that edits a query filter, an approval flag, a permission grant or CI itself always waits for
-  a human.
+  diff that edits a query filter, approval flag, permission grant or CI itself must also clear the
+  protected-base evaluator and the higher exact-revision evidence bar.
   USE FOR: `/loop 30m /plenipo:ship`, clearing a review backlog, letting a product merge without you.
   DO NOT USE FOR: writing or fixing the code under review (`../deliver/SKILL.md`), installing the
   branch protection and CI gates this depends on (`../setup/SKILL.md`), or merging platform changes —
@@ -23,16 +23,17 @@ strongest.** A merge happens when a fixed list of checks passes. The review can 
 Two facts shape every rule below. CI green is an **L1 check on the tests that happen to exist**, and
 those tests were written by the same loop that wrote the code — so green means "nothing adversarial
 happened", not "this does what was asked". And the fastest route from a red check to a green one is
-to edit the check. Hence: a reviewer that cannot edit anything, gates that live in the repo rather
-than in this prose, and an unconditional human stop on the five things the platform exists to
-guarantee.
+to edit the check. Hence: a reviewer that cannot edit anything, gates evaluated from the protected
+base rather than this prose, and a higher automated evidence bar on the things the platform exists
+to guarantee.
 
 **Terminal states:** `Success` (at least one PR merged, or at least one reviewed and correctly
 blocked) · `No-op` (no open PRs, or every one is waiting on a check that has not finished) ·
-`Blocked` (`gh` unauthenticated, no branch protection installed, or `main` is red — nothing merges
-onto a broken default branch) · `Approval-required` (a PR passed every automated gate but this
-repo's autonomy level, or the diff, requires a human) · `Stalled` (the same PR failed review three
-times for three different reasons — the *issue* is the defect, not the code).
+`Blocked` (`gh` unauthenticated, protection absent, required-check policy unreadable, or a named
+gate cannot be evaluated) · `Approval-required` (the owner recorded autonomy level 0 or placed an
+explicit human hold; routine protected diffs stay in the agent review/revision loop) · `Stalled`
+(the same PR failed review three times for three different reasons — the *issue* is the defect, not
+the code).
 
 ## When to Use
 
@@ -43,9 +44,9 @@ times for three different reasons — the *issue* is the defect, not the code).
 ## Stop Signals
 
 - **The PR needs code changes** → that is `../deliver/SKILL.md` rule 1. This verb never edits code.
-- **The repo has no branch protection or required checks** → `../setup/SKILL.md` first. Every gate
-  below that matters is *derived* from branch protection; on an unprotected repo they read nothing
-  and pass vacuously.
+- **The repo has no branch protection or required checks** → `../setup/SKILL.md` first. The merger
+  reads GitHub's required PR contexts and fails `checks_exist` when none report; an unprotected repo
+  therefore blocks rather than passing vacuously.
 - **You are in the Plenipo platform repo** (`workflow.json` → `stage: platform`) →
   `../steward/SKILL.md`. Platform merges need `consumers_green` on top of every gate here, and this
   verb cannot evaluate it.
@@ -72,18 +73,20 @@ here is the one that wants the PR merged.
 | Where | Script | Gates |
 |---|---|---|
 | CI, as a **required status check** | `.github/scripts/pr-gates.mjs` | `closes_an_issue` · `has_runtime_evidence` · `has_red_before_green` · `spine_untouched` |
-| this tick, and a scheduled workflow | `.github/scripts/merge-gate.mjs` | `is_loop_pr` · `not_draft` · `checks_exist` · `checks_green` · `mergeable` · `no_blocking_review` · `agent_approved` · `no_human_hold` · `main_is_green` · `level_permits` · `under_cap` |
+| this tick, and a scheduled workflow | `.github/scripts/merge-gate.mjs` | `is_loop_pr` · `not_draft` · `checks_exist` · `checks_green` · `mergeable` · `no_blocking_review` · `agent_approved` · `trusted_agent_approval` for every PR · `trusted_pr_gates` for control changes · `no_human_hold` · `level_permits` · `under_cap` |
 
 The split is not arbitrary. The first four are assertions about the **body and the diff**, so they
 must run where they cannot be skipped — as a check on every push, including a human's. The rest are
-assertions about the **world right now** (is CI green, is a hold set, is `main` healthy), so they
-are re-read at merge time rather than trusted from an earlier event.
+assertions about the **world right now** (is required CI green, is a hold set, is the PR
+mergeable), so they are re-read at merge time rather than trusted from an earlier event.
 
 Two consequences worth internalizing:
 
-- **`checks_green` subsumes the first four.** If `pr-gates` is a required check, a green rollup
-  already means the evidence and spine gates passed. If it is *not* required, `checks_green` is
-  weaker than it looks — which is why `checks_exist` refuses to merge a repo with no CI at all.
+- **`checks_green` normally subsumes the first four.** If `pr-gates` is a required check, a green
+  rollup means the evidence and spine gates passed. A control-plane PR can change its own workflow
+  wrapper, so the merger also downloads and executes `pr-gates.mjs` from the protected base before
+  merging it. If the check is not required, `checks_green` is weaker than it looks — which is why
+  `checks_exist` refuses to merge a repo with no required CI at all.
 - **`spine_untouched` is content-based, not path-based.** *Adding* a `HasQueryFilter` line is
   ordinary feature work; *deleting or editing* one is a tenant-isolation change. A path rule would
   either block every migration or catch nothing.
@@ -93,12 +96,13 @@ Two consequences worth internalizing:
 | Level | May merge | Requires |
 |---|---|---|
 | **0** | nothing — review and label only | the default for any repo without a runbook |
-| **1** | docs, `RUNBOOK.md`, test-only additions, a green version bump | every gate except `agent_approved` |
+| **1** | docs, `RUNBOOK.md`, test-only additions, a green version bump | all gates, including an independent `agent:approved` verdict |
 | **2** | product features | all gates, including an `agent:approved` from the reviewer |
 | **3** | as level 2, unattended, inside a revert budget | all gates, plus a clean level-2 stretch |
 
-**Never at any level:** anything `spine_untouched` catches. That does not get safer as a product's
-track record improves, because the cost of being wrong does not shrink.
+Anything `spine_untouched` catches needs a live, uncontradicted `agent:approved` verdict (or the
+manual emergency override) plus the same required checks. It never becomes ordinary work, and the
+maker context can never provide that verdict.
 
 **Never in this verb:** anything in the platform repo. Not because a platform change can never
 merge — `../steward/SKILL.md` merges them — but because this verb stops at preflight on
@@ -117,16 +121,17 @@ switches them on by reading `stage` itself, so they are never something this ver
    the loop has been doing.
 
 2. **Run the gate script in dry-run — it is free, and it decides what deserves a review.** It lists
-   every open PR, evaluates each gate, and checks the default branch is healthy on the way (a red
-   `main` blocks everything: merging onto a broken base multiplies one failure into N, and fixing it
-   is a p0 `type:bug`, not a merge).
+   every open PR and evaluates each gate. Required contexts come from `gh pr checks --required`, not
+   the Administration-only branch-protection REST endpoint and not every optional check in the
+   rollup.
 
    ```bash
    node .github/scripts/merge-gate.mjs
    ```
 
-   It prints `READY` / `STALE` / `BLOCK` per PR with every failed gate accumulated, and exits 0
-   either way (a queue full of PRs waiting on CI is a healthy queue, not a failed run). For anything
+   It prints `READY` / `STALE` / `BLOCK` per PR with every failed gate accumulated. A queue full of
+   PRs waiting on CI exits 0; inability to read the required-check policy exits non-zero because a
+   merger that cannot evaluate its contract is broken infrastructure. For anything
    blocked, comment the reasons once — **edit your previous gate comment rather than adding
    another**, or a PR that waits two days collects a hundred identical comments.
 
@@ -138,20 +143,22 @@ switches them on by reading `stage` itself, so they are never something this ver
    output, not as decoration.** This script exits 0 whatever it finds, so a frozen queue and a
    fully drained one produce the same green checkmark on the schedule; that line is the only thing
    distinguishing them, and a fleet once ran this cron successfully every fifteen minutes for weeks
-   while merging nothing at all.
+   while merging nothing at all. Policy-read failures now make that schedule red.
 
-3. **Review every PR carrying no verdict yet.** Not "every PR the dry run passed" — `agent_approved`
-   is itself one of the gates, so an unreviewed PR *always* prints `BLOCK`, and reading step 2 as a
-   filter on what to review leaves nothing to review and reports `No-op` on a queue that is merely
-   waiting for you. For each PR with no `agent:approved` or
-   `agent:changes-requested` label, delegate to the `pr-reviewer` agent with the PR number. It reads
-   the diff, the issue's acceptance criteria, and the evidence in the body — never this conversation
-   — and returns `approve`, `request-changes`, or `escalate` with reasons. Apply its verdict as a
-   label and post its reasoning as a PR comment.
+3. **Recover the independent verdict; never mint it locally.** Not "every PR the dry run passed" —
+   `agent_approved` is itself one of the gates, so an unreviewed PR always prints `BLOCK`. Run:
 
-   **Never review a PR whose code you wrote in this same session.** If you are running `ship` in a
-   context that also ran `deliver`, the review is worth nothing: the agent boundary is the only
-   thing making maker ≠ checker true here. Start a fresh session, or let the timer do it.
+   ```bash
+   node .github/scripts/verdict-retry.mjs --dispatch
+   ```
+
+   The cloud reviewer is the only approval authority because the merger verifies its exact
+   safe-output artifact, head, base and body revision. A local `gh pr edit --add-label
+   agent:approved`, or a local reviewer saying "approve", is deliberately insufficient and must
+   never be used as a shortcut. If the verdict is `agent:changes-requested`, hand the PR to
+   `/deliver:revise-pr`; after the author pushes, the reset/reviewer pair starts the next round.
+   Provider failures are retried with bounded backoff and do not prevent a different already-proven
+   PR from merging.
 
 4. **Merge by re-running the script with `--merge`.** It re-evaluates every gate before touching
    anything — the label you just applied does not exempt it from a check that turned red in between
@@ -173,10 +180,10 @@ switches them on by reading `stage` itself, so they are never something this ver
    `gh pr merge`**: that path skips every gate above, and it is the one action in this plugin with
    no undo.
 
-5. **Escalate honestly.** A PR that passed every gate but is above the repo's level is
-   `Approval-required`: label it `needs-human`, comment what a human is being asked to decide, and
-   leave it. Do not raise the level to unblock yourself — an agent deciding it has earned autonomy
-   is the self-approving loop wearing a different hat.
+5. **Respect the recorded boundary.** A PR that passed every other gate but is above the repo's
+   configured level is `Approval-required` because the owner explicitly chose that policy; leave it
+   without inventing a verdict label. Do not raise the level to unblock yourself — an agent deciding
+   it has earned autonomy is the self-approving loop wearing a different hat.
 
 6. **Journal the tick** in `TICKS.md`:
 
@@ -184,21 +191,22 @@ switches them on by reading `stage` itself, so they are never something this ver
    2026-07-29T23:02Z · ship · 3 open · #131 merged · #132 changes-requested · #133 checks_green
    ```
 
-7. **Report**: what merged, what was blocked and by which named gates, what needs a human and why.
+7. **Report**: what merged, what was blocked and by which named gates, and which agent repair route
+   owns each actionable blocker.
    Cite the level of every claim — the gates are L1/L2, the review is **L4**.
 
 ## Guardrails
 
-- **The review can only block.** An approval is a *necessary* condition for a feature merge, never
-  a sufficient one. If you ever find yourself merging because the reviewer was enthusiastic, the
-  design has been inverted.
+- **The review never merges.** Its approval label is necessary and never sufficient; the
+  deterministic merger independently rechecks required CI, mergeability, holds and policy.
 - **Never edit a gate to let a PR through.** The gates are the frozen yardstick; loosening one
   while holding a PR you want merged is specification gaming with extra steps.
 - **Never approve or merge code written in this same context.** Different session, or no merge.
-- **Never merge onto a red default branch**, and never merge more than the cap in one tick.
+- **Never merge past failed required checks**, and never merge more than the cap in one tick.
 - **Never touch a PR a human opened**, or one carrying `human-hold`.
 - **Never raise the autonomy level, and never write it.** A human records it in `workflow.json`.
-- **Spine changes are human, always.** Not configurable, not levelled.
+- **Spine changes keep the higher bar, always.** Protected-diff test, independent verdict and every
+  required check; never an exemption issued by the maker context.
 - **Platform changes are never this verb's.** Hand them to `../steward/SKILL.md`, which owns the
   conformance gate; do not merge one here because every gate you *can* see happens to be green.
 - **Never hand-evaluate a gate the script owns.** Paste its output. The moment you start deciding

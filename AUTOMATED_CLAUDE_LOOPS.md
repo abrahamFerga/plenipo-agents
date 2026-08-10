@@ -226,12 +226,12 @@ So there are two planes, and they never share a context:
 ### The gates
 
 A merge happens because a **list of checks passed**, not because a reviewer was enthusiastic. The
-review can only ever *block*.
+reviewer's label is necessary and never sufficient; it cannot bypass any deterministic gate.
 
 | Enforced by | Runs | Checks |
 |---|---|---|
 | `pr-gates.mjs` | CI, required check on every push | `closes_an_issue` · `has_runtime_evidence` · `has_red_before_green` · `spine_untouched` |
-| `merge-gate.mjs` | `/plenipo:ship`, and `agent-merge.yml` every 15 min | `is_loop_pr` · `not_draft` · `checks_exist` · `checks_green` · `mergeable` · `no_blocking_review` · `agent_approved` · `no_human_hold` · `main_is_green` · `level_permits` · `under_cap` |
+| `merge-gate.mjs` | `/plenipo:ship`, and `agent-merge.yml` every 15 min | `is_loop_pr` · `not_draft` · `checks_exist` · `checks_green` · path-scoped conformance/infra · `mergeable` · `no_blocking_review` · `agent_approved` · `trusted_agent_approval` · `trusted_pr_gates` for control changes · `no_human_hold` · `level_permits` · `under_cap` |
 
 Two of those are worth understanding, because they are what makes the arrangement honest:
 
@@ -239,12 +239,36 @@ Two of those are worth understanding, because they are what makes the arrangemen
 - **`spine_untouched`** — fires when a diff *removes or edits* a line touching `HasQueryFilter`,
   `RequiresApproval`, `Permissions.`, `AddPlenipoRole`, or anything in `.github/`, `CODEOWNERS`,
   `nuget.config`, `appsettings*.json`. **Adding** a query filter is ordinary feature work;
-  **deleting** one is a tenant-isolation change. Override needs the `human-approved` label — a human
-  act, recorded on the PR. This is content-based on purpose: a path rule would either block every
-  migration or catch nothing.
+  **deleting** one is a tenant-isolation change. Override needs a live, uncontradicted
+  `agent:approved` verdict (or the manual emergency `human-approved` override), and the merger still
+  requires every protected check. This is content-based on purpose: a path rule would either block
+   every migration or catch nothing.
+
+The required PR job loads `pr-gates.mjs` from the protected base for immediate feedback, but its
+workflow wrapper is still PR-owned. The scheduled merger therefore downloads and runs the base
+evaluator again for every control change, including rename/delete old paths. The cloud verdict runs
+as `pull_request_target` with checkout disabled. Every merge downloads the exact run's safe-output
+artifact and proves that it created the verdict comment and approval label for the current
+head/base/body revision. A proposed reviewer, workflow wrapper or free-floating label cannot approve
+itself.
+
+`checks_green` reads only contexts GitHub marks required through `gh pr checks --required`. Optional
+model workflows are not CI, and the scheduled token cannot read the Administration-only branch
+protection REST endpoint. If the PR check query itself fails, the merge schedule fails visibly;
+ordinary red or pending PRs remain a healthy blocked queue.
 
 Merging is never a bare `gh pr merge`. It is `merge-gate.mjs --merge`, which re-evaluates every gate
 immediately before touching anything — so a check that turned red after the review still blocks.
+
+The unattended profile installs **one** PR model workflow: `pr-approval-verdict.md`. Do not stack the
+role-specific `*-pr-intent-review.md`; the verdict reviewer already reads issue intent, diff and
+evidence and can leave bounded findings. If the provider returns 429 or dies before writing a label,
+`verdict-retry.mjs` re-runs the original pull-request event with exponential backoff. A missing
+initial run is dispatched only with the exact PR head SHA and base, and an unproven label is repaired
+rather than trusted. The mutation path uses a fine-grained user/App token because GitHub suppresses
+label, synchronize and push events caused by its built-in `GITHUB_TOKEN`.
+Body edits expire the old verdict and trigger review again because runtime evidence is part of what
+was judged, not decorative PR prose.
 
 ### Earning autonomy
 
@@ -262,10 +286,10 @@ Start at 0 for a week and read the reviews it would have posted. The way out of 
 defers and enlarges it, and it costs the loop the one thing it needs even with nobody watching —
 attribution, so a red check points at a cause.
 
-**The spine never graduates**, at any level, in any repo, for any track record — RBAC before the
-model, approval-first writes, tenant isolation, append-only audit, write-only secrets. Those five
-*are* the platform's value. Anything that can merge a change to them unsupervised has already lost
-the thing it was built on.
+**The spine never becomes ordinary work**, at any level — RBAC before the model, approval-first
+writes, tenant isolation, append-only audit, write-only secrets. A protected diff needs a fresh
+adversarial verdict that can demand an equivalent guard and a scoped acceptance test; the same
+model context that wrote it can never supply that verdict, and no label can waive deterministic CI.
 
 ### The platform merges through a different gate
 
@@ -277,7 +301,7 @@ two extra gates on top of every one a product must clear:
 | Gate | Passes when |
 |---|---|
 | `consumers_green` | a consumer-conformance check ran on the PR **and** concluded success — every repo in `consumers.json` builds and passes its own tests against the candidate |
-| `surface_declared` | the body carries a `Surface: additive \| breaking \| none` line, and `breaking` additionally requires the `human-approved` label |
+| `surface_declared` | the body carries a `Surface: additive \| breaking \| none` line, and `breaking` additionally requires a live `agent:approved` verdict over its migration evidence |
 
 The autonomy level still applies as well, and still means what it always did: **a human recording, in
 `workflow.json`, that this repo may merge without them.** Absent config is level 0 and merges
@@ -291,8 +315,13 @@ rather than a line in `checks_green` for one specific reason — `consumer-confo
 green would mean *"it did not run"*. **A conformance run that was skipped counts as red, never as
 missing** — the `checks_exist` failure mode one level up.
 
-Two things still stop at a human here: a **breaking** public-surface change, and anything
-`spine_untouched` catches. Both need the `human-approved` label — a human act, recorded on the PR.
+Two things get a higher evidence bar here: a **breaking** public-surface change and anything
+`spine_untouched` catches. Both stay inside the same reviewer → changes-requested → author-revision
+loop until the independent reviewer can verify the guard, test and migration evidence.
+
+Inverse shim guards (`PlatformShimGuardTests`) run as a separate, non-blocking maintenance signal.
+They fail when the platform has gained a capability and a product can delete its workaround; that is
+progress to route to the product loop, not evidence that the candidate broke the consumer.
 
 This is deliberately the expensive path. It is also the only one that makes the claim "this platform
 change is safe" mean anything, and it follows the same doctrine as everything else here: the way out
@@ -337,7 +366,7 @@ before letting it choose.
 | Lever | Effect | Scope |
 |---|---|---|
 | `human-hold` label on a PR | that PR never merges | one PR |
-| `human-approved` label | overrides `spine_untouched`, deliberately | one PR |
+| `human-approved` label | manual emergency override for `spine_untouched`; normal unattended operation does not need it | one PR |
 | `AGENT_AUTOMERGE=off` repo variable | the scheduled merger no-ops, no commit needed | one repo |
 | `autonomy.level: 0` | nothing merges anywhere in that repo | one repo |
 | stop the `/loop` | everything stops; the board and journals hold the state | everything |
@@ -353,12 +382,13 @@ pass them merge at a rate 24 points lower than implied — so the only score is 
 
 Five minutes, once a week:
 
-1. Per repo, the last few lines of its `TICKS.md` — or `/plenipo:fleet` in report mode if you run
+1. Per product, the last few lines of its `TICKS.md`; for the platform, read the git-local steward
+   journal — or `/plenipo:fleet` in report mode if you run
    the scheduler: anything quarantined? any product not served in days?
 2. Open PRs older than two days — is review the constraint, or is a gate stuck?
 3. Skim two merged PRs: was the runtime evidence real, or a heading with prose under it?
-4. Any `agent:blocked` or `needs-human` issue is a decision waiting on you. That queue *is* your
-   job.
+4. Any `agent:blocked` item needs an evidence-rich repair issue or an explicit loop stop; it must not
+   sit as an implicit request for a human relay.
 5. Did any product report `Stalled`? A backlog that honestly ran out is a milestone, not a fault.
 
 ## Honest status
@@ -373,9 +403,9 @@ deserves:
   and it now catches two classes of defect it previously could not: a `/plugin:skill` reference to a
   skill that does not exist, and a backticked relative path that does not resolve. Both were seen
   red against real stale references in this repo before being fixed.
-- **The verbs have never driven a real product end to end** — this is the largest gap. The dispatch
-  chain, the tick ordering and the fleet scheduling are **L4**: reasoned, internally consistent, and
-  unobserved. Run one product at level 0 for a week before believing any of it.
+- **A full reviewer → revision → re-review → bot merge still needs field proof.** The deterministic
+  routing and retry cases are fixture-tested, but until a real rejected PR is fixed and merged by
+  the scheduled bot, the end-to-end claim remains L4 rather than L3.
 - **`consumers_green` and `surface_declared` are implemented and fixture-proven** — L1. They live in
   `merge-gate.mjs` beside every other gate, and were run against six fixtures: conformance absent,
   conformance red, no `Surface:` line, `Surface: breaking` without the label, and both green cases —
@@ -393,9 +423,10 @@ deserves:
   bill, and is the default. If review must keep running with the machine off, use
   `/harness:install-github-agentic-workflows` rather than a hand-rolled workflow: it compiles
   SHA-pinned lock files and can be proven in staged mode before it can write anything.
-- **Building needs your machine.** Runtime proof means booting the product under Docker, so the
-  build and sweep loops are local. Review and merge keep working in the cloud while the machine is
-  off, but no new code gets written.
+- **Building needs a trusted writer machine, not a person in the loop.** Runtime proof means booting
+  the product under Docker, so build, sweep and PR revision run in the persistent local timer.
+  Review and merge keep working in the cloud while that machine is off; new code waits until the
+  writer resumes.
 - **The instructions in every skill are advisory.** No tool enforces markdown. Anything that must
   be enforced is in CI or in a gate script — which is exactly why the load-bearing parts of this
   design are two node files with exit codes rather than three paragraphs of prose.
