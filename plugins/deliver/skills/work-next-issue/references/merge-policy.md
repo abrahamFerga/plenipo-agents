@@ -1,7 +1,8 @@
 # Who merges, and what may be automated
 
-The build loop ends at **In Review** with an open PR. That is deliberate, and this file is the
-answer to the question it raises: who moves it to Done?
+The maker's build pass ends at **In Review** with an open PR. That is deliberate; a fresh reviewer
+context judges it, the maker loop revises any findings, and only the deterministic merger moves it
+to Done after every live gate passes.
 
 ## The rule everything else follows
 
@@ -13,7 +14,8 @@ a green one is almost always to edit the check, and an agent that writes the cod
 and merges the PR has no adversary anywhere in that chain.
 
 Auto-merge-on-green does exactly this. CI is an **L1 check on the tests that happen to exist**; it
-cannot tell you the feature does what was asked, which is an **L5** judgement. Benchmark-passing PRs
+cannot tell you the feature does what was asked, which needs an independent **L4** judgement plus
+runtime evidence. Benchmark-passing PRs
 have been measured merging at a **24.2 percentage-point lower rate** than the benchmark implied —
 machine-green and human-acceptable are different things.
 
@@ -21,16 +23,16 @@ machine-green and human-acceptable are different things.
 
 | Change class | Who merges | Gate |
 |---|---|---|
-| Docs, `RUNBOOK.md`, test-only additions, a green version bump | **auto-merge is fine** | required checks; the diff is the review |
-| A product feature — module tool, tab, endpoint | agent reviews, **human approves** | required review + full test ladder |
-| Any change to the platform | **human, always** | required review + consumer conformance |
-| Anything touching RBAC, approvals, tenant isolation, audit, or secrets | **human, no exceptions** | `CODEOWNERS` on those paths |
+| Docs, `RUNBOOK.md`, test-only additions, a green version bump | deterministic merger | independent agent verdict + required checks |
+| A product feature — module tool, tab, endpoint | deterministic merger | independent agent verdict + full test ladder |
+| Any change to the platform | deterministic merger | independent agent verdict + required checks + consumer conformance |
+| Anything touching RBAC, approvals, tenant isolation, audit, or secrets | deterministic merger, never the maker | protected-diff gate + scoped acceptance test + independent verdict |
 
-The last row is the one that matters. Those five are the platform's entire value proposition, and a
-product that can merge a change to them without a human has already lost the thing it was built on.
+The last row is the one that matters. Those five are the platform's entire value proposition, so a
+model label may never waive their deterministic tests and the writer context may never review them.
 
-`CODEOWNERS` is the right mechanism because it is **deterministic and lives in the runtime**, not in
-a prompt an agent may skim:
+`CODEOWNERS` documents ownership, while `pr-gates.mjs` is the enforceable content/path mechanism in
+an unattended repository because it is **deterministic and lives in CI**, not in a prompt:
 
 ```text
 # .github/CODEOWNERS
@@ -47,7 +49,7 @@ Verified July 2026 — check before relying on any of it, these move:
 |---|---|
 | **Copilot code review** | Leaves **comments only**. It never "Approves" or "Requests changes," so it **cannot satisfy a required-reviewers rule**. Useful as a second pair of eyes; useless as a gate |
 | **Auto-merge + Copilot review together** | **Actively dangerous.** Auto-merge waits only for *explicitly configured* conditions, so the PR can merge while the review is still running. Do not pair them and assume the review gates anything |
-| **Branch protection / rulesets** | The real gate. Required checks and required approving reviews, which only a human can give |
+| **Branch protection / rulesets** | The server-side gate. Require deterministic checks; requiring an approving review deliberately makes the loop human-dependent |
 | **Merge queue** | Worth enabling on the **platform** repo — the serial shared resource. The queue re-tests batched changes before they land |
 | **GitHub Agentic Workflows** (`gh-aw`) | Markdown workflows compiled into Actions, running on Copilot CLI / Claude / Codex / Gemini. **Read-only by default**, writes through preapproved "safe outputs." Public preview |
 
@@ -99,8 +101,8 @@ merges. The safety comes from the gates, not from the agent's judgement — whic
 an unprotected repo, `target_branch_protected` never fires and `required_checks_*` have nothing to
 read. The policy in this file is only real if branch protection is real.
 
-Because the feature is experimental, do not make it load-bearing: the protocol must still work if
-you merge by hand.
+Because the feature is experimental, do not make it load-bearing. The repository's own
+`merge-gate.mjs` remains the only default-branch merger.
 
 ## Earning autonomy — how the human comes out of the loop
 
@@ -141,10 +143,10 @@ A bad **product** merge hurts one product. A bad **platform** merge hurts every 
 | | Autonomy |
 |---|---|
 | Products (many, parallel) | can run **fully unattended** once earned |
-| Platform (one, serial) | human on every merge — but it is one change at a time, so it was never the bottleneck |
-| The spine — RBAC, approvals, tenancy, audit, secrets | human, always |
+| Platform (one, serial) | unattended only behind required CI, independent verdict and consumer conformance |
+| The spine — RBAC, approvals, tenancy, audit, secrets | independent verdict plus protected-diff tests; never the maker's own approval |
 
-So the human reviews one serial stream plus a thin slice of spine changes, not N parallel streams.
+So no human relay serializes N repositories; the stronger verifier carries the larger blast radius.
 
 ### The ratchet
 
@@ -160,23 +162,23 @@ Per product, graduating on artifacts that make green trustworthy — not on a pr
 Record the level in the product's `workflow.json`. **Never infer it** — an agent deciding it has
 earned autonomy is the self-approving loop wearing a different hat.
 
-**Spine changes never graduate.** They stay human at every level, because the cost of being wrong
-does not shrink with the product's track record.
+**Spine changes never become ordinary work.** They keep the protected-diff and independent-review
+requirements at every level because the cost of being wrong does not shrink.
 
-**Platform changes do not use this ladder at all.** The platform repo has no autonomy level; its
-merges are gated on `consumers_green` — every repo in `consumers.json` rebuilt and retested against
-the candidate — and a breaking public-surface change still needs a human. That is `/plenipo:steward`,
-not this loop.
+**Platform changes use the recorded level plus stronger gates.** They require `consumers_green` —
+every registered consumer rebuilt and retested against the candidate — and breaking surface changes
+need a fresh verdict over explicit migration evidence. That is `/plenipo:steward`, not this loop.
 
 ## What the build loop must do
 
 1. Open the PR with the runtime evidence, not just "tests pass" — the exact request exercised, the
    observed output, and the regression test seen red before the fix.
-2. Move the card to **In Review** and stop. That is `Success` for this loop.
-3. **Never enable auto-merge on a feature PR**, and never merge your own.
-4. If the repo has no human available and the work is genuinely blocked on a merge, that is
-   `Approval-required` — not `Success`, and not a reason to lower the gate.
+2. Move the card to **In Review** and stop the maker pass. That is `Success` for that pass, not for
+   the whole issue.
+3. Let the independent reviewer comment and label. `agent:changes-requested` routes back to
+   `/deliver:revise-pr`; a new commit expires the old verdict and triggers re-review.
+4. Never merge your own code directly. The scheduled deterministic merger alone may land it after
+   the label, required checks, mergeability, holds and autonomy policy all pass.
 
-A conductor draining a backlog will therefore accumulate open PRs. That is correct behaviour, not a
-stall: the human review capacity is the real constraint, and hiding it behind auto-merge does not
-create more of it.
+A conductor draining a backlog therefore revisits rejected PRs before starting new work and applies
+back-pressure while review is in flight. Open PRs are bounded work-in-progress, not a human inbox.
