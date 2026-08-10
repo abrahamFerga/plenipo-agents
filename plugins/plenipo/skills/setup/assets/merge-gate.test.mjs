@@ -248,9 +248,24 @@ writeFileSync(
     {
       number: 925,
       title: 'Codex-authored change with a proven agent verdict',
-      body: 'plenipo-agent envelope\nSurface: none',
+      body: '<!-- plenipo-agent kind=handoff from=plenipo-agents ref=plenipo-agents#39 status=open -->\nSurface: none',
       isDraft: false,
       headRefName: 'codex/token-efficient-agent-models',
+      baseRefName: 'main',
+      labels: [{ name: 'agent:approved' }],
+      trustedApproval: true,
+      mergeable: 'MERGEABLE',
+      mergeStateStatus: 'CLEAN',
+      reviewDecision: '',
+      statusCheckRollup: [{ name: 'PR gates', workflowName: 'Agent gates', conclusion: 'SUCCESS' }],
+      files: [{ path: 'README.md' }],
+    },
+    {
+      number: 926,
+      title: 'Codex change carrying only an approval-proof marker',
+      body: '<!-- plenipo-agent-verdict:v1 run=300 -->\nSurface: none',
+      isDraft: false,
+      headRefName: 'codex/verdict-marker-only',
       baseRefName: 'main',
       labels: [{ name: 'agent:approved' }],
       trustedApproval: true,
@@ -335,6 +350,14 @@ if (policyRun.status !== 0) {
     console.log('  ok   #925 — a Codex-authored PR with a proven verdict is eligible for unattended merge');
   } else {
     console.log(`  FAIL #925 — Codex-authored PR was excluded from the merge queue:\n       ${ready925 ?? '(missing)'}`);
+    failed++;
+  }
+
+  const reasons926 = policyReasons(926) ?? '';
+  if (/is_loop_pr: .*not a loop branch/i.test(reasons926)) {
+    console.log('  ok   #926 — a verdict proof marker cannot make a Codex branch autonomous');
+  } else {
+    console.log(`  FAIL #926 — a verdict proof marker entered the merge queue:\n${reasons926}`);
     failed++;
   }
 }
@@ -679,4 +702,4 @@ if (failed) {
   console.log(`\n${failed} rollup case(s) wrong. merge-gate is the last automated thing before main — do not merge this.\n`);
   process.exit(1);
 }
-console.log(`\nOK — ${cases.length} rollup, ${closeCases.length} linked-issue, ${mergeableCases.length} mergeable, 5 platform-policy, 2 required-context, 3 stale-routing, 1 truncation, 1 simulation, 1 pending-state, 1 base-verdict and 1 infrastructure-failure case(s) behave correctly.\n`);
+console.log(`\nOK — ${cases.length} rollup, ${closeCases.length} linked-issue, ${mergeableCases.length} mergeable, 6 platform-policy, 2 required-context, 3 stale-routing, 1 truncation, 1 simulation, 1 pending-state, 1 base-verdict and 1 infrastructure-failure case(s) behave correctly.\n`);

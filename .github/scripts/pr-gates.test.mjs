@@ -118,7 +118,7 @@ for (const test of cases) {
 
 const codexBranch = run('agent:approved', diff, {
   headRef: 'codex/token-efficient-agent-models',
-  prBody: '<!-- plenipo-agent kind=delivery from=codex status=ready -->',
+  prBody: '<!-- plenipo-agent kind=handoff from=plenipo-agents ref=plenipo-agents#39 status=open -->',
 });
 if (codexBranch.status === 1 && /closes_an_issue/.test(codexBranch.output)) {
   console.log('  ok   codex/* branches receive the same evidence gates as other unattended branches');
@@ -129,12 +129,23 @@ if (codexBranch.status === 1 && /closes_an_issue/.test(codexBranch.output)) {
 
 const attendedCodex = run('agent:approved', diff, {
   headRef: 'codex/attended-task',
-  prBody: '',
+  prBody: 'Attended prose mentioning plenipo-agent without a protocol marker.',
 });
 if (attendedCodex.status === 0 && /not a loop branch/.test(attendedCodex.output)) {
   console.log('  ok   a codex/* branch without the loop envelope stays attended');
 } else {
   console.log(`  FAIL attended codex/* — it was captured by unattended evidence policy:\n${attendedCodex.output}`);
+  failed++;
+}
+
+const verdictMarkerOnly = run('agent:approved', diff, {
+  headRef: 'codex/verdict-marker-only',
+  prBody: '<!-- plenipo-agent-verdict:v1 run=300 -->',
+});
+if (verdictMarkerOnly.status === 0 && /not a loop branch/.test(verdictMarkerOnly.output)) {
+  console.log('  ok   a verdict proof marker cannot impersonate the loop envelope');
+} else {
+  console.log(`  FAIL codex verdict marker — it entered unattended evidence policy:\n${verdictMarkerOnly.output}`);
   failed++;
 }
 
@@ -153,4 +164,4 @@ if (failed) {
   process.exit(1);
 }
 
-console.log(`\nOK — ${cases.length + 4} protected-diff agent-verdict case(s) behave correctly.\n`);
+console.log(`\nOK — ${cases.length + 5} protected-diff agent-verdict case(s) behave correctly.\n`);

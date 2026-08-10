@@ -34,8 +34,9 @@ const labels = (process.env.PR_LABELS ?? '')
   .map((s) => s.trim().toLowerCase())
   .filter(Boolean);
 
+const PROTOCOL_ENVELOPE = /^\s*<!--\s*plenipo-agent\s+kind=(?:platform-request|verdict|upgrade-available|breaking-change|finding|handoff|blocked)\s+from=[a-z0-9._-]+(?:\s+ref=[a-z0-9._-]+#\d+)?\s+status=(?:open|answered|accepted|rejected|blocked|done)\s*-->/i;
 const isLoopPr = /^(feat|fix|chore)\//.test(headRef) ||
-  (/^codex\//.test(headRef) && /plenipo-agent/.test(body));
+  (/^codex\//.test(headRef) && PROTOCOL_ENVELOPE.test(body));
 const humanApproved = labels.includes('human-approved');
 const agentApproved =
   labels.includes('agent:approved') &&

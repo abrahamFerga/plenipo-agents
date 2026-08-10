@@ -274,10 +274,11 @@ Body edits expire the old verdict and trigger review again because runtime evide
 was judged, not decorative PR prose.
 
 Branches under `feat/`, `fix/` and `chore/` enter this unattended path. A `codex/` branch enters when
-its PR body carries the hidden `plenipo-agent` envelope, so an attended Codex task is not captured by
-accident. An eligible Codex PR receives the same cloud verdict and scheduled merge treatment as a
-Claude-created PR; it does **not** need a person to add `human-approved`. That label remains an
-emergency override for a deliberately reviewed protected change, not part of normal operation.
+its PR body opens with a valid `<!-- plenipo-agent ... -->` protocol envelope, so incidental prose or
+an approval-proof marker cannot capture an attended Codex task. An eligible Codex PR receives the
+same cloud verdict and scheduled merge treatment as a Claude-created PR; it does **not** need a
+person to add `human-approved`. That label remains an emergency override for a deliberately reviewed
+protected change, not part of normal operation.
 
 ### Earning autonomy
 

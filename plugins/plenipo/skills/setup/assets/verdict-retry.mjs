@@ -28,6 +28,7 @@ const RETRY_AFTER_MINUTES = Number(value('--retry-after-minutes') ?? 30);
 const MAX_RETRY_AFTER_MINUTES = Number(value('--max-retry-after-minutes') ?? 360);
 const LOOP_BRANCH = /^(feat|fix|chore)\//;
 const CODEX_BRANCH = /^codex\//;
+const PROTOCOL_ENVELOPE = /^\s*<!--\s*plenipo-agent\s+kind=(?:platform-request|verdict|upgrade-available|breaking-change|finding|handoff|blocked)\s+from=[a-z0-9._-]+(?:\s+ref=[a-z0-9._-]+#\d+)?\s+status=(?:open|answered|accepted|rejected|blocked|done)\s*-->/i;
 const HOLD_LABELS = ['human-hold', 'needs-human', 'agent:blocked'];
 
 if (!Number.isFinite(RETRY_AFTER_MINUTES) || RETRY_AFTER_MINUTES < 1 ||
@@ -124,8 +125,9 @@ function latestAttempt(pr) {
 function shouldRequest(pr) {
   const labels = labelsFor(pr);
   const hasEnvelope = /plenipo-agent/.test(pr.body ?? '');
+  const hasProtocolEnvelope = PROTOCOL_ENVELOPE.test(pr.body ?? '');
   const isLoopBranch = LOOP_BRANCH.test(pr.headRefName ?? '') ||
-    (CODEX_BRANCH.test(pr.headRefName ?? '') && hasEnvelope);
+    (CODEX_BRANCH.test(pr.headRefName ?? '') && hasProtocolEnvelope);
   if (!isLoopBranch) return { action: 'SKIP', why: 'not a loop branch' };
   if (!hasEnvelope) return { action: 'SKIP', why: 'no plenipo-agent envelope' };
   if (pr.isDraft) return { action: 'SKIP', why: 'draft' };

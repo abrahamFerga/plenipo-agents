@@ -14,7 +14,7 @@ const retry = join(here, 'verdict-retry.mjs');
 const scratch = mkdtempSync(join(tmpdir(), 'verdict-retry-'));
 const fixture = join(scratch, 'fixture.json');
 
-writeFileSync(join(scratch, 'workflow.json'), JSON.stringify({ autonomy: { level: 3, maxVerdictRequestsPerTick: 5 } }));
+writeFileSync(join(scratch, 'workflow.json'), JSON.stringify({ autonomy: { level: 3, maxVerdictRequestsPerTick: 7 } }));
 writeFileSync(
   fixture,
   JSON.stringify({
@@ -165,7 +165,7 @@ writeFileSync(
       },
       {
         number: 1011,
-        body: 'plenipo-agent envelope',
+        body: '<!-- plenipo-agent kind=handoff from=plenipo-agents ref=plenipo-agents#39 status=open -->',
         isDraft: false,
         headRefName: 'codex/token-efficient-agent-models',
         headRefOid: '5'.repeat(40),
@@ -173,10 +173,18 @@ writeFileSync(
       },
       {
         number: 1012,
-        body: 'attended Codex change without the loop envelope',
+        body: 'Attended prose mentioning plenipo-agent without a protocol marker.',
         isDraft: false,
         headRefName: 'codex/attended-task',
         headRefOid: '6'.repeat(40),
+        labels: [],
+      },
+      {
+        number: 1013,
+        body: '<!-- plenipo-agent-verdict:v1 run=300 -->',
+        isDraft: false,
+        headRefName: 'codex/verdict-marker-only',
+        headRefOid: '7'.repeat(40),
         labels: [],
       },
     ],
@@ -201,6 +209,7 @@ const expected = [
   [/WOULD RERUN #1010\b/, 'a free-floating approval label is repaired rather than trusted'],
   [/WOULD DISPATCH #1011\b/, 'a Codex-authored branch enters the unattended verdict queue'],
   [/SKIP #1012\b.*loop branch/i, 'an attended Codex branch without the envelope stays outside the loop'],
+  [/SKIP #1013\b.*loop branch/i, 'an approval-proof marker is not a loop envelope'],
 ];
 
 let failed = 0;
@@ -298,10 +307,13 @@ const verdictWorkflow = readFileSync(
   existsSync(assetVerdictWorkflow) ? assetVerdictWorkflow : installedVerdictWorkflow,
   'utf8'
 );
-if (/`codex\/`/.test(verdictWorkflow)) {
+if (
+  verdictWorkflow.includes('`<!-- plenipo-agent kind=... from=... [ref=...] status=... -->`') &&
+  /`codex\/`/.test(verdictWorkflow)
+) {
   console.log('  ok   the cloud reviewer admits Codex-authored branches');
 } else {
-  console.log('  FAIL — deterministic recovery admits codex/* but the cloud reviewer still refuses it');
+  console.log('  FAIL — the cloud reviewer does not require the exact protocol envelope for codex/*');
   failed++;
 }
 

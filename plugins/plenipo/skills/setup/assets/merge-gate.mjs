@@ -67,6 +67,7 @@ const MAX_MERGES = autonomy.maxMergesPerTick ?? 2;
 
 const LOOP_BRANCH = /^(feat|fix|chore)\//;
 const CODEX_BRANCH = /^codex\//;
+const PROTOCOL_ENVELOPE = /^\s*<!--\s*plenipo-agent\s+kind=(?:platform-request|verdict|upgrade-available|breaking-change|finding|handoff|blocked)\s+from=[a-z0-9._-]+(?:\s+ref=[a-z0-9._-]+#\d+)?\s+status=(?:open|answered|accepted|rejected|blocked|done)\s*-->/i;
 const HOLD_LABELS = ['human-hold', 'needs-human', 'agent:blocked'];
 // Docs, tests and the runbook are the only class a level-1 product may land on its own.
 const LOW_RISK = [/\.md$/i, /^tests\//, /\.http$/i, /^\.http$/i];
@@ -294,8 +295,9 @@ function evaluate(pr) {
   const files = (pr.files ?? []).map((f) => f.path ?? f.filename ?? '');
   const filesAreComplete = !Number.isInteger(pr.changedFiles) || files.length >= pr.changedFiles;
   const hasEnvelope = /plenipo-agent/.test(pr.body ?? '');
+  const hasProtocolEnvelope = PROTOCOL_ENVELOPE.test(pr.body ?? '');
   const isLoopBranch = LOOP_BRANCH.test(pr.headRefName ?? '') ||
-    (CODEX_BRANCH.test(pr.headRefName ?? '') && hasEnvelope);
+    (CODEX_BRANCH.test(pr.headRefName ?? '') && hasProtocolEnvelope);
   const diff = isLoopBranch ? diffFor(pr) : { text: '' };
   const allPaths = [...new Set([...files, ...pathsFromDiff(diff.text)])];
   const conformanceRequired = !filesAreComplete || allPaths.some((file) => CONFORMANCE_PATHS.some((re) => re.test(file)));

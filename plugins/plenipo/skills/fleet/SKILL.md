@@ -53,7 +53,7 @@ budget is spent) · `Approval-required` (the only remaining work everywhere need
 | The product list | `fleet.json` at the fleet root | which repos exist and where they are on disk |
 | Per-product policy | each repo's `workflow.json` → `github`, `autonomy` | ceilings, floors, level — **one source per fact** |
 | Board state | `gh project item-list` per product | Ready / In Progress counts |
-| PR state | `gh pr list --state open --json number,labels` per product | back-pressure and review debt |
+| PR state | `gh pr list --state open --json number,labels,headRefName,body` per product | back-pressure and review debt |
 | Bugs | `gh issue list --label type:bug --state open` per product | p0 preemption |
 | Last swept commit, last served tick, failure streak | `FLEET-RUN.md` at the fleet root | fairness, sweep cadence, quarantine |
 
@@ -107,7 +107,7 @@ there is never a second copy of an autonomy level to drift:
      changes nothing — the product looks served and stands still. `deliver` rule 1 is the owner:
      it hands to `/deliver:revise-pr` and strips the label so `ship` picks the PR up next time.
    - **Rules 5 and 6 count only loop PRs** — head branch `feat/`, `fix/` or `chore/`, plus `codex/`
-     when the body carries the hidden `plenipo-agent` envelope. A Dependabot
+     when the body opens with a valid `<!-- plenipo-agent ... -->` protocol envelope. A Dependabot
      PR fails `is_loop_pr` in `merge-gate.mjs`, so no verb in this marketplace can ever clear it;
      counting it against `maxOpenPRs` makes rule 5 fire forever and starves rule 6 of every tick.
      Report both numbers per product so the filter is visible.

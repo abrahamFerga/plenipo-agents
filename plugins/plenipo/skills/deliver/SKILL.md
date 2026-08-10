@@ -55,7 +55,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 | Input | Where it comes from | Used for |
 |---|---|---|
 | Owner / repo / project | `workflow.json` → `github`, else `gh repo view`, else `gh api user` | every query — **never hardcode an owner** |
-| Open **loop** PRs and their labels | `gh pr list --state open --json number,labels,headRefName`, keeping only `headRefName` matching `^(feat\|fix\|chore)/` | admission control, and finding rejected work |
+| Open **loop** PRs and their labels | `gh pr list --state open --json number,labels,headRefName,body`; keep `feat/`, `fix/`, `chore/`, plus `codex/` only when `body` opens with the protocol envelope | admission control, and finding rejected work |
 | Board items and columns | `gh project item-list` | what is Ready, what is In Progress |
 | Bug issues | `gh issue list --label type:bug --state open` | p0 bugs preempt features |
 | Ceilings | `workflow.json` → `autonomy.maxOpenPRs` (default 3) | the back-pressure limit |
@@ -92,7 +92,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    review backlog into an unreviewable one, and every extra branch makes the next rebase worse.
 
    **Count only PRs this loop could actually merge** — head branch `feat/`, `fix/` or `chore/`, plus
-   `codex/` when the body carries the hidden `plenipo-agent` envelope.
+   `codex/` when the body opens with a valid `<!-- plenipo-agent ... -->` protocol envelope.
    Anything else, Dependabot above all, fails `is_loop_pr` in `merge-gate.mjs` and can therefore
    never leave the queue by any action this loop takes. Counting them turns the ceiling into a
    deadlock rather than back-pressure: it was measured at 8 Dependabot PRs against a `maxOpenPRs`
