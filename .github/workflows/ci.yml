@@ -1,5 +1,9 @@
 name: CI
 
+# Intentionally the only automatic required pull-request check in this repository. Human review is
+# enforced separately by the main-branch ruleset and wildcard CODEOWNERS. Keep model-based review
+# on demand so a provider outage cannot make an otherwise valid pull request red.
+
 on:
   push:
     branches: [main]
@@ -9,6 +13,10 @@ on:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 # HARNESS.md argues that a claim with no deterministic verifier is a level-4 opinion.
 # This workflow is what stops that argument from being theatre about this repo itself.
@@ -54,4 +62,4 @@ jobs:
 
       # L2 — prose conventions.
       - name: Lint markdown
-        run: npx --yes markdownlint-cli2 "**/*.md" "#node_modules"
+        run: npx --yes markdownlint-cli2@0.23.2 "**/*.md" "#node_modules"

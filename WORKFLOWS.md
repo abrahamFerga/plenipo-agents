@@ -57,7 +57,7 @@ marketplace has its own.
 | [`platform-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-pr-intent-review.md) | platform | pull request | ≤8 inline comments, 1 `COMMENT` review |
 | [`platform-release-impact.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-release-impact.md) | platform | release published, or dispatch | 1 issue **in one named product repo** |
 | [`marketplace-harness-gap-triage.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-harness-gap-triage.md) | marketplace | issue opened/reopened/labeled | ≤3 labels, remove `needs-triage`, 1 comment |
-| [`marketplace-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-pr-intent-review.md) | marketplace | pull request | ≤8 inline comments, 1 `COMMENT` review |
+| [`marketplace-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-pr-intent-review.md) | marketplace — optional after health proof | pull request | ≤8 inline comments, 1 `COMMENT` review |
 | [`pr-approval-verdict.md`](plugins/harness/skills/install-github-agentic-workflows/assets/pr-approval-verdict.md) | any role — **opt-in** | pull request, or dispatch | 1 verdict label, remove `agent:changes-requested`, ≤6 inline comments, 1 comment |
 
 The three that write across repositories — escalation, harness feedback, and release-impact — need a

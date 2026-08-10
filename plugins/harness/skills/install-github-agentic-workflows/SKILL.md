@@ -71,7 +71,7 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    |---|---|---|
    | Plenipo platform | `platform-request-triage.md`, `platform-pr-intent-review.md`, `platform-request.yml` | `platform-release-impact.md`, `consumers.json` |
    | Child product | `product-issue-triage.md`, `product-platform-escalation.md`, `product-pr-intent-review.md` | `product-harness-feedback.md` |
-   | Agent marketplace | `marketplace-harness-gap-triage.md`, `marketplace-pr-intent-review.md`, `harness-gap.yml` | none |
+   | Agent marketplace | `marketplace-harness-gap-triage.md`, `harness-gap.yml` | `marketplace-pr-intent-review.md` after staged provider-health proof |
 
    `pr-approval-verdict.md` is role-neutral and **opt-in for every role** — see step 7, and do not
    install it as a matter of course.
@@ -111,6 +111,11 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    compilation, run one real issue and one PR through the workflow, and verify the resulting safe
    outputs plus the absence of any unexpected mutation. A compile-only result is L1/L2, not runtime
    proof.
+
+   Treat advisory model-based PR review as optional. Before enabling it on every pull request, use
+   `gh aw health` to prove that the selected provider is reliable enough for the repository. Leave
+   it uninstalled, or invoke a local reviewer on demand, when provider failures would turn healthy
+   PRs red without adding deterministic evidence.
 
 7. **Operate narrowly.** Keep triage verdicts and PR reviews as `COMMENT` outputs. Do not enable
    `APPROVE`, `REQUEST_CHANGES`, `push-to-pull-request-branch`, or merging without a separate human
@@ -180,6 +185,7 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 | Running before App installation/secrets exist | the first workflow fails and teaches agents to ignore red runs | configure credentials, then stage a proof |
 | Letting review automation submit `APPROVE` | a model satisfies branch protection's human review | `allowed-events: [COMMENT]`; use the verdict label instead |
 | Installing `pr-approval-verdict.md` where `pr-gates.mjs` is not required | the verdict label becomes the only gate, and the spine guard never runs | check protection first — step 8's table |
+| Auto-running advisory review through an unhealthy provider | healthy PRs turn red without deterministic evidence | check `gh aw health`; keep review on demand until staged runs are reliable |
 | Treating compiler green as full proof | trigger/output wiring can still be wrong | stage, then exercise a real issue and PR |
 
 ## Related skills

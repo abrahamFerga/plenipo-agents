@@ -1,9 +1,7 @@
-# CODEOWNERS is the human-visibility half of the spine policy: it puts a named person on the review
-# of anything whose blast radius is every repo that installs this marketplace. The ENFORCING half is
-# `.github/scripts/pr-gates.mjs`, which fails as a required status check — CODEOWNERS only requests a
-# review, and only blocks if you also turn on "Require review from Code Owners" in branch protection.
-#
-# Keep both. The check is what stops an agent; the ownership is what tells you it happened.
+# CODEOWNERS puts a named person on changes whose blast radius is every repo that installs this
+# marketplace. The main-branch ruleset requires both an approving review and a CODEOWNER review;
+# because the wildcard below covers every path, no pull request can merge on automation alone.
+# `Validate marketplace` is the sole required status check and handles deterministic correctness.
 #
 # This repo ships no application code, so the product-shaped paths in the shared asset
 # (plugins/plenipo/skills/setup/assets/CODEOWNERS — /src/**/Authorization/ and friends) do not exist

@@ -186,9 +186,12 @@ directly also saves Sonnet 5 as your user default, which may be broader than int
 
 The worker boundary promotes only code-changing work to pinned Opus 5: `/plenipo:deliver` does its cheap
 checks first, then delegates a real issue or rejected PR to `deliver:product-developer`. The `ship`
-and `test` verbs stay on Sonnet 5 workers. Every worker uses an exact `claude-sonnet-5` or
-`claude-opus-5` model ID so an older provider alias cannot silently downgrade it. Claude Code
-2.1.219 or newer and provider access to both models are therefore hard requirements.
+and `test` verbs stay on Sonnet 5 workers. Every worker requests an exact `claude-sonnet-5` or
+`claude-opus-5` model ID so a provider alias cannot silently select an older generation. Claude
+Code 2.1.219 or newer and provider access to both models are therefore hard requirements. Exact
+frontmatter is routing intent, not enforcement: when an organization policy blocks that subagent
+model, Claude Code can fall back to the inherited coordinator model. Make sure the effective model
+policy permits both exact IDs.
 Do not set `CLAUDE_CODE_SUBAGENT_MODEL` or pass a per-invocation model override when you want this
 routing, because both take precedence over agent frontmatter. Invoking `/deliver:work-next-issue`
 directly also bypasses the worker boundary and uses the current session model: launch that direct
@@ -357,6 +360,16 @@ bodies stay under the size limit; **no link escapes its plugin root** (plugins i
 so a path to a sibling plugin or the repo root simply does not exist at runtime); descriptions don't
 overlap enough to make routing ambiguous; nothing hardcodes a GitHub owner. It runs in CI on every
 push.
+
+Pull requests intentionally have **one automatic required check**: `Validate marketplace`. That
+single job runs the structural validator, generated-index check, merge-gate tests, drift check and
+Markdown lint. The main-branch ruleset separately requires one approving CODEOWNER review, and the
+root `CODEOWNERS` file covers every path.
+
+There is no automatic model-based PR check. The previous Copilot reviewer completed only half of
+its first 18 runs successfully; recurring provider `429 Too Many Requests` responses made valid
+PRs look broken while adding no deterministic evidence. Run the `plenipo:pr-reviewer` agent or
+`/plenipo:ship` on demand when a change benefits from a second opinion.
 
 ## Known limitations
 

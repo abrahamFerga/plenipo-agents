@@ -8,6 +8,9 @@ Choose the agent you use. The marketplace carries the same Plenipo workflows to 
 
 ### Claude Code
 
+The Sonnet 5 coordinator and Opus 5 development workers require Claude Code 2.1.219 or newer.
+Check with `claude --version` and upgrade with `claude update` first.
+
 ```text
 /plugin marketplace add abrahamFerga/plenipo-agents
 ```
@@ -41,6 +44,7 @@ Paste this into your product's `.claude/settings.json`:
   "extraKnownMarketplaces": {
     "plenipo-agents": { "source": { "source": "github", "repo": "abrahamFerga/plenipo-agents" } }
   },
+  "model": "claude-sonnet-5",                // cheap outer coordinator
   "enabledPlugins": {
     "plenipo@plenipo-agents": true,     // the eight verbs
     "harness@plenipo-agents": true,     // always on
@@ -52,6 +56,11 @@ Paste this into your product's `.claude/settings.json`:
   }
 }
 ```
+
+`/plenipo:deliver` keeps the outer loop on Sonnet 5 and routes actual code changes to an Opus 5
+worker. Those exact model routes need provider access to both models. An organization model policy
+can replace a blocked subagent route with the inherited coordinator model, so make sure its
+allowlist permits `claude-sonnet-5` and `claude-opus-5`.
 
 For Codex and Copilot CLI, the install commands above already select the same pair. `harness` +
 `deliver` is the right pair for ~90% of days.

@@ -52,7 +52,9 @@ and `test` delegate their bounded read/run work to Sonnet 5 agents. Do not set
 `CLAUDE_CODE_SUBAGENT_MODEL`,
 because it overrides those per-agent routes and collapses every worker back onto one tier.
 These pinned routes require Claude Code 2.1.219 or newer and provider access to
-`claude-sonnet-5` and `claude-opus-5`.
+`claude-sonnet-5` and `claude-opus-5`. They express routing intent rather than overriding an
+organization model policy: a blocked subagent route can fall back to the inherited coordinator
+model, so the effective allowlist must permit both exact IDs.
 
 The agents load conditional skills through the Skill tool instead of preloading their full bodies.
 That trims input tokens as well as price per token, and it keeps build/test transcripts out of the
