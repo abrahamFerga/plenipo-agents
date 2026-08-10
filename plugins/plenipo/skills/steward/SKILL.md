@@ -171,7 +171,7 @@ reason anything was built on it.
   with extra steps.
 - **One request in flight.** Same rule as the product loop, same reason.
 - **Never review code you wrote in this session.** Maker ≠ checker holds here too; delegate to the
-  `pr-reviewer` agent from a fresh context or let the next tick do it.
+  `plenipo:pr-reviewer` agent from a fresh context or let the next tick do it.
 - **Never raise the autonomy level, and never write it.** A human records it in `workflow.json`.
 - **Never restate a steward skill's procedure.** This verb decides *what* deserves the tick; the
   three `steward` skills own *how*.

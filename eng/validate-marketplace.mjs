@@ -26,6 +26,11 @@ const MAX_NAME = 64;
 const MAX_DESCRIPTION = 1024;
 const MAX_BODY_LINES = 450;
 const MAX_REFERENCE_LINES = 600;
+// Claude Code accepts inherit, dated ids, fable and higher effort levels too. This marketplace uses
+// the narrower portable policy below so a parent session or provider change cannot silently alter
+// an agent's cost tier. See AUTHORING.md.
+const AGENT_MODEL_TIERS = new Set(['haiku', 'sonnet', 'opus']);
+const AGENT_EFFORT_LEVELS = new Set(['low', 'medium', 'high']);
 
 // ── Minimal frontmatter reader ────────────────────────────────────────────────
 // Deliberately not a YAML parser: skill frontmatter is a flat map of scalars and
@@ -190,6 +195,22 @@ for (const plugin of [...onDisk].sort()) {
       }
       if (fm.name !== expected) err(agentPath, `name "${fm.name}" must equal the file name "${expected}"`);
       if (!fm.description) err(agentPath, 'missing description — it is always-on context whenever the plugin is enabled');
+      if (!fm.model) {
+        err(agentPath, 'missing model — plugin agents must use an explicit cost tier rather than inherit the session model');
+      } else if (!AGENT_MODEL_TIERS.has(fm.model)) {
+        err(
+          agentPath,
+          `model "${fm.model}" must be haiku, sonnet or opus — do not use inherit or pin a dated model id`
+        );
+      }
+      if (fm.model !== 'haiku' && !fm.effort) {
+        err(agentPath, 'missing effort — sonnet and opus agents must declare low, medium or high');
+      } else if (fm.effort && !AGENT_EFFORT_LEVELS.has(fm.effort)) {
+        err(agentPath, `effort "${fm.effort}" must be low, medium or high for portable model routing`);
+      }
+      if (!/^[1-9]\d*$/.test(fm.maxTurns ?? '')) {
+        err(agentPath, 'maxTurns must be a positive integer — every delegated context needs a circuit breaker');
+      }
       // These are silently ignored for plugin-shipped agents; relying on them is a latent bug.
       for (const ignored of ['hooks', 'mcpServers', 'permissionMode']) {
         if (fm[ignored] !== undefined) err(agentPath, `"${ignored}" is ignored for plugin-shipped agents — remove it`);
@@ -294,6 +315,35 @@ for (const { path } of [...allSkills, ...allAgents]) {
         path,
         `dispatches to /${ref}, which sets "disable-model-invocation: true" — no skill can invoke it, so that step silently does nothing at runtime`
       );
+    }
+  }
+}
+
+// ── 3c. Agent references use their plugin-scoped identifier ───────────────────
+// Plugin agents register as plugin:name. A short name can be shadowed by a project or user agent,
+// which defeats both the tool restrictions and the model route this marketplace intended.
+const knownAgents = new Set(allAgents.map(({ plugin, fm }) => `${plugin}:${fm.name}`));
+const agentsByName = new Map();
+for (const { plugin, fm } of allAgents) {
+  const matches = agentsByName.get(fm.name) ?? [];
+  matches.push(`${plugin}:${fm.name}`);
+  agentsByName.set(fm.name, matches);
+}
+
+for (const { path } of [...allSkills, ...allAgents]) {
+  const text = readFileSync(path, 'utf8');
+  for (const m of text.matchAll(/`([a-z][a-z0-9-]*)`/g)) {
+    const matches = agentsByName.get(m[1]) ?? [];
+    if (matches.length) {
+      err(path, `references agent "${m[1]}" without its plugin scope — use "${matches.join('" or "')}"`);
+    }
+  }
+
+  for (const m of text.matchAll(/`([a-z][a-z0-9-]*:[a-z][a-z0-9-]*)`\s+agent\b/g)) {
+    const ref = m[1];
+    const [targetPlugin] = ref.split(':');
+    if (onDisk.has(targetPlugin) && !knownAgents.has(ref)) {
+      err(path, `references agent "${ref}", which does not exist in this marketplace`);
     }
   }
 }

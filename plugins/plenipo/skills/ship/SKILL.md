@@ -2,7 +2,7 @@
 name: ship
 description: >
   One review-and-merge tick: for every open pull request the loop produced, get an adversarial second
-  opinion from the `pr-reviewer` agent — a context that never saw the code being written and is asked
+  opinion from the `plenipo:pr-reviewer` agent — a context that never saw the code being written and is asked
   to refute it — then merge only what clears a fixed list of deterministic gates at or below the
   autonomy level this repo has actually earned. Nothing merges on an agent's opinion alone, and a
   diff that edits a query filter, an approval flag, a permission grant or CI itself always waits for
@@ -59,7 +59,7 @@ times for three different reasons — the *issue* is the defect, not the code).
 | Every gate's verdict | `node .github/scripts/merge-gate.mjs` | what may merge, and why not |
 | Autonomy level (0–3) | `workflow.json` → `autonomy.level` — **read it, never infer it**; the script reads the same field | which change classes may merge |
 | Merge cap per tick | `workflow.json` → `autonomy.maxMergesPerTick` (default 2) | blast-radius limit |
-| The PR under review | `gh pr view <n> --json title,body,files` + `gh pr diff <n>` | what the `pr-reviewer` agent reads |
+| The PR under review | `gh pr view <n> --json title,body,files` + `gh pr diff <n>` | what the `plenipo:pr-reviewer` agent reads |
 | The issue's acceptance criteria | the issue the body says it closes | the yardstick the review grades against |
 
 ## The gates
@@ -144,10 +144,10 @@ switches them on by reading `stage` itself, so they are never something this ver
    is itself one of the gates, so an unreviewed PR *always* prints `BLOCK`, and reading step 2 as a
    filter on what to review leaves nothing to review and reports `No-op` on a queue that is merely
    waiting for you. For each PR with no `agent:approved` or
-   `agent:changes-requested` label, delegate to the `pr-reviewer` agent with the PR number. It reads
-   the diff, the issue's acceptance criteria, and the evidence in the body — never this conversation
-   — and returns `approve`, `request-changes`, or `escalate` with reasons. Apply its verdict as a
-   label and post its reasoning as a PR comment.
+   `agent:changes-requested` label, delegate to the Sonnet `plenipo:pr-reviewer` agent with the PR number.
+   It reads the diff, the issue's acceptance criteria, and the evidence in the body — never this
+   conversation — and returns `approve`, `request-changes`, or `escalate` with reasons. Apply its
+   verdict as a label and post its reasoning as a PR comment.
 
    **Never review a PR whose code you wrote in this same session.** If you are running `ship` in a
    context that also ran `deliver`, the review is worth nothing: the agent boundary is the only
@@ -210,7 +210,7 @@ switches them on by reading `stage` itself, so they are never something this ver
 
 | Pitfall | Consequence | Do instead |
 |---|---|---|
-| Reviewing in the session that wrote the code | the grade drifts up while quality stalls | a fresh context, or the `pr-reviewer` agent only |
+| Reviewing in the session that wrote the code | the grade drifts up while quality stalls | a fresh context, or the `plenipo:pr-reviewer` agent only |
 | Relying on GitHub's own AI review as the gate | it leaves comments and cannot Approve, so it satisfies no required-reviewers rule | it is a second pair of eyes; `agent_approved` is the label this skill sets, not a GitHub review |
 | Enabling GitHub auto-merge as well | auto-merge waits only for configured conditions, so a PR can merge while review is still running | never pair them; this tick is the only merger |
 | Ignoring `checks_exist` on a repo with no CI | green means nothing and every gate below it is vacuous | no checks, no merge |

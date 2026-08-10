@@ -129,10 +129,35 @@ Constraints specific to plugin-shipped agents:
 
 - **`hooks`, `mcpServers`, and `permissionMode` are ignored.** The validator rejects them.
 - A subagent has no active-skill base directory, so it **cannot** read another skill by relative
-  path — and `skills:` preload works only for **model-invokable** skills. An agent cannot invoke a
-  `disable-model-invocation` skill at all.
+  path. A `skills:` entry injects the **full body** of each model-invokable skill at startup;
+  unlisted project, user, and plugin skills remain available through the Skill tool. Preload only a
+  skill used on every invocation, and load conditional references on demand. An agent cannot invoke
+  a `disable-model-invocation` skill at all.
 - Scope tools tightly: `disallowedTools: Edit, Write` for read/run-only agents (keeps MCP);
   a `tools` allowlist when only a few are needed (drops MCP).
+- Leaf workers omit `Agent` from a `tools` allowlist or add it to `disallowedTools`. Recursive
+  delegation multiplies contexts and loses the state the specialist was created to hold.
+- Refer to a plugin agent by its registered `plugin:name`, even from a skill in the same plugin.
+  Short names can be shadowed by a project or user agent with different tools and model routing.
+
+Every agent also declares a concrete cost envelope:
+
+```yaml
+model: sonnet       # a family alias, never inherit or a dated model id
+effort: medium      # low / medium / high; omit only for Haiku
+maxTurns: 24        # a runaway circuit breaker, not a promised token budget
+```
+
+| Work | Cheapest reliable tier |
+|---|---|
+| deterministic inventory, classification, or formatting | a script first; Haiku only when judgement is unavoidable |
+| bounded research, test driving, or rubric-based review | Sonnet |
+| code changes, architecture, or ambiguous cross-layer diagnosis | Opus |
+
+Use family aliases so Claude Code selects the current allowed member. This marketplace deliberately
+rejects `inherit`: otherwise a Sonnet review silently becomes Opus whenever the parent session does.
+`maxTurns` prevents runaway recursion; it does not replace the skill's named terminal states, and a
+tight cap that causes a restart costs more than the turns it saved.
 
 ## Hooks
 
@@ -157,7 +182,9 @@ Constraints specific to plugin-shipped agents:
 
 ## Checklist — new agent, hook, or script
 
-1. Write the file per the constraints above.
+1. Write the file per the constraints above. Pick the cheapest reliable `model`, declare `effort`
+   and a generous `maxTurns`, deny recursive `Agent` use for leaf workers, and preload no conditional
+   skill.
 2. **Bump `version` in that plugin's `plugin.json`.** Agents, hooks, and scripts are cached by
    plugin version; without a bump the install keeps serving the old copy (and a live session needs
    `/reload-plugins`).

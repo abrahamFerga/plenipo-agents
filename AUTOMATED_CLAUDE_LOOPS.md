@@ -42,6 +42,20 @@ real constraint is Docker: `deliver` and `test` boot the product, so **do not ru
 at the same moment** even in separate sessions. `ship`, `define` and `steward` never boot anything
 and can run alongside anything.
 
+### Spend Opus only on code
+
+Start the outer session on Sonnet: `claude --model sonnet`. It handles scheduling, admission
+control, board reads, deterministic gates and `No-op` ticks. When `deliver` finds actual work, it
+delegates only the selected issue or rejected PR to the Opus `deliver:product-developer`; `ship`
+and `test` delegate their bounded read/run work to Sonnet agents. Do not set
+`CLAUDE_CODE_SUBAGENT_MODEL`,
+because it overrides those per-agent routes and collapses every worker back onto one tier.
+
+The agents load conditional skills through the Skill tool instead of preloading their full bodies.
+That trims input tokens as well as price per token, and it keeps build/test transcripts out of the
+coordinator's context. Their `maxTurns` fields are runaway guards, not targets: resume an exhausted
+branch rather than replaying the work from the beginning.
+
 ### When to add the fleet scheduler
 
 `/loop 20m /plenipo:fleet` is the **scale-up**, not the starting point. It exists for when you have
@@ -100,6 +114,7 @@ settings, to cover every repo). The template is
 
 ```jsonc
 {
+  "model": "sonnet",                       // outer loop; code workers select Opus
   "enabledPlugins": {
     "plenipo@plenipo-agents": true,   // the eight verbs
     "harness@plenipo-agents": true,
@@ -219,7 +234,7 @@ So there are two planes, and they never share a context:
 
 | | Writes code | Judges code |
 |---|---|---|
-| **Where** | your machine (needs Docker to prove anything at runtime) | a fresh session's `pr-reviewer` agent, or GitHub Actions |
+| **Where** | an Opus `deliver:product-developer` on your machine (needs Docker) | a fresh Sonnet `plenipo:pr-reviewer`, or GitHub Actions |
 | **Can** | branch, implement, test, open a PR | read, comment, label, block |
 | **Cannot** | merge, approve, label itself approved | edit, push, fix what it found |
 
@@ -389,8 +404,8 @@ deserves:
   — so a green run means *"the registered consumers still build and pass their own tests"*, never
   *"this release is safe"*. **Watch it go red against a deliberate break before trusting a platform
   auto-merge**; that is the single highest-value thing anyone can do to this repo.
-- **Cloud review is a separate, optional surface.** The local `pr-reviewer` needs no secret and no
-  bill, and is the default. If review must keep running with the machine off, use
+- **Cloud review is a separate, optional surface.** The local `plenipo:pr-reviewer` needs no secret
+  and no bill, and is the default. If review must keep running with the machine off, use
   `/harness:install-github-agentic-workflows` rather than a hand-rolled workflow: it compiles
   SHA-pinned lock files and can be proven in staged mode before it can write anything.
 - **Building needs your machine.** Runtime proof means booting the product under Docker, so the

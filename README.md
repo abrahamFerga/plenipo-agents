@@ -13,7 +13,7 @@ shaped this way; read it once.
 > **New here? → [QUICKSTART.md](QUICKSTART.md).** Five minutes, two plugins, one command that saves
 > the most time. Come back here when you want the full map.
 >
-> **Want it to run itself? → [AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.md).** Seven verbs,
+> **Want it to run itself? → [AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.md).** Eight verbs,
 > one timer, and the gate list that lets a product merge without you.
 >
 > **Want the GitHub workflows? → [WORKFLOWS.md](WORKFLOWS.md).** Every reusable issue-triage, PR-review,
@@ -35,8 +35,9 @@ Then enable the plugins for the loop you're in:
   "extraKnownMarketplaces": {
     "plenipo-agents": { "source": { "source": "github", "repo": "abrahamFerga/plenipo-agents" } }
   },
+  "model": "sonnet",                         // cheap outer coordinator
   "enabledPlugins": {
-    "plenipo@plenipo-agents": true,    // the front door: seven loop verbs
+    "plenipo@plenipo-agents": true,    // the front door: eight loop verbs
     "harness@plenipo-agents": true,    // always on
     "scout@plenipo-agents":   false,
     "define@plenipo-agents":  false,
@@ -85,7 +86,7 @@ Each plugin is one loop. A loop declares **Trigger · Goal · Execution · Verif
 
 | Plugin | Loop | Goal | Default |
 |---|---|---|---|
-| **plenipo** | the front door | seven loopable verbs that drive the others, so you never type their names | **on** |
+| **plenipo** | the front door | eight loopable verbs that drive the others, so you never type their names | **on** |
 | **harness** | control plane | the platform contract, the runbook, config validation, the conductor | **on** |
 | **scout** | discovery | an unclaimed industry worth a product, with a defensible reason | off |
 | **define** | definition | a spec and plan a team could build against | off |
@@ -160,11 +161,67 @@ Full operator's manual in **[AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.m
 
 **Agents** — delegate these; they run in their own context and return a report, not a transcript.
 
-| Agent | Delegate when |
+| Agent | Claude route | Delegate when |
+|---|---|---|
+| `deliver:product-developer` | Opus · medium · 60 turns | `/plenipo:deliver` has selected one issue or rejected PR. Loads the one matching build/revision skill on demand, writes and proves the change, never reviews or merges it |
+| `deliver:product-improver` | Opus · high · 60 turns | you want the product made *better* rather than an issue closed — uses the app as its intended user, logs friction, and ships **one** proven improvement as a PR |
+| `plenipo:pr-reviewer` | Sonnet · medium · 24 turns | a pull request needs an independent second opinion — reads the issue, evidence and diff, tries to *refute* it, and cannot edit, push, label or merge |
+| `deliver:e2e-tester` | Sonnet · medium · 40 turns | the system needs a sweep for observed breakage — boots it, walks real journeys, drives the UI, and returns ranked findings with reproductions; never edits |
+
+#### Token-efficient Claude Code routing
+
+Run the outer session on Sonnet so polling, admission control, board reads and `No-op` ticks stay
+cheap. The launch flag changes this session only:
+
+```bash
+claude --model sonnet
+```
+
+If Claude Code is already open, use `/model` and press `s`. Typing `/model sonnet` directly on
+recent versions also saves Sonnet as your user default, which may be broader than intended.
+
+The worker boundary promotes only code-changing work to Opus: `/plenipo:deliver` does its cheap
+checks first, then delegates a real issue or rejected PR to `deliver:product-developer`. The `ship`
+and `test` verbs stay on Sonnet workers. Model aliases select the current allowed family member; do
+not set `CLAUDE_CODE_SUBAGENT_MODEL` or pass a per-invocation model override when you want this
+routing, because both take precedence over agent frontmatter. Invoking `/deliver:work-next-issue`
+directly also bypasses the worker boundary and uses the current session model: launch that direct
+session with `claude --model opus`, or use `/plenipo:deliver` to route automatically. See Claude
+Code's
+[subagent reference](https://code.claude.com/docs/en/subagents) and
+[model configuration](https://code.claude.com/docs/en/model-config).
+
+Keep only the plugins for the current phase enabled. Skill and agent descriptions are always-on
+context even when their bodies never run:
+
+| Phase | Enabled plugins |
 |---|---|
-| `pr-reviewer` | a pull request needs a second opinion from a context that never saw it written — reads the issue, the evidence and the diff, tries to *refute* it, returns approve / request-changes / escalate. Cannot edit, push, label or merge |
-| `e2e-tester` | you want the whole system swept for what's actually broken — boots it, walks real journeys, drives the UI, returns ranked findings with reproductions. Read/run only, never edits |
-| `product-improver` | you want the product made *better* rather than an issue closed — uses the app as its intended user, logs friction, and ships **one** proven improvement as a PR |
+| everyday delivery, review and testing | `plenipo`, `harness`, `deliver` |
+| backlog definition or shaping | add `define` and `shape` for that session |
+| discovering or launching a product | add `scout`, `define` and `shape` |
+| platform stewardship | `plenipo`, `harness`, `steward` |
+
+The fully unattended, cross-phase fleet in `AUTOMATED_CLAUDE_LOOPS.md` is the deliberate exception:
+it keeps every phase available because a timer cannot reload plugins after the session starts.
+
+The turn limits above are conservative L4 circuit breakers, not measured optima or token budgets.
+Raise one only after an observed good run exhausts it; an arbitrary tight limit that forces a restart
+spends more than it saves.
+
+#### Coding with fewer tokens
+
+- Freeze one issue's acceptance checks before reading broad source; one behaviour and one PR per
+  tick keep failures attributable.
+- Run cheap deterministic gates before asking any model to review. Classification, status checks
+  and exact transforms belong in scripts, not even in Haiku.
+- Search by symbol or `rg`, open relevant ranges, and batch related reads and checks. Repository-wide
+  tours and repeated single-file reads spend context without changing the decision.
+- Load skills through the Skill tool when their branch is reached. A `skills:` preload injects the
+  complete body into every agent run, including runs that stop at preflight.
+- Return issue numbers, SHAs, paths, terminal states and evidence — never command transcripts. Keep
+  the noisy exploration inside the worker context.
+- Resume a branch that hit a circuit breaker instead of restarting from zero, and escalate model
+  tier once for a named ambiguity rather than repeatedly retrying with longer prompts.
 
 ## The part that saves the most time
 

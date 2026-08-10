@@ -1,7 +1,7 @@
 ---
 name: test
 description: >
-  One sweep tick: boot the product, delegate an end-to-end hunt to the `e2e-tester` agent, then turn
+  One sweep tick: boot the product, delegate an end-to-end hunt to the `deliver:e2e-tester` agent, then turn
   what it observed into deduplicated GitHub bug issues that the build loop will pick up — each with a
   reproduction, a stable fingerprint key so tonight's sweep does not refile last night's bug, and a
   priority derived from consequence rather than from how easy it was to describe. Skips entirely when
@@ -9,7 +9,7 @@ description: >
   USE FOR: `/loop 3h /plenipo:test`, sweeping after a merge or an upgrade, converting observed
   breakage into board work. DO NOT USE FOR: debugging one known failure (/deliver:verify-runtime),
   proving a single change works before its PR (that is inside /deliver:work-next-issue), or inventing
-  improvements from reading code (the `product-improver` agent).
+  improvements from reading code (the `deliver:product-improver` agent).
 license: MIT
 ---
 
@@ -22,7 +22,7 @@ the first one's rows.
 
 This verb closes that gap and, more importantly, **converts what it finds into work**. A finding in
 a chat transcript is lost by morning; a filed issue with a reproduction is picked up by the next
-`../deliver/SKILL.md` tick without anyone relaying it. The sweep itself belongs to the `e2e-tester`
+`../deliver/SKILL.md` tick without anyone relaying it. The sweep itself belongs to the `deliver:e2e-tester`
 agent, which cannot edit code — this verb never fixes what it finds either.
 
 **Terminal states:** `Success` (swept; issues filed, or nothing broken — say which journeys you
@@ -42,8 +42,9 @@ is too unstable to sweep — one `Blocked`-class defect filed at p0, and stop) �
 - **You already know what is broken** → `/deliver:verify-runtime` reproduces and fixes one defect.
 - **Nothing has merged since the last sweep** → this skill reports `No-op` by design; do not force
   it.
-- **You want the product to be nicer, not less broken** → delegate the `product-improver` agent. UX
-  friction is not a finding here; a finding is something *wrong*.
+- **You want the product to be nicer, not less broken** → delegate the
+  `deliver:product-improver` agent. UX friction is not a finding here; a finding is something
+  *wrong*.
 - **The product will not boot** → `Blocked`. A sweep of a dead app is theatre.
 
 ## Inputs
@@ -69,11 +70,12 @@ is too unstable to sweep — one `Blocked`-class defect filed at p0, and stop) �
    green. Any failure is `Blocked`, not a finding — a finding is a claim about the product, and you
    have not observed the product yet.
 
-3. **Delegate the sweep** to the `e2e-tester` agent. It boots the product, walks real journeys
-   (first-run, the domain's core loop, the approval gate, RBAC with a narrowed role, the read
-   surfaces, the admin surfaces), drives the UI, reads telemetry, and returns ranked findings with
-   reproductions. **Do not sweep inline** — the agent exists so a hundred requests and their output
-   never enter this context, and so the thing that reports breakage is not the thing that files it.
+3. **Delegate the sweep** to the Sonnet `deliver:e2e-tester` agent. It boots the product, walks real
+   journeys (first-run, the domain's core loop, the approval gate, RBAC with a narrowed role, the
+   read surfaces, the admin surfaces), drives the UI, reads telemetry, and returns ranked findings
+   with reproductions. **Do not sweep inline** — the agent exists so a hundred requests and their
+   output never enter this context, and so the thing that reports breakage is not the thing that
+   files it.
 
 4. **Discard what is not a finding.** Keep only what the agent actually observed, with a
    reproduction. Drop style opinions, "this could be faster" without a measurement, and anything it
@@ -151,8 +153,8 @@ is too unstable to sweep — one `Blocked`-class defect filed at p0, and stop) �
 ## Guardrails
 
 - **Never fix what you find in this tick.** Filing and fixing in one pass means the same context
-  decides both what is broken and whether it is fixed. The `e2e-tester` agent cannot edit files at
-  all; keep that property at this level by handing every fix to `../deliver/SKILL.md`.
+  decides both what is broken and whether it is fixed. The `deliver:e2e-tester` agent cannot edit
+  files at all; keep that property at this level by handing every fix to `../deliver/SKILL.md`.
 - **Never file without a reproduction.** No exceptions, however confident the agent sounded.
 - **Never file a cosmetic issue.** The board is a queue, not a diary.
 - **Never weaken a check to get past it during a sweep.** A 403 that blocks the sweep may be the
@@ -173,7 +175,7 @@ is too unstable to sweep — one `Blocked`-class defect filed at p0, and stop) �
 | Commenting "still reproduces" every night | a 60-comment issue nobody reads | one comment per 7 days, or on a changed reproduction |
 | Auto-closing what you cannot reproduce | real bugs vanish because a flake hid them | comment, label `agent:needs-triage`, leave open |
 | Filing 40 findings from one sweep | the board becomes noise and the build loop stalls | the cap, plus the consequence table |
-| Filing UX friction as a bug | features get rewritten to answer an opinion | that is `product-improver`'s job, not this one |
+| Filing UX friction as a bug | features get rewritten to answer an opinion | that is `deliver:product-improver`'s job, not this one |
 | Treating `Blocked` as a finding | an issue that says "the app does not start", with no reproduction | `Blocked` names the environment problem and stops |
 
 ## Related skills

@@ -83,7 +83,7 @@ dotnet test <Product>.slnx                      # prove it
 
 ## What to say, depending on what you want
 
-Seven verbs cover the whole lifecycle, and each one is a single bounded tick you can put on a timer:
+Eight verbs cover the whole lifecycle, and each one is a single bounded tick you can put on a timer:
 
 | You want… | Say this |
 |---|---|
@@ -102,8 +102,8 @@ you want:
 |---|---|
 | one issue implemented, nothing else | `/deliver:work-next-issue` |
 | to know if a change really works | `/deliver:verify-runtime` |
-| the whole system swept for bugs | *"use the e2e-tester agent"* |
-| the product made nicer to use | *"use the product-improver agent"* |
+| the whole system swept for bugs | *"use the deliver:e2e-tester agent"* |
+| the product made nicer to use | *"use the deliver:product-improver agent"* |
 | the platform to add something you need | `/deliver:request-platform-change` |
 | to move onto a newer platform release | `/deliver:upgrade-platform` |
 | to check the repo is in good shape | `/harness:validate-product` |

@@ -126,7 +126,7 @@ for (const { plugin, skills, agents } of plugins) {
     lines.push(`  → [\`${s.path}\`](${s.path})`);
   }
   for (const a of agents) {
-    const wrapped = wrap(`- **${a.name}** *(agent — delegate)* — ${a.summary}`, 98, '  ');
+    const wrapped = wrap(`- **${plugin}:${a.name}** *(agent — delegate)* — ${a.summary}`, 98, '  ');
     lines.push(...wrapped.slice(0, -1), `${wrapped[wrapped.length - 1]}  `);
     lines.push(`  → [\`${a.path}\`](${a.path})`);
   }

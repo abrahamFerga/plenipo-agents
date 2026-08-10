@@ -7,6 +7,8 @@
     }
   },
 
+  "model": "sonnet",
+
   "enabledPlugins": {
     "plenipo@plenipo-agents": true,
     "harness@plenipo-agents": true,
