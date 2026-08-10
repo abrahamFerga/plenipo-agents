@@ -12,7 +12,8 @@
 //
 // Two groups of gates:
 //
-//   Evidence gates run only on loop branches (feat/*, fix/*, chore/*). They assert the PR body
+//   Evidence gates run on feat/*, fix/* and chore/*, plus codex/* carrying the loop envelope.
+//   They assert the PR body
 //   carries what a reviewer needs: the issue it closes, what was actually exercised at runtime, and
 //   a regression test seen red before the fix. A human's PR is not held to the agent's body format.
 //
@@ -33,7 +34,8 @@ const labels = (process.env.PR_LABELS ?? '')
   .map((s) => s.trim().toLowerCase())
   .filter(Boolean);
 
-const isLoopPr = /^(feat|fix|chore)\//.test(headRef);
+const isLoopPr = /^(feat|fix|chore)\//.test(headRef) ||
+  (/^codex\//.test(headRef) && /plenipo-agent/.test(body));
 const humanApproved = labels.includes('human-approved');
 const agentApproved =
   labels.includes('agent:approved') &&

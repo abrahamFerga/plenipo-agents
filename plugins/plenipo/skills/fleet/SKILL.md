@@ -106,7 +106,8 @@ there is never a second copy of an autonomy level to drift:
      label and skips the rest, so routing `agent:changes-requested` there spends the tick and
      changes nothing — the product looks served and stands still. `deliver` rule 1 is the owner:
      it hands to `/deliver:revise-pr` and strips the label so `ship` picks the PR up next time.
-   - **Rules 5 and 6 count only loop PRs** — head branch `feat/`, `fix/` or `chore/`. A Dependabot
+   - **Rules 5 and 6 count only loop PRs** — head branch `feat/`, `fix/` or `chore/`, plus `codex/`
+     when the body carries the hidden `plenipo-agent` envelope. A Dependabot
      PR fails `is_loop_pr` in `merge-gate.mjs`, so no verb in this marketplace can ever clear it;
      counting it against `maxOpenPRs` makes rule 5 fire forever and starves rule 6 of every tick.
      Report both numbers per product so the filter is visible.

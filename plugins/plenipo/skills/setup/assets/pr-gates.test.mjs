@@ -62,13 +62,13 @@ const body = [
   'The case was seen red before the policy repair and green after the agent verdict was accepted.',
 ].join('\n');
 
-const run = (labels, diffPath = diff) => {
+const run = (labels, diffPath = diff, { headRef = 'fix/agent-verdict-policy', prBody = body } = {}) => {
   const result = spawnSync(process.execPath, [gate, diffPath], {
     encoding: 'utf8',
     env: {
       ...process.env,
-      PR_BODY: body,
-      PR_HEAD_REF: 'fix/agent-verdict-policy',
+      PR_BODY: prBody,
+      PR_HEAD_REF: headRef,
       PR_LABELS: labels,
     },
   });
@@ -116,6 +116,28 @@ for (const test of cases) {
   }
 }
 
+const codexBranch = run('agent:approved', diff, {
+  headRef: 'codex/token-efficient-agent-models',
+  prBody: '<!-- plenipo-agent kind=delivery from=codex status=ready -->',
+});
+if (codexBranch.status === 1 && /closes_an_issue/.test(codexBranch.output)) {
+  console.log('  ok   codex/* branches receive the same evidence gates as other unattended branches');
+} else {
+  console.log(`  FAIL codex/* — evidence gates were skipped:\n${codexBranch.output}`);
+  failed++;
+}
+
+const attendedCodex = run('agent:approved', diff, {
+  headRef: 'codex/attended-task',
+  prBody: '',
+});
+if (attendedCodex.status === 0 && /not a loop branch/.test(attendedCodex.output)) {
+  console.log('  ok   a codex/* branch without the loop envelope stays attended');
+} else {
+  console.log(`  FAIL attended codex/* — it was captured by unattended evidence policy:\n${attendedCodex.output}`);
+  failed++;
+}
+
 for (const [name, diffPath] of [['rename out of the control tree', renameDiff], ['control deletion', deleteDiff]]) {
   const result = run('', diffPath);
   if (result.status === 1 && /spine_untouched/.test(result.output) && /agent-merge\.yml/.test(result.output)) {
@@ -131,4 +153,4 @@ if (failed) {
   process.exit(1);
 }
 
-console.log(`\nOK — ${cases.length + 2} protected-diff agent-verdict case(s) behave correctly.\n`);
+console.log(`\nOK — ${cases.length + 4} protected-diff agent-verdict case(s) behave correctly.\n`);

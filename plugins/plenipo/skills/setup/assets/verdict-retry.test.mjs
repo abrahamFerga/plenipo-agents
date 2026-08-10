@@ -14,7 +14,7 @@ const retry = join(here, 'verdict-retry.mjs');
 const scratch = mkdtempSync(join(tmpdir(), 'verdict-retry-'));
 const fixture = join(scratch, 'fixture.json');
 
-writeFileSync(join(scratch, 'workflow.json'), JSON.stringify({ autonomy: { level: 3, maxVerdictRequestsPerTick: 4 } }));
+writeFileSync(join(scratch, 'workflow.json'), JSON.stringify({ autonomy: { level: 3, maxVerdictRequestsPerTick: 5 } }));
 writeFileSync(
   fixture,
   JSON.stringify({
@@ -163,6 +163,22 @@ writeFileSync(
           displayTitle: `Approval verdict PR #1010 @ ${'4'.repeat(40)} -> main`,
         },
       },
+      {
+        number: 1011,
+        body: 'plenipo-agent envelope',
+        isDraft: false,
+        headRefName: 'codex/token-efficient-agent-models',
+        headRefOid: '5'.repeat(40),
+        labels: [],
+      },
+      {
+        number: 1012,
+        body: 'attended Codex change without the loop envelope',
+        isDraft: false,
+        headRefName: 'codex/attended-task',
+        headRefOid: '6'.repeat(40),
+        labels: [],
+      },
     ],
   })
 );
@@ -183,6 +199,8 @@ const expected = [
   [/WAIT #1008\b.*in_progress/i, 'an active workflow is never duplicated even when it is old'],
   [/WOULD DISPATCH #1009\b/, 'a legacy same-head run cannot revive an obsolete reviewer policy'],
   [/WOULD RERUN #1010\b/, 'a free-floating approval label is repaired rather than trusted'],
+  [/WOULD DISPATCH #1011\b/, 'a Codex-authored branch enters the unattended verdict queue'],
+  [/SKIP #1012\b.*loop branch/i, 'an attended Codex branch without the envelope stays outside the loop'],
 ];
 
 let failed = 0;
@@ -263,9 +281,33 @@ if (
   failed++;
 }
 
+const assetVerdictWorkflow = join(
+  here,
+  '..',
+  '..',
+  '..',
+  '..',
+  'harness',
+  'skills',
+  'install-github-agentic-workflows',
+  'assets',
+  'pr-approval-verdict.md'
+);
+const installedVerdictWorkflow = join(here, '..', 'workflows', 'pr-approval-verdict.md');
+const verdictWorkflow = readFileSync(
+  existsSync(assetVerdictWorkflow) ? assetVerdictWorkflow : installedVerdictWorkflow,
+  'utf8'
+);
+if (/`codex\/`/.test(verdictWorkflow)) {
+  console.log('  ok   the cloud reviewer admits Codex-authored branches');
+} else {
+  console.log('  FAIL — deterministic recovery admits codex/* but the cloud reviewer still refuses it');
+  failed++;
+}
+
 if (failed) {
   console.log(`\n${failed} verdict-retry case(s) wrong. Recovery must be bounded and must not revive a held PR.\n`);
   process.exit(1);
 }
 
-console.log(`\nOK — ${expected.length + 3} verdict-retry policy case(s) behave correctly.\n`);
+console.log(`\nOK — ${expected.length + 4} verdict-retry policy case(s) behave correctly.\n`);

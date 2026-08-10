@@ -66,6 +66,7 @@ const LEVEL = Number.isInteger(autonomy.level) ? autonomy.level : 0;
 const MAX_MERGES = autonomy.maxMergesPerTick ?? 2;
 
 const LOOP_BRANCH = /^(feat|fix|chore)\//;
+const CODEX_BRANCH = /^codex\//;
 const HOLD_LABELS = ['human-hold', 'needs-human', 'agent:blocked'];
 // Docs, tests and the runbook are the only class a level-1 product may land on its own.
 const LOW_RISK = [/\.md$/i, /^tests\//, /\.http$/i, /^\.http$/i];
@@ -292,7 +293,9 @@ function evaluate(pr) {
 
   const files = (pr.files ?? []).map((f) => f.path ?? f.filename ?? '');
   const filesAreComplete = !Number.isInteger(pr.changedFiles) || files.length >= pr.changedFiles;
-  const isLoopBranch = LOOP_BRANCH.test(pr.headRefName ?? '');
+  const hasEnvelope = /plenipo-agent/.test(pr.body ?? '');
+  const isLoopBranch = LOOP_BRANCH.test(pr.headRefName ?? '') ||
+    (CODEX_BRANCH.test(pr.headRefName ?? '') && hasEnvelope);
   const diff = isLoopBranch ? diffFor(pr) : { text: '' };
   const allPaths = [...new Set([...files, ...pathsFromDiff(diff.text)])];
   const conformanceRequired = !filesAreComplete || allPaths.some((file) => CONFORMANCE_PATHS.some((re) => re.test(file)));
@@ -315,7 +318,7 @@ function evaluate(pr) {
   const changeClass = isLowRisk ? 'low-risk' : 'feature';
 
   if (!isLoopBranch) fail.push(`is_loop_pr: "${pr.headRefName}" is not a loop branch — not ours to merge`);
-  if (!/plenipo-agent/.test(pr.body ?? '')) fail.push('is_loop_pr: the body carries no plenipo-agent envelope');
+  if (!hasEnvelope) fail.push('is_loop_pr: the body carries no plenipo-agent envelope');
   if (pr.isDraft) fail.push('not_draft: the PR is a draft');
   if (diff.error) fail.push(`diff_inspected: ${diff.error}`);
   if (required.error) fail.push(`checks_configured: ${required.error}`);

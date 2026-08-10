@@ -245,6 +245,21 @@ writeFileSync(
       ],
       files: [{ path: 'src/Plenipo.Core/Feature.cs' }],
     },
+    {
+      number: 925,
+      title: 'Codex-authored change with a proven agent verdict',
+      body: 'plenipo-agent envelope\nSurface: none',
+      isDraft: false,
+      headRefName: 'codex/token-efficient-agent-models',
+      baseRefName: 'main',
+      labels: [{ name: 'agent:approved' }],
+      trustedApproval: true,
+      mergeable: 'MERGEABLE',
+      mergeStateStatus: 'CLEAN',
+      reviewDecision: '',
+      statusCheckRollup: [{ name: 'PR gates', workflowName: 'Agent gates', conclusion: 'SUCCESS' }],
+      files: [{ path: 'README.md' }],
+    },
   ])
 );
 
@@ -312,6 +327,14 @@ if (policyRun.status !== 0) {
     console.log('  ok   #923 — every unattended merge requires approval-specific provenance');
   } else {
     console.log(`  FAIL #923 — an ordinary PR trusted a free-floating approval label:\n${reasons923}`);
+    failed++;
+  }
+
+  const ready925 = policyRun.stdout.split('\n').find((line) => line.includes('#925 '));
+  if (ready925 && /^\s{2}READY\b/.test(ready925)) {
+    console.log('  ok   #925 — a Codex-authored PR with a proven verdict is eligible for unattended merge');
+  } else {
+    console.log(`  FAIL #925 — Codex-authored PR was excluded from the merge queue:\n       ${ready925 ?? '(missing)'}`);
     failed++;
   }
 }
@@ -656,4 +679,4 @@ if (failed) {
   console.log(`\n${failed} rollup case(s) wrong. merge-gate is the last automated thing before main — do not merge this.\n`);
   process.exit(1);
 }
-console.log(`\nOK — ${cases.length} rollup, ${closeCases.length} linked-issue, ${mergeableCases.length} mergeable, 4 platform-policy, 2 required-context, 3 stale-routing, 1 truncation, 1 simulation, 1 pending-state, 1 base-verdict and 1 infrastructure-failure case(s) behave correctly.\n`);
+console.log(`\nOK — ${cases.length} rollup, ${closeCases.length} linked-issue, ${mergeableCases.length} mergeable, 5 platform-policy, 2 required-context, 3 stale-routing, 1 truncation, 1 simulation, 1 pending-state, 1 base-verdict and 1 infrastructure-failure case(s) behave correctly.\n`);

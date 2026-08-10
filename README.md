@@ -113,6 +113,11 @@ Full operator's manual in **[AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.m
 | `define` | `/plenipo:define` | Triages friction, promotes Backlog → Ready, extends the plan only from scope with provenance |
 | `fleet` | `/plenipo:fleet` | One tick on whichever product most needs it; least-recently-served, and quarantines a repo that keeps failing |
 
+Unattended review and merge recognizes `feat/`, `fix/` and `chore/` branches, plus `codex/` PRs whose
+body carries the hidden `plenipo-agent` envelope. Eligible Codex PRs receive the cloud agent verdict
+automatically; you do not add `human-approved` during normal operation. That label is reserved for a
+deliberate emergency override.
+
 ### `harness` — always on
 
 | Skill | Invocation | What it does |

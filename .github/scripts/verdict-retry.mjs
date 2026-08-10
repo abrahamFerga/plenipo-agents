@@ -27,6 +27,7 @@ const DISPATCH = flag('--dispatch');
 const RETRY_AFTER_MINUTES = Number(value('--retry-after-minutes') ?? 30);
 const MAX_RETRY_AFTER_MINUTES = Number(value('--max-retry-after-minutes') ?? 360);
 const LOOP_BRANCH = /^(feat|fix|chore)\//;
+const CODEX_BRANCH = /^codex\//;
 const HOLD_LABELS = ['human-hold', 'needs-human', 'agent:blocked'];
 
 if (!Number.isFinite(RETRY_AFTER_MINUTES) || RETRY_AFTER_MINUTES < 1 ||
@@ -122,8 +123,11 @@ function latestAttempt(pr) {
 
 function shouldRequest(pr) {
   const labels = labelsFor(pr);
-  if (!LOOP_BRANCH.test(pr.headRefName ?? '')) return { action: 'SKIP', why: 'not a loop branch' };
-  if (!/plenipo-agent/.test(pr.body ?? '')) return { action: 'SKIP', why: 'no plenipo-agent envelope' };
+  const hasEnvelope = /plenipo-agent/.test(pr.body ?? '');
+  const isLoopBranch = LOOP_BRANCH.test(pr.headRefName ?? '') ||
+    (CODEX_BRANCH.test(pr.headRefName ?? '') && hasEnvelope);
+  if (!isLoopBranch) return { action: 'SKIP', why: 'not a loop branch' };
+  if (!hasEnvelope) return { action: 'SKIP', why: 'no plenipo-agent envelope' };
   if (pr.isDraft) return { action: 'SKIP', why: 'draft' };
   if (labels.includes('agent:changes-requested')) return { action: 'SKIP', why: 'agent:changes-requested is still set' };
   for (const label of HOLD_LABELS) if (labels.includes(label)) return { action: 'SKIP', why: `${label} is set` };
