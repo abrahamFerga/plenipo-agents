@@ -41,6 +41,7 @@ jobs:
           node plugins/plenipo/skills/setup/assets/pr-gates.test.mjs
           node plugins/plenipo/skills/setup/assets/merge-gate.test.mjs
           node plugins/plenipo/skills/setup/assets/verdict-retry.test.mjs
+          node plugins/plenipo/skills/setup/assets/triage-retry.test.mjs
           node plugins/plenipo/skills/setup/assets/agent-approval-reset.test.mjs
 
       # L1 — this repo runs the controls it ships, so every installed source must remain byte-for-
@@ -62,6 +63,8 @@ jobs:
           plugins/plenipo/skills/setup/assets/fixtures/check-rollup.json|.github/scripts/fixtures/check-rollup.json
           plugins/plenipo/skills/setup/assets/verdict-retry.mjs|.github/scripts/verdict-retry.mjs
           plugins/plenipo/skills/setup/assets/verdict-retry.test.mjs|.github/scripts/verdict-retry.test.mjs
+          plugins/plenipo/skills/setup/assets/triage-retry.mjs|.github/scripts/triage-retry.mjs
+          plugins/plenipo/skills/setup/assets/triage-retry.test.mjs|.github/scripts/triage-retry.test.mjs
           plugins/plenipo/skills/setup/assets/agent-approval-reset.test.mjs|.github/scripts/agent-approval-reset.test.mjs
           plugins/plenipo/skills/setup/assets/agent-approval-reset.yml|.github/workflows/agent-approval-reset.yml
           plugins/plenipo/skills/setup/assets/agent-gates.yml|.github/workflows/agent-gates.yml

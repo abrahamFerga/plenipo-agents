@@ -91,6 +91,37 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    workflow's `safe-outputs.add-labels.allowed` list. A label allowlist is a security boundary, not
    decoration.
 
+   Keep each triage workflow and its recovery identity as one versioned contract. The installed
+   source must retain its `Triage ... v2 #${{ github.event.issue.number || inputs.issue_number }}`
+   run name, required `workflow_dispatch.inputs.issue_number`, and explicit issue-number targets on
+   every safe output. Recovery matches that versioned title and dispatches the exact active lock file
+   from the default branch; an unversioned title or an untargeted output can associate a stale run or
+   write with the wrong issue. When the triage policy version changes, update the workflow run name
+   and `triage-retry.mjs` title prefix together.
+
+   `triage:needs-info` is a resumable state, not a final verdict. Ask the requesting agent to edit the
+   issue body with the missing evidence. The guarded `issues.edited` event is the fast path; scheduled
+   recovery compares the issue's `lastEditedAt` with the needs-info run's creation time and makes a
+   fresh targeted dispatch only after the body changed. A final verdict removes `needs-info` and
+   `triage:needs-info`, so later edits cannot reopen completed triage. The requester-side return path
+   is `/plenipo:deliver` (or `/plenipo:fleet`): it scans exact `plenipo-request` and
+   `harness-request` markers in open product issue/PR bodies, rejects holds and final verdicts, and
+   hands one live needs-info issue to `/deliver:request-platform-change` or
+   `/harness:report-harness-gap` to edit the existing body. Platform destinations come from the
+   pinned `Plenipo.Core` package metadata; marketplace destinations come from the
+   `workflow.json` `skills.external[]` entry for `plenipo-agents`.
+   Every triage comment ends in an exact workflow/issue/run marker; the requester accepts only the
+   matching `github-actions[bot]` comment after verifying the successful v2 run executed from the
+   live default branch. A later public comment never becomes a privileged instruction.
+
+   After installing or upgrading either recoverable triage workflow, run `/plenipo:setup` again. It
+   installs `triage-retry.mjs`, its deterministic policy test, and the separate `triage-recovery` job
+   in `agent-merge.yml`. That job bootstraps a missing current-policy run, re-runs a completed
+   no-verdict attempt behind capped exponential backoff, respects explicit holds and final verdicts,
+   renews the run by dispatch before GitHub's rerun age/attempt ceilings, and performs at most two
+   recovery actions per tick. Issue events still own the normal path; this integration prevents a
+   missed event or provider failure from stranding the queue.
+
 4. **Configure credentials with least privilege.** Add `COPILOT_GITHUB_TOKEN` as a repository Actions
    secret. It must be a fine-grained PAT owned by an account with a Copilot license and
    **Copilot Requests: Read**. For an unattended verdict/merge loop it also needs repository
@@ -174,8 +205,8 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
   not.
 - **`product-harness-feedback.md` routes to the marketplace, not the platform** — a different repo
   and a different queue. Its router app needs this repo plus the marketplace repo, and nothing else.
-  Read the marketplace slug from `workflow.json` → `skills.self.repo`; the protocol it enforces is
-  the `report-harness-gap` skill.
+  Read the marketplace slug from the `workflow.json` `skills.external[]` entry whose `marketplace`
+  is `plenipo-agents`; the protocol it enforces is the `report-harness-gap` skill.
 - `product-issue-triage.md` steers by the shared label vocabulary — `agent:*`, `type:*`, `priority:*`,
   `regression`, `security`, `needs-human`. `/plenipo:setup` creates them and `/define:sync-backlog`
   owns the `type:*`/`priority:*` families; install this workflow after them, not before.
