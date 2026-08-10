@@ -5,7 +5,7 @@ description: >
   tries to refute the claim that it does what its issue asked, and returns approve / request-changes /
   escalate. Delegate from `/plenipo:ship` for every feature PR before it may merge. Read-only — it
   cannot edit, push, label, or merge anything, which is what makes its verdict worth having.
-model: sonnet
+model: claude-sonnet-5
 effort: medium
 maxTurns: 24
 tools: Read, Grep, Glob, Bash, PowerShell, Skill

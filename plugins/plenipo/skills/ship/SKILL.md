@@ -144,7 +144,8 @@ switches them on by reading `stage` itself, so they are never something this ver
    is itself one of the gates, so an unreviewed PR *always* prints `BLOCK`, and reading step 2 as a
    filter on what to review leaves nothing to review and reports `No-op` on a queue that is merely
    waiting for you. For each PR with no `agent:approved` or
-   `agent:changes-requested` label, delegate to the Sonnet `plenipo:pr-reviewer` agent with the PR number.
+   `agent:changes-requested` label, delegate to the Sonnet 5 `plenipo:pr-reviewer` agent with the PR
+   number.
    It reads the diff, the issue's acceptance criteria, and the evidence in the body — never this
    conversation — and returns `approve`, `request-changes`, or `escalate` with reasons. Apply its
    verdict as a label and post its reasoning as a PR comment.

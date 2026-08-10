@@ -26,10 +26,11 @@ const MAX_NAME = 64;
 const MAX_DESCRIPTION = 1024;
 const MAX_BODY_LINES = 450;
 const MAX_REFERENCE_LINES = 600;
-// Claude Code accepts inherit, other full ids, fable and higher effort levels too. This marketplace
-// uses the narrower policy below so cheap workers track their family while development is guaranteed
-// to use Opus 5 instead of whichever older Opus a provider alias happens to expose. See AUTHORING.md.
-const AGENT_MODELS = new Set(['haiku', 'sonnet', 'claude-opus-5']);
+// Claude Code accepts inherit, family aliases, other full ids, fable and higher effort levels too.
+// This marketplace pins Sonnet 5 and Opus 5 so a provider alias cannot silently select an older
+// generation. Haiku remains a family alias because it is the explicitly cheapest tier. See
+// AUTHORING.md.
+const AGENT_MODELS = new Set(['haiku', 'claude-sonnet-5', 'claude-opus-5']);
 const AGENT_EFFORT_LEVELS = new Set(['low', 'medium', 'high']);
 
 // ── Minimal frontmatter reader ────────────────────────────────────────────────
@@ -200,7 +201,7 @@ for (const plugin of [...onDisk].sort()) {
       } else if (!AGENT_MODELS.has(fm.model)) {
         err(
           agentPath,
-          `model "${fm.model}" must be haiku, sonnet or claude-opus-5 — do not use inherit or an unpinned Opus alias`
+          `model "${fm.model}" must be haiku, claude-sonnet-5 or claude-opus-5 — do not use inherit or an unpinned Sonnet/Opus alias`
         );
       }
       if (fm.model !== 'haiku' && !fm.effort) {

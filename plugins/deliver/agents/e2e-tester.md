@@ -5,7 +5,7 @@ description: >
   for what is actually broken rather than confirming what was just built. Delegate when you want the
   system swept before a release, after an upgrade, or when someone says "does this still work?" —
   it produces reproducible findings, not opinions. Read and run only: it never edits code.
-model: sonnet
+model: claude-sonnet-5
 effort: medium
 maxTurns: 40
 disallowedTools: Edit, Write, NotebookEdit, Agent

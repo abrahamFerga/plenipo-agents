@@ -70,7 +70,7 @@ is too unstable to sweep — one `Blocked`-class defect filed at p0, and stop) �
    green. Any failure is `Blocked`, not a finding — a finding is a claim about the product, and you
    have not observed the product yet.
 
-3. **Delegate the sweep** to the Sonnet `deliver:e2e-tester` agent. It boots the product, walks real
+3. **Delegate the sweep** to the Sonnet 5 `deliver:e2e-tester` agent. It boots the product, walks real
    journeys (first-run, the domain's core loop, the approval gate, RBAC with a narrowed role, the
    read surfaces, the admin surfaces), drives the UI, reads telemetry, and returns ranked findings
    with reproductions. **Do not sweep inline** — the agent exists so a hundred requests and their

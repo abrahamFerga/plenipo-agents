@@ -143,7 +143,7 @@ Constraints specific to plugin-shipped agents:
 Every agent also declares a concrete cost envelope:
 
 ```yaml
-model: sonnet       # cheap tiers use aliases; Opus development pins claude-opus-5
+model: claude-sonnet-5  # pin the required generation; never inherit or use a family alias
 effort: medium      # low / medium / high; omit only for Haiku
 maxTurns: 24        # a runaway circuit breaker, not a promised token budget
 ```
@@ -151,16 +151,16 @@ maxTurns: 24        # a runaway circuit breaker, not a promised token budget
 | Work | Cheapest reliable tier |
 |---|---|
 | deterministic inventory, classification, or formatting | a script first; Haiku only when judgement is unavoidable |
-| bounded research, test driving, or rubric-based review | Sonnet |
+| bounded research, test driving, or rubric-based review | `claude-sonnet-5` (Sonnet 5) |
 | code changes, architecture, or ambiguous cross-layer diagnosis | `claude-opus-5` (Opus 5) |
 
-Use family aliases for cheap tiers so Claude Code selects the current allowed member. Pin development
-to `claude-opus-5`: the requirement is Opus 5, not merely whichever older Opus a provider maps from
-the `opus` alias. This requires Claude Code 2.1.219 or newer and provider access to that model. The
-marketplace deliberately rejects both `inherit` and bare `opus`; otherwise a route can silently
-change model tier or generation. `maxTurns` prevents runaway recursion; it does not replace the
-skill's named terminal states, and a tight cap that causes a restart costs more than the turns it
-saved.
+Pin bounded workers to `claude-sonnet-5` and development to `claude-opus-5`: the requirement is an
+exact generation, not whichever older model a provider maps from a family alias. This requires
+Claude Code 2.1.219 or newer and provider access to both models. Haiku may remain a family alias when
+it is deliberately chosen as the cheapest tier. The marketplace rejects `inherit`, bare `sonnet`
+and bare `opus`; otherwise a route can silently change model tier or generation. `maxTurns` prevents
+runaway recursion; it does not replace the skill's named terminal states, and a tight cap that
+causes a restart costs more than the turns it saved.
 
 ## Hooks
 
