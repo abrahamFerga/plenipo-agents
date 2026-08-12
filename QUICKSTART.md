@@ -102,6 +102,7 @@ Eight verbs cover the whole lifecycle, and each one is a single bounded tick you
 | the open PRs reviewed and merged | `/plenipo:ship` |
 | the product swept for bugs, filed as issues | `/plenipo:test` |
 | the backlog kept full | `/plenipo:define` |
+| the platform request/release queue advanced | `/plenipo:steward` *(platform repo)* |
 | all of it, across every product, forever | `/loop 20m /plenipo:fleet` |
 
 Underneath, those call the skills below — you can also invoke one directly when you know exactly what

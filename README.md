@@ -113,9 +113,10 @@ Full operator's manual in **[AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.m
 | `setup` | `/plenipo:setup` | Makes a repo safe to leave a timer on: runbook, labels, two gate scripts, branch protection, the autonomy level |
 | `launch` | `/plenipo:launch` | Nothing → a product with a Ready backlog. Pauses once: the go/no-go and the name |
 | `deliver` | `/plenipo:deliver` | Admission control, then one build tick — rejected PRs and p0 bugs before features, and a ceiling on PRs in flight |
-| `ship` | `/plenipo:ship` | Adversarial review, then merges only what clears every deterministic gate at the recorded autonomy level |
+| `ship` | `/plenipo:ship` | Recovers an exact-revision verdict, then merges only what clears every deterministic gate at the recorded autonomy level |
 | `test` | `/plenipo:test` | Boots it, sweeps end to end, files deduplicated bug issues with reproductions |
 | `define` | `/plenipo:define` | Triages friction, promotes Backlog → Ready, extends the plan only from scope with provenance |
+| `steward` | `/plenipo:steward` | In the platform repo, works one request/release tick behind consumer conformance |
 | `fleet` | `/plenipo:fleet` | One tick on whichever product most needs it; least-recently-served, and quarantines a repo that keeps failing |
 
 ### `harness` — always on
@@ -194,12 +195,13 @@ older generation. Claude Code 2.1.219 or newer and provider access to both model
 requirements. Exact frontmatter is routing intent, not enforcement: when an organization policy
 blocks that subagent model, Claude Code can fall back to the inherited coordinator model. Make sure
 the effective model policy permits both exact IDs.
+
 Do not set `CLAUDE_CODE_SUBAGENT_MODEL` or pass a per-invocation model override when you want this
 routing, because both take precedence over agent frontmatter. Invoking `/deliver:work-next-issue`
 directly also bypasses the worker boundary and uses the current session model: launch that direct
 session with `claude --model claude-opus-5`, or use `/plenipo:deliver` to route automatically. See
 Claude Code's
-[subagent reference](https://code.claude.com/docs/en/subagents) and
+[subagent reference](https://code.claude.com/docs/en/sub-agents) and
 [model configuration](https://code.claude.com/docs/en/model-config).
 
 Keep only the plugins for the current phase enabled. Skill and agent descriptions are always-on
