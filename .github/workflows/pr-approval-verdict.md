@@ -23,6 +23,9 @@ on:
   # an exact PR head, and safe outputs remain limited to verdict labels/comments.
   bots: [github-actions]
 engine: copilot
+# `auto` repeatedly selected a throttled Claude route. This independent reviewer is bounded and
+# read-only, so pin a strong non-Claude route instead of spending twenty retries on the same 429.
+model: gpt-5.4
 timeout-minutes: 18
 max-ai-credits: 240K
 concurrency:
@@ -31,6 +34,21 @@ concurrency:
 # The reviewer reads PR metadata and diffs through the GitHub tools. It must never execute a PR's
 # code merely to decide whether that PR may receive a merge verdict.
 checkout: false
+pre-agent-steps:
+  # gh-aw can restore a cached Copilot CLI outside the harness's fixed path. Repair that path only
+  # when it is absent; no pull-request checkout exists in this job, so PATH is trusted runner state.
+  - name: Repair cached Copilot CLI path
+    shell: bash
+    run: |
+      set -euo pipefail
+      if [ ! -x /usr/local/bin/copilot ]; then
+        copilot_path="$(command -v copilot || true)"
+        if [ -z "$copilot_path" ]; then
+          echo "::error::Copilot CLI is not discoverable on PATH."
+          exit 1
+        fi
+        sudo ln -sf "$copilot_path" /usr/local/bin/copilot
+      fi
 permissions:
   contents: read
   issues: read
@@ -44,6 +62,12 @@ tools:
 network:
   allowed: [github]
 safe-outputs:
+  # Keep the prompt-injection scan independent but cheap; the high-capability route is reserved for
+  # the merge verdict itself.
+  threat-detection:
+    engine:
+      id: copilot
+      model: gpt-5-mini
   # A user/App token is required here: GitHub suppresses workflow events caused by GITHUB_TOKEN.
   # Without it, the approval label never re-runs the required PR gate on protected diffs.
   github-token: ${{ secrets.COPILOT_GITHUB_TOKEN }}

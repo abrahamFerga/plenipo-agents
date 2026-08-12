@@ -317,9 +317,21 @@ if (
   failed++;
 }
 
+const verdictFrontmatter = verdictWorkflow.split('---')[1] ?? '';
+if (
+  /^model: gpt-5\.4$/m.test(verdictFrontmatter) &&
+  /threat-detection:\s*\n\s+engine:\s*\n\s+id: copilot\s*\n\s+model: gpt-5-mini/.test(verdictFrontmatter) &&
+  /pre-agent-steps:[\s\S]*command -v copilot[\s\S]*\/usr\/local\/bin\/copilot/.test(verdictFrontmatter)
+) {
+  console.log('  ok   the cloud reviewer pins deliberate agent/detection routes and repairs the cached CLI path');
+} else {
+  console.log('  FAIL — the cloud reviewer can reuse an expensive/failing route or a broken cached CLI path');
+  failed++;
+}
+
 if (failed) {
   console.log(`\n${failed} verdict-retry case(s) wrong. Recovery must be bounded and must not revive a held PR.\n`);
   process.exit(1);
 }
 
-console.log(`\nOK — ${expected.length + 4} verdict-retry policy case(s) behave correctly.\n`);
+console.log(`\nOK — ${expected.length + 5} verdict-retry policy case(s) behave correctly.\n`);
