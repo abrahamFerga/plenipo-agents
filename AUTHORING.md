@@ -131,10 +131,43 @@ Constraints specific to plugin-shipped agents:
 
 - **`hooks`, `mcpServers`, and `permissionMode` are ignored.** The validator rejects them.
 - A subagent has no active-skill base directory, so it **cannot** read another skill by relative
-  path — and `skills:` preload works only for **model-invokable** skills. An agent cannot invoke a
-  `disable-model-invocation` skill at all.
+  path. A `skills:` entry injects the **full body** of each model-invokable skill at startup;
+  unlisted project, user, and plugin skills remain available through the Skill tool. Preload only a
+  skill used on every invocation, and load conditional references on demand. An agent cannot invoke
+  a `disable-model-invocation` skill at all.
 - Scope tools tightly: `disallowedTools: Edit, Write` for read/run-only agents (keeps MCP);
   a `tools` allowlist when only a few are needed (drops MCP).
+- Leaf workers omit `Agent` from a `tools` allowlist or add it to `disallowedTools`. Recursive
+  delegation multiplies contexts and loses the state the specialist was created to hold.
+- Refer to a plugin agent by its registered `plugin:name`, even from a skill in the same plugin.
+  Short names can be shadowed by a project or user agent with different tools and model routing.
+
+Every agent also declares a concrete cost envelope:
+
+```yaml
+model: claude-sonnet-5  # pin the required generation; never inherit or use a family alias
+effort: medium      # low / medium / high; omit only for Haiku
+maxTurns: 24        # a runaway circuit breaker, not a promised token budget
+```
+
+| Work | Cheapest reliable tier |
+|---|---|
+| deterministic inventory, classification, or formatting | a script first; Haiku only when judgement is unavoidable |
+| bounded research, test driving, or rubric-based review | `claude-sonnet-5` (Sonnet 5) |
+| code changes, architecture, or ambiguous cross-layer diagnosis | `claude-opus-5` (Opus 5) |
+
+Pin bounded workers to `claude-sonnet-5` and development to `claude-opus-5`: the requirement is an
+exact generation, not whichever older model a provider maps from a family alias. This requires
+Claude Code 2.1.219 or newer and access to both models. The names work directly with Claude
+subscriptions and the Anthropic API; Bedrock, Vertex AI, and Foundry deployments map the same
+Anthropic IDs to provider-specific version IDs, inference profiles, or deployment names through
+`modelOverrides`. Exact frontmatter expresses routing intent; an organization policy that excludes
+the requested subagent model can still fall back to the inherited model, so deployments must permit
+both routes. Haiku may remain a family alias when it is deliberately chosen as the cheapest tier.
+The marketplace rejects `inherit`, bare `sonnet` and bare `opus`; otherwise a route can silently
+change model tier or generation.
+`maxTurns` prevents runaway recursion; it does not replace the skill's named terminal states, and
+a tight cap that causes a restart costs more than the turns it saved.
 
 ## Hooks
 
@@ -159,7 +192,9 @@ Constraints specific to plugin-shipped agents:
 
 ## Checklist — new agent, hook, or script
 
-1. Write the file per the constraints above.
+1. Write the file per the constraints above. Pick the cheapest reliable `model`, declare `effort`
+   and a generous `maxTurns`, deny recursive `Agent` use for leaf workers, and preload no conditional
+   skill.
 2. **Bump `version` in that plugin's `plugin.json`.** Agents, hooks, and scripts are cached by
    plugin version; without a bump the install keeps serving the old copy (and a live session needs
    `/reload-plugins`).

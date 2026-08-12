@@ -3,9 +3,10 @@ name: deliver
 description: >
   One build tick, safe to fire on a timer: decide whether building is even the right move right now
   — a rejected PR to fix first, a p0 bug ahead of features, or too many PRs already waiting on review
-  — then hand the chosen item to the build loop and journal the tick so a repeated timer cannot spin
-  invisibly. Admission control and stagnation detection around `/deliver:work-next-issue`, which
-  still owns the branch → code → runtime proof → PR procedure.
+  — then delegate the chosen item to the Opus 5 `deliver:product-developer` agent and journal the tick so a
+  repeated timer cannot spin invisibly. Admission control and stagnation detection stay cheap in
+  this context; `/deliver:work-next-issue` still owns the branch → code → runtime proof → PR
+  procedure inside the worker.
   USE FOR: `/loop 20m /plenipo:deliver`, a single unattended build tick, resuming after a PR merged.
   DO NOT USE FOR: the implementation procedure itself (`/deliver:work-next-issue`), reviewing or
   merging what a tick produced (`../ship/SKILL.md`), or filling an empty board (`../define/SKILL.md`).
@@ -117,15 +118,18 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    flight. Name the excluded count in the report — *"9 open, 1 loop PR, 8 Dependabot"* — because a
    filter nobody can see is indistinguishable from a ceiling that is not being enforced.
 
-6. **Hand off.** Invoke `/deliver:work-next-issue` and let it own the whole procedure — branch, implement,
-   climb the ladder, prove at runtime, open the PR, move the card to In Review. Pass it the issue
-   number you selected. **Do not re-perform any of its steps here**, and do not summarize its
-   procedure into this tick; one source per procedure.
+6. **Hand off.** Delegate `build issue #<n>` to the `deliver:product-developer` agent. It is
+   pinned to Opus 5 with a turn circuit breaker and invokes `/deliver:work-next-issue` on demand;
+   that skill owns the whole procedure — branch, implement, climb the ladder, prove at runtime,
+   open the PR, move the card to In Review. **Do not implement inline**, re-perform any of its steps
+   here, or summarize its procedure into this tick. The cheap coordinator should not carry a
+   development transcript.
 
-   For rule 1 (a rejected PR), hand to `/deliver:revise-pr` instead. It owns reading every thread,
-   classifying each point as must-fix / discuss / out-of-scope, re-proving the change at runtime, and
-   replying so the reviewer can see what happened without re-reading the diff. When it reports back,
-   remove `agent:changes-requested` so `../ship/SKILL.md` re-evaluates the PR.
+   For rule 1, delegate `revise PR #<n>` to the same agent. It invokes `/deliver:revise-pr`, which
+   owns reading every thread, classifying each point as must-fix / discuss / out-of-scope,
+   re-proving the change at runtime, and replying so the reviewer can see what happened without
+   re-reading the diff. When it reports back, remove `agent:changes-requested` so
+   `../ship/SKILL.md` re-evaluates the PR.
 
 7. **Journal the tick.** Append one line to `TICKS.md`:
 
@@ -151,6 +155,8 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 - **Never restate the build procedure.** If this file starts describing how to write a module,
   delete that text — it is drifting from `/deliver:work-next-issue`, and the drift is invisible
   until it produces wrong work.
+- **Never develop inline.** Admission control stays in this context; code changes belong to the
+  `deliver:product-developer` agent so Opus 5 is paid only after the tick has found real work.
 - **Read the owner, never hardcode it.**
 - **A tick that ends `No-op` is a good tick.** Manufacturing work to look productive is the failure
   this ordering exists to prevent.
@@ -161,6 +167,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 |---|---|---|
 | Firing on a timer with no ceiling | ten open PRs nobody reviewed, all conflicting | `maxOpenPRs`, then `No-op` |
 | Ignoring `agent:changes-requested` | rejected work rots while new work piles on top | rule 1 outranks everything |
+| Invoking the build skill inline | the coordinator carries the code and test transcript, and its model pays for all of it | delegate the selected number to `deliver:product-developer` |
 | Building a feature while a p0 bug is open | shipping scope onto a broken product | rule 3 |
 | No journal | the loop cannot tell a stalled night from a productive one | append to `TICKS.md` every tick |
 | Summarizing the build procedure here | two sources for one job, executed at half fidelity | hand off by name |
@@ -168,8 +175,10 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 
 ## Related skills
 
-- `/deliver:work-next-issue` — the build procedure. **Load when:** rules 2–5 fire.
-- `/deliver:revise-pr` — owns answering a PR that came back. **Load when:** rule 1 fires.
+- `/deliver:work-next-issue` — the build procedure. **Loaded only by:**
+  `deliver:product-developer` after rules 2–5 delegate selected work.
+- `/deliver:revise-pr` — owns answering a PR that came back. **Loaded only by:**
+  `deliver:product-developer` after rule 1 delegates the rejected PR.
 - `../ship/SKILL.md` — reviews and merges what this produces. **Load when:** PRs are piling up.
 - `../define/SKILL.md` — refills the board this drains. **Load when:** nothing is Ready.
 - `../test/SKILL.md` — files the bug issues rule 3 prioritizes.

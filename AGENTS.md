@@ -220,13 +220,16 @@ other tools should **open the file when its description matches the task**.
   and drive it to an open pull request: select the top item by build order, move the card to In
   Progress, cut a branch, implement it against the platform contract, climb the test la…
   → [`plugins/deliver/skills/work-next-issue/SKILL.md`](plugins/deliver/skills/work-next-issue/SKILL.md)
-- **e2e-tester** *(agent — delegate)* — Boots a Plenipo product and exercises it end to end the
-  way a real household or firm would, hunting for what is actually broken rather than confirming
-  what was just built.
+- **deliver:e2e-tester** *(agent — delegate)* — Boots a Plenipo product and exercises it end to
+  end the way a real household or firm would, hunting for what is actually broken rather than
+  confirming what was just built.
   → [`plugins/deliver/agents/e2e-tester.md`](plugins/deliver/agents/e2e-tester.md)
-- **product-improver** *(agent — delegate)* — Runs a Plenipo product, uses it as its intended
-  user would, and improves what it finds — features that stop half-finished, screens that make the
-  user do the system's work, flows where the assistant is unhelpful.
+- **deliver:product-developer** *(agent — delegate)* — Executes exactly one already-selected
+  product implementation or pull-request revision in an isolated Opus 5 context.
+  → [`plugins/deliver/agents/product-developer.md`](plugins/deliver/agents/product-developer.md)
+- **deliver:product-improver** *(agent — delegate)* — Runs a Plenipo product, uses it as its
+  intended user would, and improves what it finds — features that stop half-finished, screens that
+  make the user do the system's work, flows where the assistant is unhelpful.
   → [`plugins/deliver/agents/product-improver.md`](plugins/deliver/agents/product-improver.md)
 
 ### `harness`
@@ -281,7 +284,7 @@ other tools should **open the file when its description matches the task**.
   → [`plugins/plenipo/skills/define/SKILL.md`](plugins/plenipo/skills/define/SKILL.md)
 - **deliver** *(reference)* — One build tick, safe to fire on a timer: decide whether building
   is even the right move right now — a rejected PR to fix first, a p0 bug ahead of features, or
-  too many PRs already waiting on review — then hand the chosen item to the buil…
+  too many PRs already waiting on review — then delegate the chosen item to the…
   → [`plugins/plenipo/skills/deliver/SKILL.md`](plugins/plenipo/skills/deliver/SKILL.md)
 - **fleet** *(reference)* — One tick across many products: read each repo's board, pull requests
   and last-swept state, score which single product most needs attention right now, run exactly one
@@ -304,12 +307,12 @@ other tools should **open the file when its description matches the task**.
   tagged release — and merge only behind a conformance gate that rebuilds ev…
   → [`plugins/plenipo/skills/steward/SKILL.md`](plugins/plenipo/skills/steward/SKILL.md)
 - **test** *(reference)* — One sweep tick: boot the product, delegate an end-to-end hunt to the
-  `e2e-tester` agent, then turn what it observed into deduplicated GitHub bug issues that the
-  build loop will pick up — each with a reproduction, a stable fingerprint key…
+  `deliver:e2e-tester` agent, then turn what it observed into deduplicated GitHub bug issues that
+  the build loop will pick up — each with a reproduction, a stable fingerp…
   → [`plugins/plenipo/skills/test/SKILL.md`](plugins/plenipo/skills/test/SKILL.md)
-- **pr-reviewer** *(agent — delegate)* — Reviews one open pull request as an adversary, from a
-  context that never saw the code being written: tries to refute the claim that it does what its
-  issue asked, and returns approve / request-changes / escalate.
+- **plenipo:pr-reviewer** *(agent — delegate)* — Reviews one open pull request as an adversary,
+  from a context that never saw the code being written: tries to refute the claim that it does
+  what its issue asked, and returns approve / request-changes / escalate.
   → [`plugins/plenipo/agents/pr-reviewer.md`](plugins/plenipo/agents/pr-reviewer.md)
 
 ### `scout`

@@ -13,7 +13,7 @@ shaped this way; read it once.
 > **New here? → [QUICKSTART.md](QUICKSTART.md).** Five minutes, two plugins, one command that saves
 > the most time. Come back here when you want the full map.
 >
-> **Want it to run itself? → [AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.md).** Seven verbs,
+> **Want it to run itself? → [AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.md).** Eight verbs,
 > one timer, and the gate list that lets a product merge without you.
 >
 > **Want the GitHub workflows? → [WORKFLOWS.md](WORKFLOWS.md).** Every reusable issue-triage, PR-review,
@@ -22,6 +22,11 @@ shaped this way; read it once.
 ## Install
 
 ### Claude Code
+
+The pinned Sonnet 5 and Opus 5 routes require Claude Code 2.1.219 or newer. Check with
+`claude --version` and upgrade with `claude update` before installing. The bundled names work as-is
+with Claude subscriptions and the Anthropic API. Bedrock, Vertex AI, and Foundry deployments must
+map them to provider-specific IDs or deployment names with Claude Code's `modelOverrides` setting.
 
 ```text
 /plugin marketplace add abrahamFerga/plenipo-agents
@@ -35,8 +40,9 @@ Then enable the plugins for the loop you're in:
   "extraKnownMarketplaces": {
     "plenipo-agents": { "source": { "source": "github", "repo": "abrahamFerga/plenipo-agents" } }
   },
+  "model": "claude-sonnet-5",                // cheap outer coordinator
   "enabledPlugins": {
-    "plenipo@plenipo-agents": true,    // the front door: seven loop verbs
+    "plenipo@plenipo-agents": true,    // the front door: eight loop verbs
     "harness@plenipo-agents": true,    // always on
     "scout@plenipo-agents":   false,
     "define@plenipo-agents":  false,
@@ -77,11 +83,12 @@ For Copilot in VS Code, the cloud agent, and code review, also commit the reposi
 files described in [Codex and Copilot](#codex-and-copilot). Plugin installation makes workflows
 available; instruction files carry the durable rules of one repository.
 
-## The plugin loops
+## The seven plugins
 
-Each loop plugin declares **Trigger · Goal · Execution · Verification · Stopping rule
-· Memory**, and ends in exactly one named state — `Success`, `No-op`, `Blocked`, `Stalled`,
-`Exhausted`, or `Approval-required`. *An error or an exhausted budget never counts as success.*
+The marketplace packages the product loops with their front door, shared control plane, and platform
+steward. Every bounded loop declares **Trigger · Goal · Execution · Verification · Stopping rule ·
+Memory**, and ends in exactly one named state — `Success`, `No-op`, `Blocked`, `Stalled`, `Exhausted`,
+or `Approval-required`. *An error or an exhausted budget never counts as success.*
 
 | Plugin | Loop | Goal | Default |
 |---|---|---|---|
@@ -172,11 +179,80 @@ That keeps ordinary PRs label-free without letting a PR authorize the policy tha
 
 **Agents** — delegate these; they run in their own context and return a report, not a transcript.
 
-| Agent | Delegate when |
+| Agent | Claude route | Delegate when |
+|---|---|---|
+| `deliver:product-developer` | Opus 5 · medium · 60 turns | `/plenipo:deliver` has selected one issue or rejected PR. Loads the one matching build/revision skill on demand, writes and proves the change, never reviews or merges it |
+| `deliver:product-improver` | Opus 5 · high · 60 turns | you want the product made *better* rather than an issue closed — uses the app as its intended user, logs friction, and ships **one** proven improvement as a PR |
+| `plenipo:pr-reviewer` | Sonnet 5 · medium · 24 turns | a pull request needs an independent second opinion — reads the issue, evidence and diff, tries to *refute* it, and cannot edit, push, label or merge |
+| `deliver:e2e-tester` | Sonnet 5 · medium · 40 turns | the system needs a sweep for observed breakage — boots it, walks real journeys, drives the UI, and returns ranked findings with reproductions; never edits |
+
+#### Token-efficient Claude Code routing
+
+Run the outer session on Sonnet 5 so polling, admission control, board reads and `No-op` ticks stay
+cheap. The launch flag changes this session only:
+
+```bash
+claude --model claude-sonnet-5
+```
+
+If Claude Code is already open, use `/model` and press `s`. Typing `/model claude-sonnet-5`
+directly also saves Sonnet 5 as your user default, which may be broader than intended.
+
+The worker boundary promotes only code-changing work to pinned Opus 5: `/plenipo:deliver` does its
+cheap checks first, then delegates a real issue or rejected PR to `deliver:product-developer`.
+`/plenipo:test` delegates its sweep to Sonnet 5. The unattended `ship` path launches no model at all;
+invoke the Sonnet 5 `plenipo:pr-reviewer` or dispatch the comment-only cloud reviewer only when a
+second opinion is worth its cost, never both for the same review. Every Claude Code worker requests
+an exact `claude-sonnet-5` or `claude-opus-5` model ID so a provider alias cannot silently select an
+older generation. Claude Code 2.1.219 or newer and provider access to both models are therefore hard
+requirements. Exact frontmatter is routing intent, not enforcement: when an organization policy
+blocks that subagent model, Claude Code can fall back to the inherited coordinator model. Make sure
+the effective model policy permits both routes. On Bedrock, Vertex AI, or Foundry, map
+`claude-sonnet-5` and `claude-opus-5` to the provider's version IDs, inference profiles, or deployment
+names with `modelOverrides`; the frontmatter stays unchanged while that deployment mapping is
+provider-specific. See
+Claude Code's [model configuration](https://code.claude.com/docs/en/model-config).
+
+Do not set `CLAUDE_CODE_SUBAGENT_MODEL` or pass a per-invocation model override when you want this
+routing, because both take precedence over agent frontmatter. `CLAUDE_CODE_EFFORT_LEVEL` likewise
+overrides each worker's declared effort. Invoking `/deliver:work-next-issue`
+directly also bypasses the worker boundary and uses the current session model: launch that direct
+session with `claude --model claude-opus-5`, or use `/plenipo:deliver` to route automatically. See
+Claude Code's
+[subagent reference](https://code.claude.com/docs/en/sub-agents) and
+[model configuration](https://code.claude.com/docs/en/model-config).
+
+Keep only the plugins for the current phase enabled. Skill and agent descriptions are always-on
+context even when their bodies never run:
+
+| Phase | Enabled plugins |
 |---|---|
-| `pr-reviewer` | a pull request needs a second opinion from a context that never saw it written — reads the issue, the evidence and the diff, tries to *refute* it, returns approve / request-changes / escalate. Cannot edit, push, label or merge |
-| `e2e-tester` | you want the whole system swept for what's actually broken — boots it, walks real journeys, drives the UI, returns ranked findings with reproductions. Read/run only, never edits |
-| `product-improver` | you want the product made *better* rather than an issue closed — uses the app as its intended user, logs friction, and ships **one** proven improvement as a PR |
+| everyday delivery, review and testing | `plenipo`, `harness`, `deliver` |
+| backlog definition or shaping | add `define` and `shape` for that session |
+| discovering or launching a product | add `scout`, `define` and `shape` |
+| platform stewardship | `plenipo`, `harness`, `steward` |
+
+The fully unattended, cross-phase fleet in `AUTOMATED_CLAUDE_LOOPS.md` is the deliberate exception:
+it keeps every phase available because a timer cannot reload plugins after the session starts.
+
+The turn limits above are conservative L4 circuit breakers, not measured optima or token budgets.
+Raise one only after an observed good run exhausts it; an arbitrary tight limit that forces a restart
+spends more than it saves.
+
+#### Coding with fewer tokens
+
+- Freeze one issue's acceptance checks before reading broad source; one behaviour and one PR per
+  tick keep failures attributable.
+- Run cheap deterministic gates before asking any model to review. Classification, status checks
+  and exact transforms belong in scripts, not even in Haiku.
+- Search by symbol or `rg`, open relevant ranges, and batch related reads and checks. Repository-wide
+  tours and repeated single-file reads spend context without changing the decision.
+- Load skills through the Skill tool when their branch is reached. A `skills:` preload injects the
+  complete body into every agent run, including runs that stop at preflight.
+- Return issue numbers, SHAs, paths, terminal states and evidence — never command transcripts. Keep
+  the noisy exploration inside the worker context.
+- Resume a branch that hit a circuit breaker instead of restarting from zero, and escalate model
+  tier once for a named ambiguity rather than repeatedly retrying with longer prompts.
 
 ## The part that saves the most time
 
@@ -306,6 +382,16 @@ bodies stay under the size limit; **no link escapes its plugin root** (plugins i
 so a path to a sibling plugin or the repo root simply does not exist at runtime); descriptions don't
 overlap enough to make routing ambiguous; nothing hardcodes a GitHub owner. It runs in CI on every
 push.
+
+Pull requests intentionally have **two automatic required checks**. `Validate marketplace` runs
+the structural validator, generated-index check, unattended-loop regression suites, asset-drift
+check and Markdown lint. `PR gates` checks evidence and protected-diff policy using the evaluator
+from the protected base branch.
+
+The unattended profile runs a deterministic merger. Model review is an optional, dispatch-only,
+comment-only second opinion: a provider failure creates no pull-request check and withholds no merge
+artifact. The older automatic marketplace reviewer stays off because it duplicates model work
+without adding merge authority.
 
 ## Known limitations
 

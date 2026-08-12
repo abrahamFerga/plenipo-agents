@@ -36,7 +36,7 @@ only remaining scope changes what the product *is*).
 
 - Under a timer: `/loop 6h /plenipo:define`, slower than the build loop by design.
 - `../deliver/SKILL.md` reported `No-op` because nothing was Ready.
-- Enhancement issues have accumulated from `product-improver` runs and nobody triaged them.
+- Enhancement issues have accumulated from `deliver:product-improver` runs and nobody triaged them.
 - Cards sit in `Backlog` because no one decided their shape.
 
 ## Stop Signals

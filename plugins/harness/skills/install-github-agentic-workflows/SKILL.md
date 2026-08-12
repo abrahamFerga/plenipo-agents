@@ -150,6 +150,11 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    outputs plus the absence of any unexpected mutation. A compile-only result is L1/L2, not runtime
    proof.
 
+   Comment-only `*-pr-intent-review.md` workflows are advisory and optional. Before enabling one
+   on every pull request, use `gh aw health` to prove the provider is reliable enough for the
+   repository; otherwise keep that second opinion on demand. It never replaces deterministic
+   required checks or grants merge authority.
+
 7. **Operate narrowly.** Keep triage verdicts and PR reviews as `COMMENT` outputs. Do not enable
    GitHub `APPROVE`, `REQUEST_CHANGES`, `push-to-pull-request-branch`, labels, or direct model
    merging. The deterministic merger remains the only component with merge permission.
@@ -211,6 +216,7 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 | Running before App installation/secrets exist | the first workflow fails and teaches agents to ignore red runs | configure credentials, then stage a proof |
 | Letting review automation submit `APPROVE` | a model satisfies branch protection's human review | keep `allowed-events: [COMMENT]` |
 | Making the reviewer automatic or required | a provider outage turns into a red PR or a stuck queue | dispatch only; deterministic checks own merge authority |
+| Auto-running an advisory reviewer through an unhealthy provider | duplicate red runs add no merge evidence | check `gh aw health`; keep comment-only review on demand |
 | Treating compiler green as full proof | trigger/output wiring can still be wrong | stage, then exercise a real issue and PR |
 
 ## Related skills

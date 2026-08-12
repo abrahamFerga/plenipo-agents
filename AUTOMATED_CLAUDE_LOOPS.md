@@ -42,6 +42,28 @@ real constraint is Docker: `deliver` and `test` boot the product, so **do not ru
 at the same moment** even in separate sessions. `ship`, `define` and `steward` never boot anything
 and can run alongside anything.
 
+### Spend Opus 5 only on code
+
+Start the outer session on Sonnet 5: `claude --model claude-sonnet-5`. It handles scheduling, admission
+control, board reads, deterministic gates and `No-op` ticks. When `deliver` finds actual work, it
+delegates only the selected issue or rejected PR to the pinned Opus 5
+`deliver:product-developer`. `test` delegates its bounded sweep to a Sonnet 5 agent. The unattended
+`ship` path launches no model; use the Sonnet 5 `plenipo:pr-reviewer` or dispatch the comment-only
+cloud reviewer only when a second opinion is worth its cost, never both for one review. Do not set
+`CLAUDE_CODE_SUBAGENT_MODEL`,
+because it overrides those per-agent routes and collapses every worker back onto one tier.
+These pinned routes require Claude Code 2.1.219 or newer and access to Sonnet 5 and Opus 5. The
+bundled names work directly with Claude subscriptions and the Anthropic API. Bedrock, Vertex AI, and
+Foundry deployments map them to provider-specific version IDs, inference profiles, or deployment
+names with `modelOverrides`. They express routing intent rather than overriding an organization
+model policy: a blocked subagent route can fall back to the inherited coordinator model, so the
+effective allowlist must permit both routes.
+
+The agents load conditional skills through the Skill tool instead of preloading their full bodies.
+That trims input tokens as well as price per token, and it keeps build/test transcripts out of the
+coordinator's context. Their `maxTurns` fields are runaway guards, not targets: resume an exhausted
+branch rather than replaying the work from the beginning.
+
 ### When to add the fleet scheduler
 
 `/loop 20m /plenipo:fleet` is the **scale-up**, not the starting point. It exists for when you have
@@ -100,6 +122,7 @@ settings, to cover every repo). The template is
 
 ```jsonc
 {
+  "model": "claude-sonnet-5",              // outer loop; code workers select Opus 5
   "enabledPlugins": {
     "plenipo@plenipo-agents": true,   // the eight verbs
     "harness@plenipo-agents": true,
@@ -220,7 +243,7 @@ So there are two planes, and they never share a context:
 
 | | Writes code | Judges code |
 |---|---|---|
-| **Where** | your machine (needs Docker to prove anything at runtime) | a fresh session's `pr-reviewer` agent, or GitHub Actions |
+| **Where** | an Opus 5 `deliver:product-developer` on your machine (needs Docker) | a fresh Sonnet 5 `plenipo:pr-reviewer`, or dispatch-only GitHub Actions |
 | **Can** | branch, implement, test, open a PR | read and comment when explicitly dispatched |
 | **Cannot** | bypass required checks or explicit holds | edit, push, label, approve, or merge |
 
@@ -427,10 +450,11 @@ deserves:
   — so a green run means *"the registered consumers still build and pass their own tests"*, never
   *"this release is safe"*. **Watch it go red against a deliberate break before trusting a platform
   auto-merge**; that is the single highest-value thing anyone can do to this repo.
-- **Cloud review is a separate, optional surface.** The local `pr-reviewer` needs no secret and no
-  bill, and is the default. If review must keep running with the machine off, use
-  `/harness:install-github-agentic-workflows` rather than a hand-rolled workflow: it compiles
-  SHA-pinned lock files and can be proven in staged mode before it can write anything.
+- **Cloud review never becomes merge authority.** The local Sonnet 5 `plenipo:pr-reviewer` and the
+  dispatch-only `pr-approval-verdict.md` are alternative on-demand second opinions. Do not stack
+  both for the same routine review. Install the cloud workflow through
+  `/harness:install-github-agentic-workflows`: it compiles SHA-pinned lock files and can be proven
+  in staged mode before it can write anything.
 - **Building needs a trusted writer machine, not a person in the loop.** Runtime proof means booting
   the product under Docker, so build, sweep and PR revision run in the persistent local timer.
   Review and merge keep working in the cloud while that machine is off; new code waits until the

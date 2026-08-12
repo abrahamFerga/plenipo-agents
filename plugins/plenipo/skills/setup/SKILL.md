@@ -204,10 +204,11 @@ your code).
    Owners* is a separate, human decision — it forces a human on every spine PR, which is exactly
    right for some products and too slow for others.
 
-8. **Write `.claude/settings.json`** from `assets/settings.json`, substituting the owner. Keep the
-   deny list; it is what stops an improvised force-push or repo deletion. Note in the report that
-   the deny list matches Bash strings only and cannot see inside the gate script, so
-   `autonomy.level` remains the authoritative control over merging.
+8. **Write `.claude/settings.json`** from `assets/settings.json`, substituting the owner. Its
+   Sonnet 5 default keeps the outer loop cheap; `deliver:product-developer` selects Opus 5 only for
+   code in its own context. Keep the deny list; it is what stops an improvised force-push or repo
+   deletion. Note in the report that the deny list matches Bash strings only and cannot see inside
+   the gate script, so `autonomy.level` remains the authoritative control over merging.
 
 9. **Optionally install cloud review.** Point at `/harness:install-github-agentic-workflows`; do not
    hand-roll it. `pr-approval-verdict.md` is dispatch-only and comment-only, so a model outage cannot

@@ -8,6 +8,9 @@ Choose the agent you use. The marketplace carries the same Plenipo workflows to 
 
 ### Claude Code
 
+The Sonnet 5 coordinator and Opus 5 development workers require Claude Code 2.1.219 or newer.
+Check with `claude --version` and upgrade with `claude update` first.
+
 ```text
 /plugin marketplace add abrahamFerga/plenipo-agents
 ```
@@ -41,6 +44,7 @@ Paste this into your product's `.claude/settings.json`:
   "extraKnownMarketplaces": {
     "plenipo-agents": { "source": { "source": "github", "repo": "abrahamFerga/plenipo-agents" } }
   },
+  "model": "claude-sonnet-5",                // cheap outer coordinator
   "enabledPlugins": {
     "plenipo@plenipo-agents": true,     // the eight verbs
     "harness@plenipo-agents": true,     // always on
@@ -52,6 +56,13 @@ Paste this into your product's `.claude/settings.json`:
   }
 }
 ```
+
+`/plenipo:deliver` keeps the outer loop on Sonnet 5 and routes actual code changes to an Opus 5
+worker. The bundled names work directly with Claude subscriptions and the Anthropic API. Bedrock,
+Vertex AI, and Foundry users must map `claude-sonnet-5` and `claude-opus-5` to their provider IDs or
+deployment names with Claude Code's
+[`modelOverrides`](https://code.claude.com/docs/en/model-config). In every deployment, the effective
+model allowlist must permit both routes; otherwise the worker can fall back to its coordinator.
 
 For Codex and Copilot CLI, the install commands above already select the same pair. `harness` +
 `deliver` is the right pair for ~90% of days.
@@ -83,7 +94,7 @@ dotnet test <Product>.slnx                      # prove it
 
 ## What to say, depending on what you want
 
-Seven verbs cover the whole lifecycle, and each one is a single bounded tick you can put on a timer:
+Eight verbs cover the whole lifecycle, and each one is a single bounded tick you can put on a timer:
 
 | You want… | Say this |
 |---|---|
@@ -93,6 +104,7 @@ Seven verbs cover the whole lifecycle, and each one is a single bounded tick you
 | the open PRs reviewed and merged | `/plenipo:ship` |
 | the product swept for bugs, filed as issues | `/plenipo:test` |
 | the backlog kept full | `/plenipo:define` |
+| the platform request/release queue advanced | `/plenipo:steward` *(platform repo)* |
 | all of it, across every product, forever | `/loop 20m /plenipo:fleet` |
 
 Underneath, those call the skills below — you can also invoke one directly when you know exactly what
@@ -102,8 +114,8 @@ you want:
 |---|---|
 | one issue implemented, nothing else | `/deliver:work-next-issue` |
 | to know if a change really works | `/deliver:verify-runtime` |
-| the whole system swept for bugs | *"use the e2e-tester agent"* |
-| the product made nicer to use | *"use the product-improver agent"* |
+| the whole system swept for bugs | *"use the deliver:e2e-tester agent"* |
+| the product made nicer to use | *"use the deliver:product-improver agent"* |
 | the platform to add something you need | `/deliver:request-platform-change` |
 | to move onto a newer platform release | `/deliver:upgrade-platform` |
 | to check the repo is in good shape | `/harness:validate-product` |

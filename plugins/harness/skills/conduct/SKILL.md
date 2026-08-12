@@ -43,7 +43,8 @@ off).
 
 - **You know the phase you want** → invoke that phase's command directly. The conductor is overhead
   when the next step is not in question.
-- **Only one issue needs building** → `/deliver:work-next-issue`.
+- **Only one issue needs building** → `/plenipo:deliver`, which delegates the selected
+  implementation to the Opus 5 worker.
 - **The question is "is this evidence good enough?"** → `loop-discipline`. This skill applies that
   ladder; it does not teach it.
 - **No product and no candidate industry yet** → start at `/scout:scan-fleet`; the conductor has
@@ -70,7 +71,7 @@ Phase commands live in other plugins. A disabled plugin means the command does n
 enabling one mid-run requires a reload the loop cannot perform on its own — the predecessor's
 stage-by-stage enabling was self-defeating for exactly this reason.
 
-**A full run enables all five, up front:**
+**A full product-build run enables all six entries below, up front:**
 
 ```json
 "enabledPlugins": {
@@ -101,12 +102,12 @@ it until the run ends**.
 | 4 | Ground | deliver | `/deliver:scaffold-product` → `/deliver:install-runbook` | `PLAN.md` | repo + board, the host, `RUNBOOK.md`, the E2E fixture | `dotnet build <Product>.slnx` and `dotnet test tests/<Product>.IntegrationTests` both exit 0, and `/harness:validate-product` exits 0 (L1+L2) |
 | 5 | Backlog | define | `/define:sync-backlog` | `PLAN.md` + the repo | epic and feature issues on the board | the board returns ≥1 item and every epic has ≥1 feature under it (L1) |
 | 6 | Design | shape | `/shape:design-product` | `SPEC.md`, `PLAN.md` | `ARCH.md`, `DECISIONS.md`, cards moved to Ready | both files exist, ≥1 item is `Ready`, every non-default choice has an ADR (L2) |
-| 7 | Build | deliver | `/deliver:work-next-issue` — repeat | one `Ready` issue | a branch and an open PR | a PR exists carrying runtime evidence and the card is `In Review` (L1). **Merging is not this phase's** — `/plenipo:ship` or a human does it, under the recorded autonomy level |
+| 7 | Build | deliver | `/plenipo:deliver` — repeat | one `Ready` issue | a branch and an open PR | a PR exists carrying runtime evidence and the card is `In Review` (L1). **Merging is not this phase's** — `/plenipo:ship` or a human does it, under the recorded autonomy level |
 | 8 | Prove | deliver | `/deliver:verify-runtime` | the merged change | a regression test + runtime evidence | rungs 1–3 green; the test seen **red before, green after**; an AG-UI turn ends `RUN_FINISHED` with no `RUN_ERROR` (L1+L3) |
 
 **Phase 4 sits inside the definition loop on purpose.** Issues need a repo, so the product must be
 scaffolded before `sync-backlog` can publish anything. It is the one place the pipeline is not
-strictly plugin-ordered — and the clearest reason to have all five plugins enabled from the start.
+strictly plugin-ordered — and the clearest reason to have all six entries enabled from the start.
 
 **Phase 8 runs twice over:** once per issue inside phase 7 (that is what makes a merge honest), and
 once more on the final merged state before you may claim `Success`.
@@ -152,8 +153,9 @@ the board, and appending the journal. **That list is exhaustive.** If you find y
 6. **Journal.** Append one entry to `CONDUCT.md`: phase, terminal state, the command run, its exit
    code or the artifact path, and the next command. Then continue or stop.
 
-7. **Drain the board** (phase 7, repeated). One issue in flight at a time; re-check the budget and
-   the no-progress detector after each iteration.
+7. **Drain the board** (phase 7, repeated). Invoke `/plenipo:deliver` once per iteration so the
+   Sonnet coordinator delegates implementation to `deliver:product-developer` on Opus 5. Keep one
+   issue in flight at a time; re-check the budget and the no-progress detector after each iteration.
 
 8. **Close out.** Re-run phase 8 on the merged state, then end in exactly one named terminal state
    and write it into the journal. Unmerged PRs mean `Approval-required`, never `Success`.
@@ -298,5 +300,6 @@ worse than a failed one, because nobody goes looking.
 - `plenipo-platform` — what the platform already provides, so no phase builds a weaker copy of it.
 - `../validate-product/SKILL.md` — the read-only L2 audit the phase 4 gate calls, and worth re-running
   before any merge. **Load when:** a gate needs a config- or guardrail-level verdict.
-- `/deliver:work-next-issue` — the per-issue loop phase 7 iterates.
+- `/plenipo:deliver` — the admission-controlled phase 7 tick; it delegates selected implementation
+  to the Opus 5 product-developer agent.
 - `/deliver:verify-runtime` — the runtime proof phase 8 depends on.

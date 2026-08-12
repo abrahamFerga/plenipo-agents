@@ -3,7 +3,7 @@ name: ship
 description: >
   One merge tick: for every open pull request the loop produced, merge only what clears a fixed list
   of deterministic gates at or below the autonomy level this repo has actually earned. Delegate an
-  adversarial second opinion to `pr-reviewer` only when a person asks or the evidence is ambiguous;
+  adversarial second opinion to `plenipo:pr-reviewer` only when a person asks or the evidence is ambiguous;
   model availability is never a merge prerequisite. A diff that removes a query filter, approval
   flag or permission grant, or edits the merge-policy trust root itself, stops for an owner
   bootstrap; ordinary protected changes are re-evaluated by the protected-base gate.
@@ -59,7 +59,7 @@ diagnosis is wrong, not the gate).
 | Every gate's verdict | `node .github/scripts/merge-gate.mjs` | what may merge, and why not |
 | Autonomy level (0–3) | `workflow.json` → `autonomy.level` — **read it, never infer it**; the script reads the same field | which change classes may merge |
 | Merge cap per tick | `workflow.json` → `autonomy.maxMergesPerTick` (default 2) | blast-radius limit |
-| The PR under review | `gh pr view <n> --json title,body,files` + `gh pr diff <n>` | what the `pr-reviewer` agent reads |
+| The PR under review | `gh pr view <n> --json title,body,files` + `gh pr diff <n>` | what the independent reviewer reads |
 | The issue's acceptance criteria | the issue the body says it closes | the yardstick the review grades against |
 
 ## The gates
@@ -202,7 +202,7 @@ switches them on by reading `stage` itself, so they are never something this ver
 
 | Pitfall | Consequence | Do instead |
 |---|---|---|
-| Reviewing in the session that wrote the code | the grade drifts up while quality stalls | a fresh context, or the `pr-reviewer` agent only |
+| Reviewing in the session that wrote the code | the grade drifts up while quality stalls | a fresh context, or the Sonnet 5 `plenipo:pr-reviewer` agent only |
 | Relying on GitHub's own AI review as the gate | provider availability becomes merge availability | keep review optional and let deterministic checks decide |
 | Enabling GitHub auto-merge as well | auto-merge waits only for configured conditions, so a PR can merge while review is still running | never pair them; this tick is the only merger |
 | Ignoring `checks_exist` on a repo with no CI | green means nothing and every gate below it is vacuous | no checks, no merge |
