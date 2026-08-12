@@ -76,6 +76,10 @@ const CONTENT_RULES = [
   [/AddPlenipoRole/, 'a role baseline (AddPlenipoRole)'],
   [/Permissions\s*\./, 'a permission string'],
 ];
+// These symbols are executable invariants, not magic words. Scanning Markdown made ordinary docs
+// edits look like tenant-isolation removals. Restrict removal checks to source files while still
+// retaining the old source path across a rename or deletion.
+const INVARIANT_SOURCE_PATH = /\.(?:cs|csx|fs|fsx|vb|ts|tsx|js|jsx|razor)$/i;
 
 const PATH_RULES = [
   [/^\.github\//, 'CI and workflow configuration'],
@@ -132,9 +136,12 @@ for (const line of readFileSync(diffPath, 'utf8').split('\n')) {
   // A modified line shows up as both '-' and '+', so scanning removals catches edits AND deletions
   // while leaving pure additions alone.
   if (line.startsWith('-') && !line.startsWith('---')) {
-    for (const [rule, what] of CONTENT_RULES) {
-      if (rule.test(line)) {
-        lockedHits.push(`${file} — removes or edits ${what}: ${line.slice(1).trim()}`);
+    const invariantPath = oldFile && oldFile !== '/dev/null' ? oldFile : file;
+    if (INVARIANT_SOURCE_PATH.test(invariantPath)) {
+      for (const [rule, what] of CONTENT_RULES) {
+        if (rule.test(line)) {
+          lockedHits.push(`${invariantPath} — removes or edits ${what}: ${line.slice(1).trim()}`);
+        }
       }
     }
   }

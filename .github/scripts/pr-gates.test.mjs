@@ -19,6 +19,7 @@ const protectedDiff = join(scratch, 'protected-manifest.diff');
 const githubConfigDiff = join(scratch, 'github-config.diff');
 const unprotectedDiff = join(scratch, 'unprotected.diff');
 const invariantRemovalDiff = join(scratch, 'invariant-removal.diff');
+const invariantProseDiff = join(scratch, 'invariant-prose.diff');
 const renameDiff = join(scratch, 'rename-out.diff');
 const deleteDiff = join(scratch, 'delete.diff');
 
@@ -47,6 +48,15 @@ writeFileSync(invariantRemovalDiff, [
   '@@ -1 +1 @@',
   '-builder.Entity<Order>().HasQueryFilter(order => order.TenantId == tenant.Id);',
   '+builder.Entity<Order>();',
+  '',
+].join('\n'));
+writeFileSync(invariantProseDiff, [
+  'diff --git a/README.md b/README.md',
+  '--- a/README.md',
+  '+++ b/README.md',
+  '@@ -1 +1 @@',
+  '-The implementation uses HasQueryFilter for tenant isolation.',
+  '+Tenant isolation is enforced by the implementation.',
   '',
 ].join('\n'));
 writeFileSync(unprotectedDiff, [
@@ -162,6 +172,14 @@ const cases = [
     status: 1,
     patterns: [/control_policy_locked/, /HasQueryFilter/],
     why: 'body evidence cannot authorize removal of tenant isolation',
+  },
+  {
+    name: 'security invariant prose edit',
+    result: () => run(invariantProseDiff),
+    status: 0,
+    patterns: [/not a loop branch: evidence gates skipped/],
+    absent: [/control_policy_locked/],
+    why: 'removing a source symbol from Markdown is not removing the executable invariant',
   },
   {
     name: 'traditional candidate missing protocol envelope',
