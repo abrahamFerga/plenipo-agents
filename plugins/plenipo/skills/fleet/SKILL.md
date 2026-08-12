@@ -55,6 +55,7 @@ budget is spent) · `Approval-required` (the only remaining work everywhere need
 | Board state | `gh project item-list` per product | Ready / In Progress counts |
 | PR state | `gh pr list --state open --json number,labels,headRefName,body` per product | back-pressure and review debt |
 | Bugs | `gh issue list --label type:bug --state open` per product | p0 preemption |
+| Tagged background requests | exact `plenipo-request` and `harness-request` markers in open product issue/PR bodies, plus live upstream state and labels | needs-info routing without a human relay |
 | Last swept commit, last served tick, failure streak | `FLEET-RUN.md` at the fleet root | fairness, sweep cadence, quarantine |
 
 `fleet.json` is deliberately thin — paths only. Everything else is read from the product itself, so
@@ -80,15 +81,17 @@ there is never a second copy of an autonomy level to drift:
    in a fortnight.
 
 3. **Gather state, read-only, for every non-quarantined product.** One pass per product: board
-   counts, open PRs with labels, open p0 bugs, HEAD on the default branch. Do not boot anything
-   here. Record open PRs as two numbers — total, and the loop-branch subset the scoring rules
-   actually use — so a queue full of PRs no verb can merge is visible rather than merely felt.
+   counts, open PRs with labels, open p0 bugs, tagged background requests with live labels, HEAD on
+   the default branch. Do not boot anything here. Record open PRs as two numbers — total, and the
+   loop-branch subset the scoring rules actually use — so a queue full of PRs no verb can merge is
+   visible rather than merely felt.
 
 4. **Score each product** by the first rule that matches. The rule number *is* the priority — lower
    wins:
 
    | Rule | Condition | Verb |
    |---|---|---|
+   | 0 | an exact tagged platform or harness issue is open, carries `triage:needs-info`, has no `needs-human`, `human-hold`, or `agent:blocked`, and has no other `triage:*` verdict | `../deliver/SKILL.md` — its step 2 owns the requester-side reply |
    | 1 | `main` is red, or a merged PR broke the default branch | `../deliver/SKILL.md` (fix first) |
    | 2 | a PR is `agent:changes-requested` | `../deliver/SKILL.md` — its rule 1 owns a rejected PR |
    | 3 | a PR is `agent:approved`, or one carries no verdict label yet | `../ship/SKILL.md` |
@@ -132,8 +135,8 @@ there is never a second copy of an autonomy level to drift:
    ```
 
 8. **Report**: the product served and why, its verb's terminal state, and a one-line-per-product
-   table of the whole fleet — Ready, In Progress, open PRs (loop / total), p0 bugs, autonomy level,
-   last swept,
+   table of the whole fleet — Ready, In Progress, open PRs (loop / total), needs-info requests, p0
+   bugs, autonomy level, last swept,
    quarantine. That table is the deliverable in report mode, and the reason a portfolio can be
    supervised in a couple of minutes a day.
 

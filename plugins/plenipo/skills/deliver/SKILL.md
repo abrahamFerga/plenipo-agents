@@ -27,7 +27,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 
 | State | Here it means |
 |---|---|
-| `Success` | one item advanced — a PR opened, or a rejected PR fixed and pushed |
+| `Success` | one item advanced — a request reply sent, a PR opened, or a rejected PR fixed and pushed |
 | `No-op` | nothing to do, and that is correct: nothing Ready, or review is the constraint |
 | `Blocked` | Docker down, `gh` unauthenticated, dirty tree, or no `RUNBOOK.md` to prove against |
 | `Stalled` | two consecutive ticks moved nothing — stop the timer, the diagnosis is wrong |
@@ -60,6 +60,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 | Bug issues | `gh issue list --label type:bug --state open` | p0 bugs preempt features |
 | Ceilings | `workflow.json` → `autonomy.maxOpenPRs` (default 3) | the back-pressure limit |
 | Last tick's outcome | `TICKS.md` at the repo root | stagnation detection |
+| Tagged background requests | exact `<!-- plenipo-request repo=<owner/name> issue=<n> -->` and `<!-- harness-request repo=<owner/name> issue=<n> -->` markers in open product issue/PR bodies | deterministic needs-info wake-up |
 
 ## Workflow
 
@@ -71,12 +72,26 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    exists. Any failure is `Blocked` — name which one and stop. Do not "fix" a dirty tree by
    committing or stashing someone else's work.
 
-2. **Read the last two ticks** from `TICKS.md`. If the previous two both ended `No-op` or `Success`
+2. **Service a background needs-info request first.** Query open product issue and PR bodies and
+   extract only exact `plenipo-request repo=<owner/name> issue=<n>` and
+   `harness-request repo=<owner/name> issue=<n>` markers. Fetch those upstream issues with
+   `state`, `labels`, and `createdAt`. Select only an open issue carrying `triage:needs-info`, none
+   of `needs-human`, `human-hold`, or `agent:blocked`, and no other `triage:*` verdict; choose the
+   oldest by live `createdAt`. Hand it to `/deliver:request-platform-change` or
+   `/harness:report-harness-gap` in resume mode, journal that reply, and stop. Those skills verify
+   the trusted triage run and edit the existing upstream body so the guarded triage event fires.
+
+   For migration only, a `TODO(plenipo#N)` may supply the issue number after resolving the platform
+   repository from the pinned `Plenipo.Core` package's `.nuspec`; a `harness-gap: <repo>#N` note may
+   supply the marketplace issue. The resume skill must write the exact product-side marker before
+   stopping, so later ticks never guess a destination.
+
+3. **Read the last two ticks** from `TICKS.md`. If the previous two both ended `No-op` or `Success`
    with **no card movement and no commit**, stop as `Stalled` and say so in the journal. A timer
    pointed at a stalled loop is the runaway anti-pattern, and it is expensive precisely because it
    looks like work.
 
-3. **Pick what deserves the tick**, in this order. The first match wins; say which rule fired.
+4. **Pick what deserves the tick**, in this order. The first match wins; say which rule fired.
 
    | Priority | Condition | Action |
    |---|---|---|
@@ -86,7 +101,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    | 4 | `Ready` cards exist and open loop PRs < `maxOpenPRs` | take the top one by Build order |
    | 5 | otherwise | `No-op`, with the reason |
 
-4. **Check the back-pressure ceiling before rule 4.** If open **loop** PRs ≥ `maxOpenPRs`, report
+5. **Check the back-pressure ceiling before rule 4.** If open **loop** PRs ≥ `maxOpenPRs`, report
    `No-op` with *"review is the constraint, not build capacity"* and name the waiting PRs. This is
    the single most important line in the skill: an unattended builder with no ceiling converts a
    review backlog into an unreviewable one, and every extra branch makes the next rebase worse.
@@ -101,7 +116,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    flight. Name the excluded count in the report — *"9 open, 1 loop PR, 8 Dependabot"* — because a
    filter nobody can see is indistinguishable from a ceiling that is not being enforced.
 
-5. **Hand off.** Invoke `/deliver:work-next-issue` and let it own the whole procedure — branch, implement,
+6. **Hand off.** Invoke `/deliver:work-next-issue` and let it own the whole procedure — branch, implement,
    climb the ladder, prove at runtime, open the PR, move the card to In Review. Pass it the issue
    number you selected. **Do not re-perform any of its steps here**, and do not summarize its
    procedure into this tick; one source per procedure.
@@ -111,7 +126,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    replying so the reviewer can see what happened without re-reading the diff. When it reports back,
    remove `agent:changes-requested` so `../ship/SKILL.md` re-evaluates the PR.
 
-6. **Journal the tick.** Append one line to `TICKS.md`:
+7. **Journal the tick.** Append one line to `TICKS.md`:
 
    ```text
    2026-07-29T22:14Z · deliver · rule 4 · #128 · Success · PR #131 opened · L1 build+tests, L3 e2e
@@ -120,7 +135,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    That file is the loop's memory. The conversation is not: compaction erases it, and the next tick
    is usually a fresh session.
 
-7. **Report the terminal state** and, if `No-op` or `Blocked`, the single next action a human or
+8. **Report the terminal state** and, if `No-op` or `Blocked`, the single next action a human or
    another verb should take.
 
 ## Guardrails
