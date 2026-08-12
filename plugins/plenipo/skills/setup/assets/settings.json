@@ -3,7 +3,9 @@
 
   "extraKnownMarketplaces": {
     "plenipo-agents": {
-      "source": { "source": "github", "repo": "<owner>/plenipo-agents" }
+      "//autoUpdate": "Third-party marketplaces default to MANUAL updates. Without this an unattended loop keeps running whatever plugin version was installed the day the repo was set up, and a skill fix published here never reaches it.",
+      "source": { "source": "github", "repo": "<owner>/plenipo-agents" },
+      "autoUpdate": true
     }
   },
 
