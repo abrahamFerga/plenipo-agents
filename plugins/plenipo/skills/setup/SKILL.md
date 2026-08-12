@@ -71,7 +71,7 @@ your code).
 | 3 | the `autonomy` block | `workflow.json` | the only place the merge level is recorded |
 | 4 | labels | the repo | the verbs' state machine — without them the loops cannot find work |
 | 5 | `pr-gates.mjs` + `agent-gates.yml` | `.github/` | **the evidence and spine checks, loaded from the protected base — the real gate** |
-| 6 | `approval-proof.mjs` + `merge-gate.mjs` + `verdict-retry.mjs` + `agent-merge.yml` | `.github/` | approval provenance, one merge policy and bounded recovery when the model provider fails |
+| 6 | `approval-proof.mjs` + `merge-gate.mjs` + `verdict-retry.mjs` + `triage-retry.mjs` + `agent-merge.yml` | `.github/` | approval provenance, one merge policy and bounded recovery when the model provider fails |
 | 6b | `agent-approval-reset.yml` | `.github/` | expires `agent:approved` on new commits — **required before any cloud approval is trusted** |
 | 7 | `CODEOWNERS` | repo root | records ownership of spine paths; `pr-gates.mjs` remains the unattended enforcement |
 | 8 | branch protection | GitHub settings | what makes 5 and 6 mandatory instead of advisory |
@@ -115,11 +115,19 @@ your code).
 
 4. **Copy the gate, verdict-recovery and policy-test files** from `assets/` into `.github/scripts/`
    and their workflows into `.github/workflows/`. This includes `approval-proof.mjs`,
-   `verdict-retry.mjs`, all five `*.test.mjs` files, `fixtures/check-rollup.json`, and
+   `verdict-retry.mjs`, `triage-retry.mjs`, all six `*.test.mjs` files,
+   `fixtures/check-rollup.json`, and
    `agent-approval-reset.yml`. Copy them
    **verbatim** — resist
    "improving" them in transit, because the one property that matters is that the same file runs in
    CI and locally.
+
+   `agent-merge.yml` runs issue-triage recovery as a separate scheduled job. It discovers only
+   open, target-labeled, unheld issues, correlates versioned per-issue runs, and retries at a capped
+   backoff with at most two Actions mutations per tick. It renews with a fresh dispatch before the
+   workflow-rerun age or attempt ceiling. It is intentionally independent of `AGENT_AUTOMERGE`; use
+   the separate `AGENT_TRIAGE_RECOVERY=off` repository variable only as an explicit kill switch for
+   that repair path.
 
    Verbatim cuts both ways, and the direction people forget is the one that bit this marketplace:
    if a product has already improved its copy, **port the improvement up to `assets/` and re-vendor
@@ -146,6 +154,7 @@ your code).
    node .github/scripts/approval-proof.test.mjs
    node .github/scripts/merge-gate.test.mjs
    node .github/scripts/verdict-retry.test.mjs
+   node .github/scripts/triage-retry.test.mjs
    node .github/scripts/agent-approval-reset.test.mjs
    ```
 

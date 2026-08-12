@@ -54,17 +54,17 @@ marketplace has its own.
 | [`product-platform-escalation.md`](plugins/harness/skills/install-github-agentic-workflows/assets/product-platform-escalation.md) | product | issue labeled `platform:request`, or dispatch | 1 issue **in the platform repo**, ≤1 label, 1 comment |
 | [`product-harness-feedback.md`](plugins/harness/skills/install-github-agentic-workflows/assets/product-harness-feedback.md) | product | issue labeled `harness:gap`, or dispatch | 1 issue **in the marketplace repo**, ≤1 label, 1 comment |
 | [`product-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/product-pr-intent-review.md) | product | pull request | ≤8 inline comments, 1 `COMMENT` review |
-| [`platform-request-triage.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-request-triage.md) | platform | issue opened/reopened/labeled | ≤3 labels, remove `needs-triage`, 1 comment |
+| [`platform-request-triage.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-request-triage.md) | platform | issue labeled `platform-request`, reopened, dispatched, or a needs-info body edit | ≤3 labels, remove waiting labels, 1 comment |
 | [`platform-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-pr-intent-review.md) | platform | pull request | ≤8 inline comments, 1 `COMMENT` review |
 | [`platform-release-impact.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-release-impact.md) | platform | release published, or dispatch | 1 issue **in one named product repo** |
-| [`marketplace-harness-gap-triage.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-harness-gap-triage.md) | marketplace | issue opened/reopened/labeled | ≤3 labels, remove `needs-triage`, 1 comment |
+| [`marketplace-harness-gap-triage.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-harness-gap-triage.md) | marketplace | issue labeled `harness-gap`, reopened, dispatched, or a needs-info body edit | ≤3 labels, remove waiting labels, 1 comment |
 | [`marketplace-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-pr-intent-review.md) | marketplace — optional after health proof | pull request | ≤8 inline comments, 1 `COMMENT` review |
 | [`pr-approval-verdict.md`](plugins/harness/skills/install-github-agentic-workflows/assets/pr-approval-verdict.md) | any role — **opt-in** | pull request, or dispatch | 1 verdict label, remove `agent:changes-requested`, ≤6 inline comments, 1 comment |
 
 The three that write across repositories — escalation, harness feedback, and release-impact — need a
 GitHub App installed on exactly the two repos involved, never a broad PAT. The rest need only
 `COPILOT_GITHUB_TOKEN`. Note that harness feedback targets a **different** repo from the other two:
-the marketplace, read from `workflow.json` → `skills.self.repo`.
+the marketplace, read from the `workflow.json` `skills.external[]` entry for `plenipo-agents`.
 
 ### How the issue path fits together
 
@@ -86,11 +86,18 @@ From [`plugins/plenipo/skills/setup/assets/`](plugins/plenipo/skills/setup/asset
 | Template | Trigger | Purpose |
 |---|---|---|
 | [`agent-gates.yml`](plugins/plenipo/skills/setup/assets/agent-gates.yml) | pull request, incl. `edited`/`labeled` | runs the protected base's `pr-gates.mjs`; **make it a required check** or it gates nothing |
-| [`agent-merge.yml`](plugins/plenipo/skills/setup/assets/agent-merge.yml) | schedule every 15 min, or dispatch | recovers missing verdicts, then runs `merge-gate.mjs`; needs `agent:approved` and `autonomy.level >= 1` |
+| [`agent-merge.yml`](plugins/plenipo/skills/setup/assets/agent-merge.yml) | schedule every 15 min, or dispatch | independently recovers issue-triage and PR verdicts, then runs `merge-gate.mjs`; merging needs `agent:approved` and `autonomy.level >= 1` |
 | [`agent-approval-reset.yml`](plugins/plenipo/skills/setup/assets/agent-approval-reset.yml) | pull request `synchronize`/`edited`/`reopened`, or dispatch | drops verdict labels when the diff or evidence body changes — **install it before trusting any auto-merge** |
-| [`approval-proof.mjs`](plugins/plenipo/skills/setup/assets/approval-proof.mjs) · [`pr-gates.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.mjs) · [`merge-gate.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.mjs) · [`verdict-retry.mjs`](plugins/plenipo/skills/setup/assets/verdict-retry.mjs) | — | approval provenance, deterministic evidence/merge policy and bounded same-head verdict recovery |
-| [`approval-proof.test.mjs`](plugins/plenipo/skills/setup/assets/approval-proof.test.mjs) · [`pr-gates.test.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.test.mjs) · [`merge-gate.test.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.test.mjs) · [`verdict-retry.test.mjs`](plugins/plenipo/skills/setup/assets/verdict-retry.test.mjs) · [`agent-approval-reset.test.mjs`](plugins/plenipo/skills/setup/assets/agent-approval-reset.test.mjs) | — | no-network regression proof for the policy scripts and verdict lifecycle |
+| [`approval-proof.mjs`](plugins/plenipo/skills/setup/assets/approval-proof.mjs) · [`pr-gates.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.mjs) · [`merge-gate.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.mjs) · [`verdict-retry.mjs`](plugins/plenipo/skills/setup/assets/verdict-retry.mjs) · [`triage-retry.mjs`](plugins/plenipo/skills/setup/assets/triage-retry.mjs) | — | approval provenance, deterministic evidence/merge policy and bounded PR/issue recovery |
+| [`approval-proof.test.mjs`](plugins/plenipo/skills/setup/assets/approval-proof.test.mjs) · [`pr-gates.test.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.test.mjs) · [`merge-gate.test.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.test.mjs) · [`verdict-retry.test.mjs`](plugins/plenipo/skills/setup/assets/verdict-retry.test.mjs) · [`triage-retry.test.mjs`](plugins/plenipo/skills/setup/assets/triage-retry.test.mjs) · [`agent-approval-reset.test.mjs`](plugins/plenipo/skills/setup/assets/agent-approval-reset.test.mjs) | — | no-network regression proof for the policy scripts and verdict lifecycle |
 | [`CODEOWNERS`](plugins/plenipo/skills/setup/assets/CODEOWNERS) | — | the paths an agent may never merge unreviewed |
+
+Needs-info triage has a requester-side return path rather than a human relay. Product `deliver` and
+`fleet` ticks scan exact upstream-repository/issue markers in open product issue and PR bodies,
+reject held or already-final requests, then route one referenced issue to `request-platform-change`
+or `report-harness-gap`. Those skills accept only a marked `github-actions[bot]` comment whose
+successful v2 run is verified on the live default branch, then repair the existing issue body. The
+guarded `edited` event and scheduled `triage-retry.mjs` take it back from there.
 
 The reviewer is irreducibly a judgement, so the unattended profile installs one agentic
 `pr-approval-verdict.md` — the only component that produces both `agent:approved` and the
