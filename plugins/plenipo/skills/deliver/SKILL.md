@@ -175,8 +175,10 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 
 ## Related skills
 
-- `/deliver:work-next-issue` — the build procedure. **Load when:** rules 2–5 fire.
-- `/deliver:revise-pr` — owns answering a PR that came back. **Load when:** rule 1 fires.
+- `/deliver:work-next-issue` — the build procedure. **Loaded only by:**
+  `deliver:product-developer` after rules 2–5 delegate selected work.
+- `/deliver:revise-pr` — owns answering a PR that came back. **Loaded only by:**
+  `deliver:product-developer` after rule 1 delegates the rejected PR.
 - `../ship/SKILL.md` — reviews and merges what this produces. **Load when:** PRs are piling up.
 - `../define/SKILL.md` — refills the board this drains. **Load when:** nothing is Ready.
 - `../test/SKILL.md` — files the bug issues rule 3 prioritizes.
