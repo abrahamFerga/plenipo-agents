@@ -52,10 +52,12 @@ unattended `ship` path uses one revision-bound cloud verdict instead of also lau
 reviewer; use the Sonnet 5 `plenipo:pr-reviewer` only for an attended second opinion. Do not set
 `CLAUDE_CODE_SUBAGENT_MODEL`,
 because it overrides those per-agent routes and collapses every worker back onto one tier.
-These pinned routes require Claude Code 2.1.219 or newer and provider access to
-`claude-sonnet-5` and `claude-opus-5`. They express routing intent rather than overriding an
-organization model policy: a blocked subagent route can fall back to the inherited coordinator
-model, so the effective allowlist must permit both exact IDs.
+These pinned routes require Claude Code 2.1.219 or newer and access to Sonnet 5 and Opus 5. The
+bundled names work directly with Claude subscriptions and the Anthropic API. Bedrock, Vertex AI, and
+Foundry deployments map them to provider-specific version IDs, inference profiles, or deployment
+names with `modelOverrides`. They express routing intent rather than overriding an organization
+model policy: a blocked subagent route can fall back to the inherited coordinator model, so the
+effective allowlist must permit both routes.
 
 The agents load conditional skills through the Skill tool instead of preloading their full bodies.
 That trims input tokens as well as price per token, and it keeps build/test transcripts out of the

@@ -22,15 +22,17 @@ Plugins **auto-discover** everything under `skills/` and `agents/`. There is no 
 and **no catalog file** — adding one is an explicit non-goal. Only a whole new *plugin* needs a
 `marketplace.json` entry.
 
-## The five plugins
+## The seven plugins
 
 | Plugin | Loop | Default |
 |---|---|---|
+| `plenipo` | front door — eight bounded verbs | on |
 | `harness` | control plane — always available | on |
 | `scout` | discovery | off |
 | `define` | definition | off |
 | `shape` | design | off |
 | `deliver` | build + verification | on |
+| `steward` | platform request + release loop | platform repo only |
 
 Put a skill in the loop that *runs* it. If a skill is needed in every loop, it belongs in `harness`.
 
@@ -156,11 +158,14 @@ maxTurns: 24        # a runaway circuit breaker, not a promised token budget
 
 Pin bounded workers to `claude-sonnet-5` and development to `claude-opus-5`: the requirement is an
 exact generation, not whichever older model a provider maps from a family alias. This requires
-Claude Code 2.1.219 or newer and provider access to both models. Exact frontmatter expresses routing
-intent; an organization policy that excludes the requested subagent model can still fall back to
-the inherited model, so deployments must permit both exact IDs. Haiku may remain a family alias
-when it is deliberately chosen as the cheapest tier. The marketplace rejects `inherit`, bare
-`sonnet` and bare `opus`; otherwise a route can silently change model tier or generation.
+Claude Code 2.1.219 or newer and access to both models. The names work directly with Claude
+subscriptions and the Anthropic API; Bedrock, Vertex AI, and Foundry deployments map the same
+Anthropic IDs to provider-specific version IDs, inference profiles, or deployment names through
+`modelOverrides`. Exact frontmatter expresses routing intent; an organization policy that excludes
+the requested subagent model can still fall back to the inherited model, so deployments must permit
+both routes. Haiku may remain a family alias when it is deliberately chosen as the cheapest tier.
+The marketplace rejects `inherit`, bare `sonnet` and bare `opus`; otherwise a route can silently
+change model tier or generation.
 `maxTurns` prevents runaway recursion; it does not replace the skill's named terminal states, and
 a tight cap that causes a restart costs more than the turns it saved.
 
@@ -174,7 +179,7 @@ a tight cap that causes a restart costs more than the turns it saved.
 
 ## Checklist — new skill
 
-0. Ask whether it needs to exist. The user-facing surface is the seven `plenipo` verbs; a new skill
+0. Ask whether it needs to exist. The user-facing surface is the eight `plenipo` verbs; a new skill
    they must remember is a cost, and the right answer is often a step inside a verb instead.
 1. Create `plugins/<plugin>/skills/<name>/` under the plugin that owns its loop.
 2. Write `SKILL.md`: valid frontmatter, the section order above, `DO NOT USE FOR:` in the
@@ -182,7 +187,7 @@ a tight cap that causes a restart costs more than the turns it saved.
 3. Decide automatic vs manual and set `disable-model-invocation` accordingly.
 4. Verify every version, package id, and API name against source.
 5. **Run `node eng/validate-marketplace.mjs` — it must exit 0.**
-6. Run `npx markdownlint-cli2 "**/*.md"`.
+6. Run `npx --yes markdownlint-cli2@0.23.2 "**/*.md" "#node_modules"`.
 7. Add a row to the matching table in `README.md`.
 
 ## Checklist — new agent, hook, or script

@@ -16,8 +16,8 @@ This repo contains **no application code** — it is markdown skills plus one No
 ## Build and test
 
 ```bash
-node eng/validate-marketplace.mjs                      # L1 — structural invariants; must exit 0
-npx markdownlint-cli2 "**/*.md" "#node_modules"        # L2 — prose conventions
+node eng/validate-marketplace.mjs                              # L1 — structural invariants; must exit 0
+npx --yes markdownlint-cli2@0.23.2 "**/*.md" "#node_modules"   # L2 — prose conventions
 ```
 
 Both run in CI on every push. **Run them before saying you are done.** There is nothing else to

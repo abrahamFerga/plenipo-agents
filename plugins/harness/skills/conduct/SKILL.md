@@ -70,7 +70,7 @@ Phase commands live in other plugins. A disabled plugin means the command does n
 enabling one mid-run requires a reload the loop cannot perform on its own — the predecessor's
 stage-by-stage enabling was self-defeating for exactly this reason.
 
-**A full run enables all five, up front:**
+**A full product-build run enables all six entries below, up front:**
 
 ```json
 "enabledPlugins": {
@@ -106,7 +106,7 @@ it until the run ends**.
 
 **Phase 4 sits inside the definition loop on purpose.** Issues need a repo, so the product must be
 scaffolded before `sync-backlog` can publish anything. It is the one place the pipeline is not
-strictly plugin-ordered — and the clearest reason to have all five plugins enabled from the start.
+strictly plugin-ordered — and the clearest reason to have all six entries enabled from the start.
 
 **Phase 8 runs twice over:** once per issue inside phase 7 (that is what makes a merge honest), and
 once more on the final merged state before you may claim `Success`.

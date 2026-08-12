@@ -58,9 +58,11 @@ Paste this into your product's `.claude/settings.json`:
 ```
 
 `/plenipo:deliver` keeps the outer loop on Sonnet 5 and routes actual code changes to an Opus 5
-worker. Those exact model routes need provider access to both models. An organization model policy
-can replace a blocked subagent route with the inherited coordinator model, so make sure its
-allowlist permits `claude-sonnet-5` and `claude-opus-5`.
+worker. The bundled names work directly with Claude subscriptions and the Anthropic API. Bedrock,
+Vertex AI, and Foundry users must map `claude-sonnet-5` and `claude-opus-5` to their provider IDs or
+deployment names with Claude Code's
+[`modelOverrides`](https://code.claude.com/docs/en/model-config). In every deployment, the effective
+model allowlist must permit both routes; otherwise the worker can fall back to its coordinator.
 
 For Codex and Copilot CLI, the install commands above already select the same pair. `harness` +
 `deliver` is the right pair for ~90% of days.

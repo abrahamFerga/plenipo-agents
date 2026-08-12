@@ -24,8 +24,9 @@ shaped this way; read it once.
 ### Claude Code
 
 The pinned Sonnet 5 and Opus 5 routes require Claude Code 2.1.219 or newer. Check with
-`claude --version` and upgrade with `claude update` before installing. The provider must expose
-both model IDs.
+`claude --version` and upgrade with `claude update` before installing. The bundled names work as-is
+with Claude subscriptions and the Anthropic API. Bedrock, Vertex AI, and Foundry deployments must
+map them to provider-specific IDs or deployment names with Claude Code's `modelOverrides` setting.
 
 ```text
 /plugin marketplace add abrahamFerga/plenipo-agents
@@ -82,11 +83,12 @@ For Copilot in VS Code, the cloud agent, and code review, also commit the reposi
 files described in [Codex and Copilot](#codex-and-copilot). Plugin installation makes workflows
 available; instruction files carry the durable rules of one repository.
 
-## The five loops
+## The seven plugins
 
-Each plugin is one loop. A loop declares **Trigger · Goal · Execution · Verification · Stopping rule
-· Memory**, and ends in exactly one named state — `Success`, `No-op`, `Blocked`, `Stalled`,
-`Exhausted`, or `Approval-required`. *An error or an exhausted budget never counts as success.*
+The marketplace packages the product loops with their front door, shared control plane, and platform
+steward. Every bounded loop declares **Trigger · Goal · Execution · Verification · Stopping rule ·
+Memory**, and ends in exactly one named state — `Success`, `No-op`, `Blocked`, `Stalled`, `Exhausted`,
+or `Approval-required`. *An error or an exhausted budget never counts as success.*
 
 | Plugin | Loop | Goal | Default |
 |---|---|---|---|
@@ -194,7 +196,10 @@ exact `claude-sonnet-5` or `claude-opus-5` model ID so a provider alias cannot s
 older generation. Claude Code 2.1.219 or newer and provider access to both models are therefore hard
 requirements. Exact frontmatter is routing intent, not enforcement: when an organization policy
 blocks that subagent model, Claude Code can fall back to the inherited coordinator model. Make sure
-the effective model policy permits both exact IDs.
+the effective model policy permits both Anthropic IDs. On Bedrock, Vertex AI, or Foundry, map
+`claude-sonnet-5` and `claude-opus-5` to the provider's version IDs, inference profiles, or deployment
+names with `modelOverrides`; the committed frontmatter stays provider-neutral at install time. See
+Claude Code's [model configuration](https://code.claude.com/docs/en/model-config).
 
 Do not set `CLAUDE_CODE_SUBAGENT_MODEL` or pass a per-invocation model override when you want this
 routing, because both take precedence over agent frontmatter. Invoking `/deliver:work-next-issue`
