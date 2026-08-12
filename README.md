@@ -115,11 +115,22 @@ Full operator's manual in **[AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.m
 | `setup` | `/plenipo:setup` | Makes a repo safe to leave a timer on: runbook, labels, two gate scripts, branch protection, the autonomy level |
 | `launch` | `/plenipo:launch` | Nothing → a product with a Ready backlog. Pauses once: the go/no-go and the name |
 | `deliver` | `/plenipo:deliver` | Admission control, then one build tick — rejected PRs and p0 bugs before features, and a ceiling on PRs in flight |
-| `ship` | `/plenipo:ship` | Recovers an exact-revision verdict, then merges only what clears every deterministic gate at the recorded autonomy level |
+| `ship` | `/plenipo:ship` | Merges only what clears every deterministic gate at the recorded autonomy level; model review is optional |
 | `test` | `/plenipo:test` | Boots it, sweeps end to end, files deduplicated bug issues with reproductions |
 | `define` | `/plenipo:define` | Triages friction, promotes Backlog → Ready, extends the plan only from scope with provenance |
-| `steward` | `/plenipo:steward` | In the platform repo, works one request/release tick behind consumer conformance |
+| `steward` | `/plenipo:steward` | Works one platform request/release tick behind consumer conformance; platform repo only |
 | `fleet` | `/plenipo:fleet` | One tick on whichever product most needs it; least-recently-served, and quarantines a repo that keeps failing |
+
+Unattended merge recognizes `feat/`, `fix/`, `chore/` and `codex/` branches only when the PR body
+opens with a valid `<!-- plenipo-agent ... -->` protocol envelope. No positive approval label is required:
+the scheduled merger trusts required checks, mergeability, explicit holds, the recorded autonomy
+level, a same-repository author in `autonomy.trustedAuthors`, and protected-base policy. Cloud review
+is an optional, dispatch-only second opinion, so provider throttling cannot turn into a failed PR
+check or a stuck merge queue.
+
+The merge policy itself is the one exception: edits to the gate scripts/workflows, `workflow.json`,
+or removals of security invariants fail `control_policy_locked` and need an owner/admin bootstrap.
+That keeps ordinary PRs label-free without letting a PR authorize the policy that judges it.
 
 ### `harness` — always on
 
@@ -189,20 +200,22 @@ directly also saves Sonnet 5 as your user default, which may be broader than int
 
 The worker boundary promotes only code-changing work to pinned Opus 5: `/plenipo:deliver` does its
 cheap checks first, then delegates a real issue or rejected PR to `deliver:product-developer`.
-`/plenipo:test` delegates its sweep to Sonnet 5. The unattended `ship` path uses one
-revision-bound cloud verdict rather than paying for a duplicate local reviewer; invoke the Sonnet 5
-`plenipo:pr-reviewer` only for an attended second opinion. Every Claude Code worker requests an
-exact `claude-sonnet-5` or `claude-opus-5` model ID so a provider alias cannot silently select an
+`/plenipo:test` delegates its sweep to Sonnet 5. The unattended `ship` path launches no model at all;
+invoke the Sonnet 5 `plenipo:pr-reviewer` or dispatch the comment-only cloud reviewer only when a
+second opinion is worth its cost, never both for the same review. Every Claude Code worker requests
+an exact `claude-sonnet-5` or `claude-opus-5` model ID so a provider alias cannot silently select an
 older generation. Claude Code 2.1.219 or newer and provider access to both models are therefore hard
 requirements. Exact frontmatter is routing intent, not enforcement: when an organization policy
 blocks that subagent model, Claude Code can fall back to the inherited coordinator model. Make sure
-the effective model policy permits both Anthropic IDs. On Bedrock, Vertex AI, or Foundry, map
+the effective model policy permits both routes. On Bedrock, Vertex AI, or Foundry, map
 `claude-sonnet-5` and `claude-opus-5` to the provider's version IDs, inference profiles, or deployment
-names with `modelOverrides`; the committed frontmatter stays provider-neutral at install time. See
+names with `modelOverrides`; the frontmatter stays unchanged while that deployment mapping is
+provider-specific. See
 Claude Code's [model configuration](https://code.claude.com/docs/en/model-config).
 
 Do not set `CLAUDE_CODE_SUBAGENT_MODEL` or pass a per-invocation model override when you want this
-routing, because both take precedence over agent frontmatter. Invoking `/deliver:work-next-issue`
+routing, because both take precedence over agent frontmatter. `CLAUDE_CODE_EFFORT_LEVEL` likewise
+overrides each worker's declared effort. Invoking `/deliver:work-next-issue`
 directly also bypasses the worker boundary and uses the current session model: launch that direct
 session with `claude --model claude-opus-5`, or use `/plenipo:deliver` to route automatically. See
 Claude Code's
@@ -375,10 +388,10 @@ the structural validator, generated-index check, unattended-loop regression suit
 check and Markdown lint. `PR gates` checks evidence and protected-diff policy using the evaluator
 from the protected base branch.
 
-The unattended profile also runs a bounded approval verdict and deterministic merger. The model
-verdict is not itself a required status check: a provider failure withholds the revision-bound
-approval artifact and is retried later. The older, comment-only marketplace reviewer is not
-installed because it duplicated model work without adding merge authority.
+The unattended profile runs a deterministic merger. Model review is an optional, dispatch-only,
+comment-only second opinion: a provider failure creates no pull-request check and withholds no merge
+artifact. The older automatic marketplace reviewer stays off because it duplicates model work
+without adding merge authority.
 
 ## Known limitations
 

@@ -1,9 +1,5 @@
 name: CI
 
-# One of two branch-required pull-request checks in this repository. This workflow proves repository
-# correctness; the separate `PR gates` context proves evidence and protected-diff policy. A model
-# verdict is never itself a required status check.
-
 on:
   push:
     branches: [main]
@@ -13,10 +9,6 @@ on:
 
 permissions:
   contents: read
-
-concurrency:
-  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
 
 # HARNESS.md argues that a claim with no deterministic verifier is a level-4 opinion.
 # This workflow is what stops that argument from being theatre about this repo itself.
@@ -41,16 +33,13 @@ jobs:
       - name: Check the cross-tool skill index is in sync
         run: node eng/generate-agent-docs.mjs --check
 
-      # L1 — these files are shipped as one unattended review/merge state machine. Prove the
-      # approval attestation, deterministic policy, merger, recovery, and label reset together.
+      # L1 — these files are shipped as one unattended state machine. Prove the deterministic PR
+      # policy, merger, and issue-triage recovery that the live workflow actually executes.
       - name: Prove the unattended PR loop
         run: |
-          node plugins/plenipo/skills/setup/assets/approval-proof.test.mjs
           node plugins/plenipo/skills/setup/assets/pr-gates.test.mjs
           node plugins/plenipo/skills/setup/assets/merge-gate.test.mjs
-          node plugins/plenipo/skills/setup/assets/verdict-retry.test.mjs
           node plugins/plenipo/skills/setup/assets/triage-retry.test.mjs
-          node plugins/plenipo/skills/setup/assets/agent-approval-reset.test.mjs
 
       # L1 — this repo runs the controls it ships, so every installed source must remain byte-for-
       # byte equivalent to its canonical asset. A drifted local copy is an untested policy fork.
@@ -62,19 +51,13 @@ jobs:
               exit 1
             }
           done <<'EOF'
-          plugins/plenipo/skills/setup/assets/approval-proof.mjs|.github/scripts/approval-proof.mjs
-          plugins/plenipo/skills/setup/assets/approval-proof.test.mjs|.github/scripts/approval-proof.test.mjs
           plugins/plenipo/skills/setup/assets/pr-gates.mjs|.github/scripts/pr-gates.mjs
           plugins/plenipo/skills/setup/assets/pr-gates.test.mjs|.github/scripts/pr-gates.test.mjs
           plugins/plenipo/skills/setup/assets/merge-gate.mjs|.github/scripts/merge-gate.mjs
           plugins/plenipo/skills/setup/assets/merge-gate.test.mjs|.github/scripts/merge-gate.test.mjs
           plugins/plenipo/skills/setup/assets/fixtures/check-rollup.json|.github/scripts/fixtures/check-rollup.json
-          plugins/plenipo/skills/setup/assets/verdict-retry.mjs|.github/scripts/verdict-retry.mjs
-          plugins/plenipo/skills/setup/assets/verdict-retry.test.mjs|.github/scripts/verdict-retry.test.mjs
           plugins/plenipo/skills/setup/assets/triage-retry.mjs|.github/scripts/triage-retry.mjs
           plugins/plenipo/skills/setup/assets/triage-retry.test.mjs|.github/scripts/triage-retry.test.mjs
-          plugins/plenipo/skills/setup/assets/agent-approval-reset.test.mjs|.github/scripts/agent-approval-reset.test.mjs
-          plugins/plenipo/skills/setup/assets/agent-approval-reset.yml|.github/workflows/agent-approval-reset.yml
           plugins/plenipo/skills/setup/assets/agent-gates.yml|.github/workflows/agent-gates.yml
           plugins/plenipo/skills/setup/assets/agent-merge.yml|.github/workflows/agent-merge.yml
           plugins/harness/skills/install-github-agentic-workflows/assets/pr-approval-verdict.md|.github/workflows/pr-approval-verdict.md

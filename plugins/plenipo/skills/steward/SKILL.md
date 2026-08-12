@@ -73,13 +73,13 @@ is rebuilt and retested against the candidate, and a single red consumer blocks 
 ## The extra gate
 
 Everything `../ship/SKILL.md` enforces applies here unchanged — `checks_exist`, `checks_green`,
-`spine_untouched`, `no_human_hold`, `level_permits`, the lot. `merge-gate.mjs` adds two gates on a
-repo whose `workflow.json` says `stage: platform`, and removes none:
+protected-change evidence, `no_human_hold`, `level_permits`, the lot. `merge-gate.mjs` adds two
+gates on a repo whose `workflow.json` says `stage: platform`, and removes none:
 
 | Gate | Passes when | Why it exists |
 |---|---|---|
 | `consumers_green` | a consumer-conformance check ran on the PR **and** concluded success | a platform change that compiles is not a platform change that is safe; the products are the test suite |
-| `surface_declared` | the body carries `Surface: additive`, `Surface: breaking` or `Surface: none`; `breaking` also needs a live `agent:approved` verdict | an unclassified break is announced without migration steps, which starts N agents down an unverified path |
+| `surface_declared` | the body carries `Surface: additive`, `Surface: breaking` or `Surface: none`; `breaking` also needs a substantive `## Migration evidence` section | an unclassified break is announced without migration steps, which starts N agents down an unverified path |
 
 `consumers_green` is what makes merging here defensible at all, and it is a **named** gate rather
 than something `checks_green` covers for a specific reason: `consumer-conformance.yml` carries a
@@ -93,9 +93,8 @@ config is level 0. Both, or no merge — do not read "the platform has a stronge
 platform skips the level."
 
 **Unattended does not mean self-exempting.** A breaking public surface or protected spine diff needs
-the same live, uncontradicted `agent:approved` verdict as every other merge, plus its deterministic
-tests and conformance. The reviewer may request a replacement guard, scoped acceptance test or
-migration proof; it may never waive the invariant or apply `human-approved` to itself.
+substantive runtime, regression, and migration evidence plus deterministic tests and conformance.
+The protected-base evaluator may never waive the invariant on behalf of the proposed change.
 
 ## Workflow
 
@@ -127,8 +126,8 @@ migration proof; it may never waive the invariant or apply `human-approved` to i
 4. **Revise a rejected platform PR.** Invoke `/deliver:revise-pr` with the selected PR number. It
    owns reading every review thread and failed check, classifying each finding, fixing accepted
    defects, re-proving the behavior, updating evidence and replying to every thread. The revision
-   push triggers approval reset and a fresh verdict automatically; do not merge from the maker
-   context and do not start a new request while a rejected PR is closer to done. End this tick after
+   push triggers required checks automatically; do not merge from the maker context and do not start
+   a new request while a rejected PR is closer to done. End this tick after
    journaling the revision result. The next tick's preflight returns to the trusted default branch
    before it reads policy or considers a merge.
 
@@ -183,8 +182,8 @@ migration proof; it may never waive the invariant or apply `human-approved` to i
 - **Never merge with a consumer red, or with conformance unrun.** That gate is the entire argument
   for this verb existing; without it this is a product loop pointed at the blast radius.
 - **Never treat an empty `consumers.json` as green.** No consumers means the question was not asked.
-- **Never merge a breaking public-surface change** without a live `agent:approved` verdict and
-  reproducible migration evidence.
+- **Never merge a breaking public-surface change** without reproducible migration evidence in the PR
+  body and green consumer conformance.
 - **Never commit the tick journal to `main`.** A journal entry is observation, not product code; it
   must not invalidate every in-flight PR.
 - **Never edit a product repo from here.** The platform pushes *messages* — issues in consumer repos

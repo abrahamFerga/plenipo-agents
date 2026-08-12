@@ -122,12 +122,14 @@ for (const { plugin, skills, agents } of plugins) {
   for (const s of skills) {
     const kind = s.manual ? 'action' : 'reference';
     const wrapped = wrap(`- **${s.name}** *(${kind})* — ${s.summary}`, 98, '  ');
-    lines.push(...wrapped.slice(0, -1), `${wrapped[wrapped.length - 1]}  `);
+    // Keep the following path as a continued list-item line without Markdown's two-space hard
+    // break. Hard-break whitespace made every regenerated entry fail `git diff --check`.
+    lines.push(...wrapped);
     lines.push(`  → [\`${s.path}\`](${s.path})`);
   }
   for (const a of agents) {
     const wrapped = wrap(`- **${plugin}:${a.name}** *(agent — delegate)* — ${a.summary}`, 98, '  ');
-    lines.push(...wrapped.slice(0, -1), `${wrapped[wrapped.length - 1]}  `);
+    lines.push(...wrapped);
     lines.push(`  → [\`${a.path}\`](${a.path})`);
   }
   lines.push('');

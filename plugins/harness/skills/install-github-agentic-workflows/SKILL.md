@@ -74,17 +74,13 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    | Agent marketplace | `marketplace-harness-gap-triage.md`, `harness-gap.yml` | `marketplace-pr-intent-review.md` |
 
    `pr-approval-verdict.md` is role-neutral and **opt-in for every role** — see step 8. Choose one PR
-   reviewer per repository: when the verdict workflow is installed, do not also install that role's
-   `*-pr-intent-review.md`. The verdict already reads the issue, diff and evidence and may leave
-   bounded inline findings; stacking the comment-only reviewer doubles model load without adding an
-   independent merge decision.
+   reviewer per repository: it already reads the issue, diff and evidence and may leave bounded
+   inline findings. Stacking it with that role's `*-pr-intent-review.md` doubles model load without
+   adding an independent signal.
 
    On an upgrade, replacement means cleanup rather than coexistence: delete the installed role's
-   `*-pr-intent-review.md` **and** its generated `.lock.yml` before compiling the verdict workflow.
-   Inspect open loop PR timelines for legacy `needs-human` labels applied by the retired reviewer;
-   remove only those bot-applied labels, add `agent:changes-requested`, and leave one protocol comment
-   naming the evidence or repair still required. Never rewrite a deliberate `human-hold` or a label
-   whose provenance is ambiguous.
+   `*-pr-intent-review.md` **and** its generated `.lock.yml` before compiling this reviewer. Never
+   rewrite a deliberate `human-hold` or a label whose provenance is ambiguous.
 
    Replace every `<...>` placeholder deliberately. Add each trusted product's `from:<product>` label
    to the platform triage workflow's `approval-labels` list. Create only the labels named in each
@@ -124,12 +120,9 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 
 4. **Configure credentials with least privilege.** Add `COPILOT_GITHUB_TOKEN` as a repository Actions
    secret. It must be a fine-grained PAT owned by an account with a Copilot license and
-   **Copilot Requests: Read**. For an unattended verdict/merge loop it also needs repository
-   **Actions: read** plus **Contents, Issues and Pull requests: write**: GitHub suppresses downstream
-   events caused by its built-in `GITHUB_TOKEN`, so that token cannot wake the gate after a
-   label/branch update or start post-merge delivery. Verdict dispatch/rerun deliberately uses the
-   scoped built-in token with Actions write; the reviewer allowlists `github-actions[bot]`. Do not
-   use an OAuth token (`gho_…`) or store the token in source.
+   **Copilot Requests: Read**, plus only the repository read/comment permissions required by the
+   installed safe outputs. The optional PR reviewer never labels, pushes, or merges. Do not use an
+   OAuth token (`gho_…`) or store the token in source.
    For cross-repository routing, create one GitHub App installed only on Plenipo and the named child
    repositories. Grant metadata read plus `Contents: read`, `Issues: read/write`, and
    `Pull requests: read/write`; do not grant administration, workflows, or contents write. In every
@@ -159,38 +152,32 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 
    Comment-only `*-pr-intent-review.md` workflows are advisory and optional. Before enabling one
    on every pull request, use `gh aw health` to prove the provider is reliable enough for the
-   repository; otherwise keep that second opinion on demand. This does not replace the
-   revision-bound `pr-approval-verdict.md` required by the unattended profile in step 8.
+   repository; otherwise keep that second opinion on demand. It never replaces deterministic
+   required checks or grants merge authority.
 
-7. **Operate narrowly.** Keep triage verdicts and ordinary PR reviews as `COMMENT` outputs. Do not
-   enable GitHub `APPROVE`, `REQUEST_CHANGES`, `push-to-pull-request-branch`, or direct model merging.
-   The unattended profile uses the bounded verdict label below; the deterministic merger remains
-   the only component with merge permission.
+7. **Operate narrowly.** Keep triage verdicts and PR reviews as `COMMENT` outputs. Do not enable
+   GitHub `APPROVE`, `REQUEST_CHANGES`, `push-to-pull-request-branch`, labels, or direct model
+   merging. The deterministic merger remains the only component with merge permission.
 
-8. **Install the cloud merge verdict for unattended repositories.** `pr-approval-verdict.md` is the
-   one template whose output a merge gate reads. `merge-gate.mjs` refuses to merge anything without
-   the `agent:approved` label and an approval-specific artifact, and nothing else in this marketplace
-   produces that proof. It is optional only while `autonomy.level` is 0; level 1+ without it is a
-   visible configuration failure, not a local-review fallback.
+8. **Optionally install the cloud second opinion.** `pr-approval-verdict.md` is deliberately
+   dispatch-only and comment-only. Supply the exact PR number, head SHA and base branch; the workflow
+   validates all three before reading the diff. Its output is never consumed by `merge-gate.mjs`, so
+   provider throttling cannot fail a pull-request check or stop an unattended merge.
 
-   It merges nothing itself. The merger downloads the exact run's `safe-outputs-items` artifact and
-   proves that run created both the verdict comment and `agent:approved` for the current head/base;
-   it also rejects body edits made after the run began. The label is necessary, never sufficient.
-   The deterministic gate independently re-checks green status checks, mergeability, holds, the
-   protected-base spine guard and the autonomy level. That containment only holds if the pieces
-   below are actually in place, so verify each one rather than assuming it:
+   The deterministic gate independently re-checks green required status checks, mergeability,
+   explicit holds, the protected-base policy and the autonomy level. Verify those pieces rather
+   than treating an optional model opinion as proof:
 
    | Precondition | Why it is load-bearing |
    |---|---|
    | `agent-gates.yml` running `pr-gates.mjs` is a **required** status check | it gives immediate PR feedback; the scheduled merger also re-runs the script fetched from the protected base for control changes, so a PR-owned workflow wrapper cannot fake it |
    | branch protection exists and names contexts that really report | `merge-gate.mjs` fails `checks_exist` when GitHub reports no required contexts; protection is still what makes CI mandatory at the server |
-   | `autonomy.level` was set by a human for this repo | the level decides which change classes may land; the label only says a reviewer looked |
-   | `agent:approved` and `agent:changes-requested` both exist | `/plenipo:setup` creates them; a safe output naming a missing label fails at write time |
-   | `human-approved` appears in no workflow's `add-labels.allowed` | it overrides the spine guard, so only a human may ever apply it |
+   | `autonomy.level` was set by a human for this repo | the level decides which change classes may land; a model may not grant itself authority |
+   | `human-hold`, `needs-human`, and `agent:blocked` remain merge blockers | explicit stop signals still outrank an otherwise green queue |
 
-   Prove it staged first per step 6, dispatched against a disposable pull request, and confirm the
-   run requested exactly one verdict label plus one summary comment ending in the run marker, and
-   inspect the `safe-outputs-items` artifact that the merger will consume.
+   Prove it staged first per step 6, dispatch it against a disposable pull request, and confirm the
+   run requested only bounded comments. A model failure belongs in the Actions history of that
+   optional dispatch, not in the PR's required checks.
 
 ## Guardrails
 
@@ -203,11 +190,8 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
   `product-platform-escalation.md` trusts, and `harness:gap` is what `product-harness-feedback.md`
   trusts, so a human applies both; `product-issue-triage.md` may recommend either escalation but must
   not label its way into one, or untrusted issue text gains a path to a cross-repository write.
-  `agent:approved` is a different shape and that difference is the whole argument for allowing it:
-  it unlocks nothing on its own, and the deterministic gate requires the matching approval-specific
-  safe-output artifact before re-verifying every other condition from the live API. A label that
-  grants an agent *new reach* stays a human's act; a label that feeds a gate which still says no may
-  not.
+  A label that grants an agent new reach stays a human's act; PR review in this marketplace writes
+  comments only.
 - **`product-harness-feedback.md` routes to the marketplace, not the platform** — a different repo
   and a different queue. Its router app needs this repo plus the marketplace repo, and nothing else.
   Read the marketplace slug from the `workflow.json` `skills.external[]` entry whose `marketplace`
@@ -217,12 +201,9 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
   owns the `type:*`/`priority:*` families; install this workflow after them, not before.
 - Use a GitHub App, not a broad personal access token, for cross-repository routing. Scope its
   installation and `repositories:` list to the two repositories that need to communicate.
-- Keep `allowed-events: [COMMENT]` on automated PR reviews. A model must never submit GitHub's own
-  `APPROVE`, which a branch protection may count as the required approving review — that is a model
-  becoming the merge gate. `pr-approval-verdict.md` is the single sanctioned way a model may
-  influence a merge, and it stays sanctioned only while it applies a label a deterministic gate
-  consumes. Never widen it to `APPROVE`, never give it merge or push permission, and never point it
-  at a repo whose `pr-gates.mjs` check is not required.
+- Keep `allowed-events: [COMMENT]` on PR reviews. A model must never submit GitHub's own `APPROVE`,
+  which branch protection may count as a required approving review. Never give a reviewer label,
+  merge, or push permission, and never make provider availability a required status check.
 - Apply repository Actions variables/secrets and GitHub labels only after the owner confirms the
   target slug. Never create or reveal a secret value.
 
@@ -233,8 +214,8 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
 | Editing `.lock.yml` | next compilation discards the change | edit `.md`, then compile |
 | Letting cross-repo output target `*` | one compromised prompt can route to another repo | literal target plus `allowed-github-references` |
 | Running before App installation/secrets exist | the first workflow fails and teaches agents to ignore red runs | configure credentials, then stage a proof |
-| Letting review automation submit `APPROVE` | a model satisfies branch protection's human review | `allowed-events: [COMMENT]`; use the verdict label instead |
-| Installing `pr-approval-verdict.md` where `pr-gates.mjs` is not required | the verdict label becomes the only gate, and the spine guard never runs | check protection first — step 8's table |
+| Letting review automation submit `APPROVE` | a model satisfies branch protection's human review | keep `allowed-events: [COMMENT]` |
+| Making the reviewer automatic or required | a provider outage turns into a red PR or a stuck queue | dispatch only; deterministic checks own merge authority |
 | Auto-running an advisory reviewer through an unhealthy provider | duplicate red runs add no merge evidence | check `gh aw health`; keep comment-only review on demand |
 | Treating compiler green as full proof | trigger/output wiring can still be wrong | stage, then exercise a real issue and PR |
 
