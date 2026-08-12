@@ -24,8 +24,8 @@ on:
   bots: [github-actions]
 engine: copilot
 # `auto` repeatedly selected a throttled Claude route. This independent reviewer is bounded and
-# read-only, so pin a strong non-Claude route instead of spending twenty retries on the same 429.
-model: gpt-5.4
+# read-only, so pin the efficient non-Claude route instead of spending twenty retries on the same 429.
+model: gpt-5-mini
 timeout-minutes: 18
 max-ai-credits: 240K
 concurrency:

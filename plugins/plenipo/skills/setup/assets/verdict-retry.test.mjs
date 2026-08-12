@@ -319,13 +319,13 @@ if (
 
 const verdictFrontmatter = verdictWorkflow.split('---')[1] ?? '';
 if (
-  /^model: gpt-5\.4$/m.test(verdictFrontmatter) &&
+  /^model: gpt-5-mini$/m.test(verdictFrontmatter) &&
   /threat-detection:\s*\n\s+engine:\s*\n\s+id: copilot\s*\n\s+model: gpt-5-mini/.test(verdictFrontmatter) &&
   /pre-agent-steps:[\s\S]*command -v copilot[\s\S]*\/usr\/local\/bin\/copilot/.test(verdictFrontmatter)
 ) {
   console.log('  ok   the cloud reviewer pins deliberate agent/detection routes and repairs the cached CLI path');
 } else {
-  console.log('  FAIL — the cloud reviewer can reuse an expensive/failing route or a broken cached CLI path');
+  console.log('  FAIL — the cloud reviewer can reuse an expensive route or a broken cached CLI path');
   failed++;
 }
 
