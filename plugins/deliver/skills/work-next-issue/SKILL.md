@@ -35,9 +35,9 @@ approval gate fires, or the tenant filter holds.
 | `Exhausted` | the budget ceiling was hit mid-implementation — push the branch, open no PR, say where you stopped |
 | `Approval-required` | the change needs a human decision first: a deviation from `DECISIONS.md`, a new role baseline or permission string, or a destructive migration |
 
-**This loop ends at In Review.** Independent verdict, revision, deterministic merge and the move to
-Done belong to the review/merge loop. Do not wait or poll for it, and never report `Success` as
-"Done".
+**This loop ends at In Review.** Revision, deterministic merge, and the move to Done belong to the
+review/merge loop. Optional review may add findings but is not a merge prerequisite. Do not wait or
+poll for it, and never report `Success` as "Done".
 
 ## When to Use
 
@@ -180,11 +180,11 @@ Done belong to the review/merge loop. Do not wait or poll for it, and never repo
     L4 for anything concluded by reading.
     ```
 
-    Without `Closes #<n>` the issue never closes and the board rots; without the two headings the PR
-    cannot merge, by design — the check exists because "tests pass" is not evidence a feature works.
+    Without `Closes #<n>` the issue never closes and the board rots; without the two evidence
+    headings, the PR cannot merge.
 
 11. **Move the card to In Review**, unassign nothing, and report the terminal state. Stop. Do not
-    merge your own PR — the maker is not the approver.
+    call bare `gh pr merge`; the later `ship` tick owns deterministic authorization.
 
 ### The three-pass rule
 
@@ -232,9 +232,9 @@ A human re-specifies. Rewriting the criteria yourself is scoring against a targe
 | Adding the tool to the manifest only | never registered, no error, and the runtime check "passes" because nothing was called | assert on `GET /api/admin/security/catalog` |
 | Polishing past pass 3 | budget burned on a specification defect | `Stalled` — comment on the issue with evidence |
 | Omitting `Closes #<n>` | the issue stays open forever and the board rots | put it in the PR body, not the title |
-| Moving the card to Done | the loop claims an outcome it never verified | In Review is the end **of this pass**; a human closes it — see `references/merge-policy.md` |
+| Moving the card to Done | the loop claims an outcome it never verified | In Review is the end **of this pass**; the deterministic merger closes it — see `references/merge-policy.md` |
 | Treating In Review as the end of the item | review feedback is never acted on and the PR rots | when it comes back — comments, `CHANGES_REQUESTED`, a red check — that is `../revise-pr/SKILL.md`, not a new item |
-| Enabling auto-merge on a feature PR at autonomy level 0–1 | the agent becomes its own approver, and auto-merge does not wait for a review still running | check the product's recorded level; features auto-merge only from level 2, and only on an adversarial reviewer's approval |
+| Enabling feature merge at autonomy level 0–1 | the loop exceeds the authority the owner recorded | features merge only from level 2, behind provenance, evidence, and required checks |
 | Deciding you have earned a higher autonomy level | the self-approving loop wearing a different hat | the level is recorded in `workflow.json` by a human; read it, never infer it |
 | Committing the branch name or owner into a script | breaks on every fork and every other product | derive both at run time |
 

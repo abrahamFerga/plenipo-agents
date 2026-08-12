@@ -26,7 +26,7 @@ Want that session to keep going without you? Wrap the same verb in a timer:
 
 ```bash
 /loop 20m /plenipo:deliver     # next Ready issue → a pull request
-/loop 30m /plenipo:ship        # review, gate, merge what passes
+/loop 30m /plenipo:ship        # gate and merge what passes
 /loop 3h  /plenipo:test        # sweep end to end, file the bugs it finds
 /loop 6h  /plenipo:define      # keep the backlog full and Ready
 ```
@@ -69,7 +69,7 @@ never type those names.
 | `/plenipo:setup` | make a repo safe to point a timer at: runbook, labels, gate scripts, branch protection, autonomy level | any repo | once per repo |
 | `/plenipo:launch` | nothing → a product with a Ready backlog. Pauses once, for the go/no-go and the name | a new product | once per product |
 | `/plenipo:deliver` | pick what deserves this tick, hand it to the build loop, journal it | a product | 20 min |
-| `/plenipo:ship` | adversarial review, then merge only what clears every gate | a product | 30 min |
+| `/plenipo:ship` | merge only what clears every deterministic gate | a product | 30 min |
 | `/plenipo:test` | boot it, hunt end to end, file deduplicated bug issues | a product | 3 h |
 | `/plenipo:define` | triage friction, promote Backlog → Ready, extend the plan only if it would run dry | a product | 6 h |
 | `/plenipo:steward` | work the request queue products filed, build one accepted item, merge behind a conformance run | **the platform** | 45 min |
@@ -168,7 +168,7 @@ place — and it needs a `fleet.json` first (see *Many repos, one machine*).
 ```text
 02:00  fleet → networthy  rule 5  deliver   #128 → PR #131 (runtime evidence attached)
 02:21  fleet → casewise   rule 7  define    ready 1→4, promoted #61 #62, epic 3 added (SPEC §4.2)
-02:44  fleet → networthy  rule 2  ship      #131 reviewed → agent:approved → merged (level 2)
+02:44  fleet → networthy  rule 2  ship      #131 required checks green → merged (level 2)
 03:05  fleet → networthy  rule 6  test      swept 4a91c2f: 2 bugs filed, 1 at p0 (approval gate)
 03:28  fleet → networthy  rule 3  deliver   p0 bug #134 → PR #135
 03:52  fleet → casewise   rule 4  ship      3 PRs open, review is the constraint
@@ -187,7 +187,7 @@ This is the part that makes it self-sustaining rather than a queue that drains:
    friction from real use ───┼──▶ define ──▶ Ready issues ──▶ deliver ──▶ pull request
         bugs from sweeps ────┘                                               │
               ▲                                                              ▼
-              └──────────── test ◀──── merged ◀──── ship (gates + review) ───┘
+              └──────────── test ◀──── merged ◀──── ship (deterministic gates) ───┘
                                                              │ changes requested
                                                              ▼
                                                         revise-pr
@@ -212,45 +212,43 @@ unattended loop must never paper over with plausible-sounding make-work.
 
 ## Review, approve, merge
 
-The rule everything follows: **the agent that wrote the change never approves it.** The same model
-producing and grading is the *self-approving loop*, and the grade drifts up while quality stalls.
+The rule everything follows: **a model opinion never grants merge authority.** The same model
+producing and grading is the *self-approving loop*, and provider availability is not a reliable
+control plane.
 
 So there are two planes, and they never share a context:
 
 | | Writes code | Judges code |
 |---|---|---|
 | **Where** | your machine (needs Docker to prove anything at runtime) | a fresh session's `pr-reviewer` agent, or GitHub Actions |
-| **Can** | branch, implement, test, open a PR | read, comment, label, block |
-| **Cannot** | merge, approve, label itself approved | edit, push, fix what it found |
+| **Can** | branch, implement, test, open a PR | read and comment when explicitly dispatched |
+| **Cannot** | bypass required checks or explicit holds | edit, push, label, approve, or merge |
 
 ### The gates
 
-A merge happens because a **list of checks passed**, not because a reviewer was enthusiastic. The
-reviewer's label is necessary and never sufficient; it cannot bypass any deterministic gate.
+A merge happens because a **list of checks passed**, not because a reviewer was enthusiastic. No
+positive label is required, and an optional reviewer cannot bypass any deterministic gate.
 
 | Enforced by | Runs | Checks |
 |---|---|---|
-| `pr-gates.mjs` | CI, required check on every push | `closes_an_issue` · `has_runtime_evidence` · `has_red_before_green` · `spine_untouched` |
-| `merge-gate.mjs` | `/plenipo:ship`, and `agent-merge.yml` every 15 min | `is_loop_pr` · `not_draft` · `checks_exist` · `checks_green` · path-scoped conformance/infra · `mergeable` · `no_blocking_review` · `agent_approved` · `trusted_agent_approval` · `trusted_pr_gates` for control changes · `no_human_hold` · `level_permits` · `under_cap` |
+| `pr-gates.mjs` | CI, required check on every push | `closes_an_issue` · `protected_diff_detected` · `has_runtime_evidence` · `has_red_before_green` |
+| `merge-gate.mjs` | `/plenipo:ship`, and `agent-merge.yml` every 15 min | `trusted_source` · `is_loop_pr` · `not_draft` · `checks_exist` · `checks_green` · path-scoped conformance/infra · `mergeable` · `no_blocking_review` · `trusted_pr_gates` for control changes · `no_human_hold` · `level_permits` · `under_cap` |
 
 Two of those are worth understanding, because they are what makes the arrangement honest:
 
 - **`checks_exist`** — a repo with no CI can never auto-merge. If nothing ran, green means nothing.
-- **`spine_untouched`** — fires when a diff *removes or edits* a line touching `HasQueryFilter`,
+- **protected-change evidence** — fires when a diff *removes or edits* a line touching `HasQueryFilter`,
   `RequiresApproval`, `Permissions.`, `AddPlenipoRole`, or anything in `.github/`, `CODEOWNERS`,
   `nuget.config`, `appsettings*.json`. **Adding** a query filter is ordinary feature work;
-  **deleting** one is a tenant-isolation change. Override needs a live, uncontradicted
-  `agent:approved` verdict (or the manual emergency `human-approved` override), and the merger still
-  requires every protected check. This is content-based on purpose: a path rule would either block
-   every migration or catch nothing.
+  **deleting** one is a tenant-isolation change. That diff must carry substantive runtime evidence
+  and a regression test observed red then green; no label can waive either requirement. This is
+  content-based on purpose: a path rule would either block every migration or catch nothing.
 
 The required PR job loads `pr-gates.mjs` from the protected base for immediate feedback, but its
 workflow wrapper is still PR-owned. The scheduled merger therefore downloads and runs the base
-evaluator again for every control change, including rename/delete old paths. The cloud verdict runs
-as `pull_request_target` with checkout disabled. Every merge downloads the exact run's safe-output
-artifact and proves that it created the verdict comment and approval label for the current
-head/base/body revision. A proposed reviewer, workflow wrapper or free-floating label cannot approve
-itself.
+evaluator again for every control change, including rename/delete old paths. A proposed workflow
+wrapper or policy therefore cannot judge itself. Optional cloud review is dispatch-only and
+comment-only; its output is not merge authority.
 
 `checks_green` reads only contexts GitHub marks required through `gh pr checks --required`. Optional
 model workflows are not CI, and the scheduled token cannot read the Administration-only branch
@@ -260,35 +258,27 @@ ordinary red or pending PRs remain a healthy blocked queue.
 Merging is never a bare `gh pr merge`. It is `merge-gate.mjs --merge`, which re-evaluates every gate
 immediately before touching anything — so a check that turned red after the review still blocks.
 
-The unattended profile installs **one** PR model workflow: `pr-approval-verdict.md`. Do not stack the
-role-specific `*-pr-intent-review.md`; the verdict reviewer already reads issue intent, diff and
-evidence and can leave bounded findings. If the provider returns 429 or dies before writing a label,
-`verdict-retry.mjs` re-runs the original pull-request event with exponential backoff. A missing
-initial run is dispatched only with the exact PR head SHA and base, and an unproven label is repaired
-rather than trusted. The mutation path uses a fine-grained user/App token because GitHub suppresses
-label, synchronize and push events caused by its built-in `GITHUB_TOKEN`.
-Verdict dispatch/rerun itself uses the workflow's scoped built-in token with Actions write; the
-reviewer explicitly allowlists `github-actions[bot]`, and safe-output mutations still use the user/App
-token so their follow-up events are emitted.
-Body edits expire the old verdict and trigger review again because runtime evidence is part of what
-was judged, not decorative PR prose.
+Cloud review is optional: `pr-approval-verdict.md` runs only through `workflow_dispatch`, is pinned
+to an exact PR head and base, and writes comments only. Do not stack it with the role-specific
+`*-pr-intent-review.md`; both read issue intent, diff and evidence, so the second call adds cost but
+not an independent control. If the provider returns 429, the optional dispatch fails in Actions and
+nothing in the PR's required-check or merge path changes.
 
-Branches under `feat/`, `fix/` and `chore/` enter this unattended path. A `codex/` branch enters when
-its PR body opens with a valid `<!-- plenipo-agent ... -->` protocol envelope, so incidental prose or
-an approval-proof marker cannot capture an attended Codex task. An eligible Codex PR receives the
-same cloud verdict and scheduled merge treatment as a Claude-created PR; it does **not** need a
-person to add `human-approved`. That label remains an emergency override for a deliberately reviewed
-protected change, not part of normal operation.
+Branches under `feat/`, `fix/`, `chore/` and `codex/` enter this unattended path only when the PR
+body opens with a valid `<!-- plenipo-agent ... -->` protocol envelope. That explicit marker keeps
+incidental prose or a familiar branch prefix from capturing an attended task. Every eligible PR
+receives the same scheduled merge treatment and needs no positive approval label.
 
 ### Earning autonomy
 
-One number in `workflow.json`, **written by you, never inferred by an agent**:
+One level plus a trusted-author allowlist in `workflow.json`, **written by you, never inferred by an
+agent**:
 
 | Level | May merge | You get here by |
 |---|---|---|
-| **0** | nothing — it reviews and labels, you merge | the default for every new repo |
+| **0** | nothing — it reports, you merge | the default for every new repo |
 | **1** | docs, tests, the runbook | the runbook is installed and rungs 1–3 are green |
-| **2** | product features, on an adversarial approval | golden evals exist, and level 1 was clean for a stretch |
+| **2** | product features behind every deterministic gate | golden evals exist, and level 1 was clean for a stretch |
 | **3** | unattended, inside a revert budget | level 2 was clean, and you said so in words |
 
 Start at 0 for a week and read the reviews it would have posted. The way out of the loop is a
@@ -296,10 +286,18 @@ Start at 0 for a week and read the reviews it would have posted. The way out of 
 defers and enlarges it, and it costs the loop the one thing it needs even with nobody watching —
 attribution, so a red check points at a cause.
 
+At level 1+, `autonomy.trustedAuthors` names the exact GitHub logins whose same-repository PRs may
+enter the unattended queue. Missing or empty fails closed. Adding or changing that allowlist is an
+owner decision, not something an agent learns from commit history.
+
+Changes to the merge gate itself, its required workflow wrappers, `workflow.json`, or removals of
+security invariants fail `control_policy_locked`. They use a deliberate owner/admin bootstrap rather
+than a routine approval label; every other eligible PR remains label-free.
+
 **The spine never becomes ordinary work**, at any level — RBAC before the model, approval-first
-writes, tenant isolation, append-only audit, write-only secrets. A protected diff needs a fresh
-adversarial verdict that can demand an equivalent guard and a scoped acceptance test; the same
-model context that wrote it can never supply that verdict, and no label can waive deterministic CI.
+writes, tenant isolation, append-only audit, write-only secrets. A protected diff needs substantive
+runtime and red-before-green evidence and is re-evaluated by policy downloaded from the protected
+base. No label can waive deterministic CI.
 
 ### The platform merges through a different gate
 
@@ -311,7 +309,7 @@ two extra gates on top of every one a product must clear:
 | Gate | Passes when |
 |---|---|
 | `consumers_green` | a consumer-conformance check ran on the PR **and** concluded success — every repo in `consumers.json` builds and passes its own tests against the candidate |
-| `surface_declared` | the body carries a `Surface: additive \| breaking \| none` line, and `breaking` additionally requires a live `agent:approved` verdict over its migration evidence |
+| `surface_declared` | the body carries a `Surface: additive \| breaking \| none` line, and `breaking` additionally requires a substantive `## Migration evidence` section |
 
 The autonomy level still applies as well, and still means what it always did: **a human recording, in
 `workflow.json`, that this repo may merge without them.** Absent config is level 0 and merges
@@ -325,9 +323,9 @@ rather than a line in `checks_green` for one specific reason — `consumer-confo
 green would mean *"it did not run"*. **A conformance run that was skipped counts as red, never as
 missing** — the `checks_exist` failure mode one level up.
 
-Two things get a higher evidence bar here: a **breaking** public-surface change and anything
-`spine_untouched` catches. Both stay inside the same reviewer → changes-requested → author-revision
-loop until the independent reviewer can verify the guard, test and migration evidence.
+Two things get a higher evidence bar here: a **breaking** public-surface change and anything the
+protected-diff scan catches. Both must prove the guard, test and migration through deterministic
+evidence before the merger can act.
 
 Inverse shim guards (`PlatformShimGuardTests`) run as a separate, non-blocking maintenance signal.
 They fail when the platform has gained a capability and a product can delete its workaround; that is
@@ -376,7 +374,6 @@ before letting it choose.
 | Lever | Effect | Scope |
 |---|---|---|
 | `human-hold` label on a PR | that PR never merges | one PR |
-| `human-approved` label | manual emergency override for `spine_untouched`; normal unattended operation does not need it | one PR |
 | `AGENT_AUTOMERGE=off` repo variable | the scheduled merger no-ops, no commit needed | one repo |
 | `autonomy.level: 0` | nothing merges anywhere in that repo | one repo |
 | stop the `/loop` | everything stops; the board and journals hold the state | everything |
@@ -413,12 +410,13 @@ deserves:
   and it now catches two classes of defect it previously could not: a `/plugin:skill` reference to a
   skill that does not exist, and a backticked relative path that does not resolve. Both were seen
   red against real stale references in this repo before being fixed.
-- **A full reviewer → revision → re-review → bot merge still needs field proof.** The deterministic
-  routing and retry cases are fixture-tested, but until a real rejected PR is fixed and merged by
-  the scheduled bot, the end-to-end claim remains L4 rather than L3.
+- **A full required-check → scheduled-bot merge still needs field proof.** The deterministic routing
+  cases are fixture-tested, but until a real PR is merged by the scheduled bot, the end-to-end claim
+  remains L4 rather than L3.
 - **`consumers_green` and `surface_declared` are implemented and fixture-proven** — L1. They live in
   `merge-gate.mjs` beside every other gate, and were run against six fixtures: conformance absent,
-  conformance red, no `Surface:` line, `Surface: breaking` without the label, and both green cases —
+  conformance red, no `Surface:` line, `Surface: breaking` without migration evidence, and both
+  green cases —
   plus a product-repo control confirming they do not fire outside a platform repo. Red before, green
   after, the fixture the only variable.
 - **What conformance *asserts* has never been observed on a real break** — **L4**, and the weakest

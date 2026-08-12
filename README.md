@@ -77,15 +77,15 @@ For Copilot in VS Code, the cloud agent, and code review, also commit the reposi
 files described in [Codex and Copilot](#codex-and-copilot). Plugin installation makes workflows
 available; instruction files carry the durable rules of one repository.
 
-## The five loops
+## The plugin loops
 
-Each plugin is one loop. A loop declares **Trigger · Goal · Execution · Verification · Stopping rule
+Each loop plugin declares **Trigger · Goal · Execution · Verification · Stopping rule
 · Memory**, and ends in exactly one named state — `Success`, `No-op`, `Blocked`, `Stalled`,
 `Exhausted`, or `Approval-required`. *An error or an exhausted budget never counts as success.*
 
 | Plugin | Loop | Goal | Default |
 |---|---|---|---|
-| **plenipo** | the front door | seven loopable verbs that drive the others, so you never type their names | **on** |
+| **plenipo** | the front door | eight loopable verbs that drive the others, so you never type their names | **on** |
 | **harness** | control plane | the platform contract, the runbook, config validation, the conductor | **on** |
 | **scout** | discovery | an unclaimed industry worth a product, with a defensible reason | off |
 | **define** | definition | a spec and plan a team could build against | off |
@@ -108,15 +108,22 @@ Full operator's manual in **[AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.m
 | `setup` | `/plenipo:setup` | Makes a repo safe to leave a timer on: runbook, labels, two gate scripts, branch protection, the autonomy level |
 | `launch` | `/plenipo:launch` | Nothing → a product with a Ready backlog. Pauses once: the go/no-go and the name |
 | `deliver` | `/plenipo:deliver` | Admission control, then one build tick — rejected PRs and p0 bugs before features, and a ceiling on PRs in flight |
-| `ship` | `/plenipo:ship` | Adversarial review, then merges only what clears every deterministic gate at the recorded autonomy level |
+| `ship` | `/plenipo:ship` | Merges only what clears every deterministic gate at the recorded autonomy level; model review is optional |
 | `test` | `/plenipo:test` | Boots it, sweeps end to end, files deduplicated bug issues with reproductions |
 | `define` | `/plenipo:define` | Triages friction, promotes Backlog → Ready, extends the plan only from scope with provenance |
+| `steward` | `/plenipo:steward` | Works one platform request/release tick behind consumer conformance; platform repo only |
 | `fleet` | `/plenipo:fleet` | One tick on whichever product most needs it; least-recently-served, and quarantines a repo that keeps failing |
 
-Unattended review and merge recognizes `feat/`, `fix/` and `chore/` branches, plus `codex/` PRs whose
-body opens with a valid `<!-- plenipo-agent ... -->` protocol envelope. Eligible Codex PRs receive
-the cloud agent verdict automatically; you do not add `human-approved` during normal operation. That
-label is reserved for a deliberate emergency override.
+Unattended merge recognizes `feat/`, `fix/`, `chore/` and `codex/` branches only when the PR body
+opens with a valid `<!-- plenipo-agent ... -->` protocol envelope. No positive approval label is required:
+the scheduled merger trusts required checks, mergeability, explicit holds, the recorded autonomy
+level, a same-repository author in `autonomy.trustedAuthors`, and protected-base policy. Cloud review
+is an optional, dispatch-only second opinion, so provider throttling cannot turn into a failed PR
+check or a stuck merge queue.
+
+The merge policy itself is the one exception: edits to the gate scripts/workflows, `workflow.json`,
+or removals of security invariants fail `control_policy_locked` and need an owner/admin bootstrap.
+That keeps ordinary PRs label-free without letting a PR authorize the policy that judges it.
 
 ### `harness` — always on
 

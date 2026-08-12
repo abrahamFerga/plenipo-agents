@@ -94,7 +94,7 @@ there is never a second copy of an autonomy level to drift:
    | 0 | an exact tagged platform or harness issue is open, carries `triage:needs-info`, has no `needs-human`, `human-hold`, or `agent:blocked`, and has no other `triage:*` verdict | `../deliver/SKILL.md` — its step 2 owns the requester-side reply |
    | 1 | `main` is red, or a merged PR broke the default branch | `../deliver/SKILL.md` (fix first) |
    | 2 | a PR is `agent:changes-requested` | `../deliver/SKILL.md` — its rule 1 owns a rejected PR |
-   | 3 | a PR is `agent:approved`, or one carries no verdict label yet | `../ship/SKILL.md` |
+   | 3 | an open loop PR is not already routed to repair | `../ship/SKILL.md` |
    | 4 | an open `type:bug` at `priority:p0` | `../deliver/SKILL.md` |
    | 5 | open loop PRs ≥ `maxOpenPRs` | `../ship/SKILL.md` — review is the constraint, not build capacity |
    | 6 | `Ready` > 0 and open loop PRs < `maxOpenPRs` | `../deliver/SKILL.md` |
@@ -105,13 +105,13 @@ there is never a second copy of an autonomy level to drift:
    Two of those rules are worth stating plainly, because getting either wrong stops a product
    without ever reporting a failure:
 
-   - **A rejected PR goes to `deliver`, not `ship`.** `ship` reviews PRs that carry *no* verdict
-     label and skips the rest, so routing `agent:changes-requested` there spends the tick and
-     changes nothing — the product looks served and stands still. `deliver` rule 1 is the owner:
-     it hands to `/deliver:revise-pr` and strips the label so `ship` picks the PR up next time.
-   - **Rules 5 and 6 count only loop PRs** — head branch `feat/`, `fix/` or `chore/`, plus `codex/`
-     when the body opens with a valid `<!-- plenipo-agent ... -->` protocol envelope. A Dependabot
-     PR fails `is_loop_pr` in `merge-gate.mjs`, so no verb in this marketplace can ever clear it;
+   - **A rejected PR goes to `deliver`, not `ship`.** Route `agent:changes-requested` or a formal
+     `CHANGES_REQUESTED` review to `/deliver:revise-pr`; route every other loop PR to `ship`, whose
+     deterministic gate output decides whether it is ready, stale, or blocked.
+   - **Rules 5 and 6 count only loop-candidate PRs** — head branch `feat/`, `fix/`, `chore/` or
+     `codex/`. Every candidate must open its body with a valid `<!-- plenipo-agent ... -->` protocol
+     envelope; a malformed candidate still counts because `deliver` can repair it. A Dependabot PR
+     fails `is_loop_pr` in `merge-gate.mjs`, so no verb in this marketplace can ever clear it;
      counting it against `maxOpenPRs` makes rule 5 fire forever and starves rule 6 of every tick.
      Report both numbers per product so the filter is visible.
 

@@ -19,7 +19,6 @@ import { readFileSync, existsSync, mkdtempSync, rmSync, writeFileSync } from 'no
 import { spawnSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { createApprovalProofClient } from './approval-proof.mjs';
 
 const argv = process.argv.slice(2);
 const flag = (name) => argv.includes(name);
@@ -59,20 +58,27 @@ const ghSoft = (args) => {
 
 // ── Policy, read from the repo — never inferred ───────────────────────────────
 // An agent that decides it has earned autonomy is the self-approving loop wearing a different hat.
-// Absent config means level 0: review and label, merge nothing.
+// Absent config means level 0: report, merge nothing.
 const cfg = existsSync('workflow.json') ? JSON.parse(readFileSync('workflow.json', 'utf8')) : {};
 const autonomy = cfg.autonomy ?? {};
 const LEVEL = Number.isInteger(autonomy.level) ? autonomy.level : 0;
 const MAX_MERGES = autonomy.maxMergesPerTick ?? 2;
+const TRUSTED_AUTHORS = new Set(
+  (Array.isArray(autonomy.trustedAuthors) ? autonomy.trustedAuthors : [])
+    .filter((login) => typeof login === 'string' && login.trim())
+    .map((login) => login.trim().toLowerCase())
+);
 
 const LOOP_BRANCH = /^(feat|fix|chore)\//;
 const CODEX_BRANCH = /^codex\//;
 const PROTOCOL_ENVELOPE = /^\s*<!--\s*plenipo-agent\s+kind=(?:platform-request|verdict|upgrade-available|breaking-change|finding|handoff|blocked)\s+from=[a-z0-9._-]+(?:\s+ref=[a-z0-9._-]+#\d+)?\s+status=(?:open|answered|accepted|rejected|blocked|done)\s*-->/i;
 const HOLD_LABELS = ['human-hold', 'needs-human', 'agent:blocked'];
-// Docs, tests and the runbook are the only class a level-1 product may land on its own.
+// Docs, new tests and the runbook are the only class a level-1 product may land on its own.
+// Existing test edits are classified from the patch below so weakening proof is never low-risk.
 const LOW_RISK = [/\.md$/i, /^tests\//, /\.http$/i, /^\.http$/i];
-// Changes to the loop's own controls need a verdict run by the policy already on the protected
-// base. The PR may propose the next policy, but it cannot use that proposal to approve itself.
+const TEST_PATH = /^tests\//;
+// Changes to the loop's own controls need evaluation by the policy already on the protected base.
+// The PR may propose the next policy, but it cannot use that proposal to authorize itself.
 const CONTROL_PATHS = [
   /^\.github\//,
   /^\.claude\//,
@@ -97,12 +103,14 @@ const CONFORMANCE_CHECK = /consumer.?conformance|conformance verdict/i;
 // was skipped is a deadlock; accepting a source change without that check is a consumer break.
 const CONFORMANCE_PATHS = [/^src\//, /^Directory\.(?:Packages|Build)\.props$/];
 const SURFACE_RE = /^\s*(?:public[- ])?surface:\s*(additive|breaking|none)\b/im;
+const MIGRATION_HEADING_RE = /^##[ \t]+Migration evidence[ \t]*$/i;
 const INFRA_PATHS = [/^infra\//];
 const TERRAFORM_CHECK = /terraform|fmt\s*\/\s*validate\s*\/\s*plan/i;
 
 const PR_FIELDS = [
   'number', 'title', 'body', 'isDraft', 'headRefName', 'headRefOid', 'baseRefName', 'labels',
   'mergeable', 'mergeStateStatus', 'reviewDecision', 'statusCheckRollup', 'files', 'changedFiles', 'author',
+  'isCrossRepository', 'headRepository',
   // Only ever reported, never gated on. A queue that stops moving looks identical to a healthy one
   // in a run log that prints no ages — which is how this went unnoticed for weeks.
   'createdAt',
@@ -114,6 +122,7 @@ const PR_FIELDS = [
 // ── Load the pull requests ───────────────────────────────────────────────────
 let prs;
 let fixtureRequiredCheckContexts = null;
+let fixtureRepository = { nameWithOwner: 'fixture/repository', defaultBranch: 'main' };
 if (FIXTURE) {
   const fixture = JSON.parse(readFileSync(FIXTURE, 'utf8'));
   if (Array.isArray(fixture)) {
@@ -121,6 +130,11 @@ if (FIXTURE) {
   } else {
     prs = fixture.pullRequests ?? [];
     fixtureRequiredCheckContexts = fixture.requiredCheckContexts ?? null;
+    fixtureRepository = {
+      nameWithOwner: fixture.repository?.nameWithOwner ?? fixtureRepository.nameWithOwner,
+      defaultBranch: fixture.repository?.defaultBranch ??
+        fixture.repository?.defaultBranchRef?.name ?? fixtureRepository.defaultBranch,
+    };
   }
 } else if (ONE_PR) {
   prs = [JSON.parse(gh(['pr', 'view', ONE_PR, '--json', PR_FIELDS]))];
@@ -129,8 +143,8 @@ if (FIXTURE) {
 }
 
 // Branch protection, not every check that happens to appear in a rollup, defines the CI contract.
-// Agentic review is deliberately separate: a provider outage means no approval label, not failed
-// product CI. `gh pr checks --required` reads CheckRun.isRequired through the pull-request GraphQL
+// Agentic review is deliberately advisory: a provider outage must not become failed product CI.
+// `gh pr checks --required` reads CheckRun.isRequired through the pull-request GraphQL
 // surface, which the scheduled GITHUB_TOKEN can read. The Administration-only branch-protection
 // REST endpoint cannot be read by that token and used to leave every scheduled merge green-but-idle.
 const requiredContextsCache = new Map();
@@ -163,13 +177,36 @@ function requiredContextsFor(pr) {
   return result;
 }
 
-const approvalProof = FIXTURE ? null : createApprovalProofClient({ gh, runGh });
-let repoSlug;
+let repoMetadataCache;
 const diffCache = new Map();
 
+function repositoryMetadata() {
+  if (repoMetadataCache) return repoMetadataCache;
+  if (FIXTURE) {
+    repoMetadataCache = fixtureRepository;
+    return repoMetadataCache;
+  }
+
+  try {
+    const raw = JSON.parse(gh(['repo', 'view', '--json', 'nameWithOwner,defaultBranchRef']));
+    const nameWithOwner = raw.nameWithOwner;
+    const defaultBranch = raw.defaultBranchRef?.name;
+    if (!nameWithOwner || !defaultBranch) {
+      throw new Error('GitHub returned no repository slug or default branch');
+    }
+    repoMetadataCache = { nameWithOwner, defaultBranch };
+  } catch (error) {
+    const message = `could not read repository provenance policy: ${error.message.split('\n')[0]}`;
+    infrastructureFailures.add(message);
+    repoMetadataCache = { error: message };
+  }
+  return repoMetadataCache;
+}
+
 function repository() {
-  repoSlug ??= JSON.parse(gh(['repo', 'view', '--json', 'nameWithOwner'])).nameWithOwner;
-  return repoSlug;
+  const metadata = repositoryMetadata();
+  if (metadata.error) throw new Error(metadata.error);
+  return metadata.nameWithOwner;
 }
 
 function diffFor(pr) {
@@ -200,6 +237,34 @@ function pathsFromDiff(diff) {
   return [...new Set(paths)];
 }
 
+function fileChangesFromDiff(diff) {
+  const changes = [];
+  let oldPath;
+  const normalize = (raw) => {
+    const path = raw.trim().split('\t')[0].replace(/^[ab]\//, '');
+    return path === '/dev/null' ? null : path;
+  };
+  for (const line of String(diff ?? '').split('\n')) {
+    if (line.startsWith('--- ')) oldPath = normalize(line.slice(4));
+    else if (line.startsWith('+++ ') && oldPath !== undefined) {
+      changes.push({ oldPath, newPath: normalize(line.slice(4)) });
+      oldPath = undefined;
+    }
+  }
+  return changes;
+}
+
+function testsArePureAdditions(paths, diff) {
+  const testPaths = paths.filter((path) => TEST_PATH.test(path));
+  if (testPaths.length === 0) return true;
+  const changes = fileChangesFromDiff(diff);
+  const testChanges = changes.filter(({ oldPath, newPath }) =>
+    TEST_PATH.test(oldPath ?? '') || TEST_PATH.test(newPath ?? ''));
+  return testChanges.length > 0 &&
+    testChanges.every(({ oldPath, newPath }) => oldPath === null && TEST_PATH.test(newPath ?? '')) &&
+    testPaths.every((path) => testChanges.some(({ newPath }) => newPath === path));
+}
+
 function trustedPrGatesFor(pr, diff) {
   if (FIXTURE) {
     return pr.trustedPrGates === false
@@ -222,6 +287,7 @@ function trustedPrGatesFor(pr, diff) {
         ...process.env,
         PR_BODY: pr.body ?? '',
         PR_HEAD_REF: pr.headRefName ?? '',
+        PR_HEAD_SHA: pr.headRefOid ?? '',
         PR_LABELS: labels,
       },
     });
@@ -243,9 +309,6 @@ function trustedPrGatesFor(pr, diff) {
 function evaluate(pr) {
   const fail = [];
   const labels = (pr.labels ?? []).map((l) => (typeof l === 'string' ? l : l.name).toLowerCase());
-  const agentApproved =
-    labels.includes('agent:approved') &&
-    !['agent:changes-requested', ...HOLD_LABELS].some((label) => labels.includes(label));
   // GitHub's rollup keeps EVERY check run for the head commit, including superseded ones — a check
   // that failed and was then re-run green appears TWICE. Filtering the raw list makes a stale
   // FAILURE permanent: a pull request that ever went red could never merge again however green it
@@ -260,8 +323,8 @@ function evaluate(pr) {
   // symmetrical: refusing a mergeable PR wastes a tick, while merging on a superseded green is
   // unrecoverable. An earlier version of this collapsed to "latest by startedAt", which merged a PR
   // whose re-run was still QUEUED — the queued entry has no timestamp, lost the comparison, and was
-  // dropped. That sequence is routine here by design: `agent-gates.yml` re-triggers on `labeled`,
-  // the reviewer adds `agent:approved`, and the merge cron fires minutes later.
+  // dropped. That sequence is routine here by design: `agent-gates.yml` re-triggers on a new commit
+  // or evidence-body edit, and the merge cron fires minutes later.
   //
   // This keys on workflow+job (two workflows may both define `build`), cannot trust rollup ordering
   // (observed: the earliest-started entry appearing last), and treats `cancelled` as broken.
@@ -294,10 +357,8 @@ function evaluate(pr) {
 
   const files = (pr.files ?? []).map((f) => f.path ?? f.filename ?? '');
   const filesAreComplete = !Number.isInteger(pr.changedFiles) || files.length >= pr.changedFiles;
-  const hasEnvelope = /plenipo-agent/.test(pr.body ?? '');
   const hasProtocolEnvelope = PROTOCOL_ENVELOPE.test(pr.body ?? '');
-  const isLoopBranch = LOOP_BRANCH.test(pr.headRefName ?? '') ||
-    (CODEX_BRANCH.test(pr.headRefName ?? '') && hasProtocolEnvelope);
+  const isLoopBranch = LOOP_BRANCH.test(pr.headRefName ?? '') || CODEX_BRANCH.test(pr.headRefName ?? '');
   const diff = isLoopBranch ? diffFor(pr) : { text: '' };
   const allPaths = [...new Set([...files, ...pathsFromDiff(diff.text)])];
   const conformanceRequired = !filesAreComplete || allPaths.some((file) => CONFORMANCE_PATHS.some((re) => re.test(file)));
@@ -316,11 +377,51 @@ function evaluate(pr) {
   const broken = requiredChecks.filter((c) => ['FAILURE', 'ERROR', 'CANCELLED', 'TIMED_OUT', 'ACTION_REQUIRED'].includes(state(c)));
 
   const isLowRisk = filesAreComplete && !controlsChanged && allPaths.length > 0 &&
-    allPaths.every((file) => LOW_RISK.some((re) => re.test(file)));
+    allPaths.every((file) => LOW_RISK.some((re) => re.test(file))) &&
+    testsArePureAdditions(allPaths, diff.text);
   const changeClass = isLowRisk ? 'low-risk' : 'feature';
+  const migrationEvidence = (() => {
+    const lines = String(pr.body ?? '').split(/\r?\n/);
+    const start = lines.findIndex((line) => MIGRATION_HEADING_RE.test(line));
+    if (start === -1) return '';
+    const endOffset = lines.slice(start + 1).findIndex((line) => /^##[ \t]+/.test(line));
+    const end = endOffset === -1 ? lines.length : start + 1 + endOffset;
+    return lines.slice(start + 1, end).join(' ').replace(/\s+/g, ' ').trim();
+  })();
 
+  const repositoryPolicy = repositoryMetadata();
+  const headRepository = pr.headRepository?.nameWithOwner;
+  const authorLogin = pr.author?.login;
   if (!isLoopBranch) fail.push(`is_loop_pr: "${pr.headRefName}" is not a loop branch — not ours to merge`);
-  if (!hasEnvelope) fail.push('is_loop_pr: the body carries no plenipo-agent envelope');
+  if (!hasProtocolEnvelope) {
+    fail.push('protocol_envelope: the body must open with a valid plenipo-agent protocol envelope');
+  }
+  if (repositoryPolicy.error) {
+    fail.push(`provenance: ${repositoryPolicy.error}`);
+  } else {
+    if (typeof pr.isCrossRepository !== 'boolean' || !headRepository || !authorLogin) {
+      fail.push('provenance: repository or author metadata is missing — unattended merge fails closed');
+    }
+    if (pr.isCrossRepository !== false ||
+        (headRepository && headRepository.toLowerCase() !== repositoryPolicy.nameWithOwner.toLowerCase())) {
+      fail.push(
+        `provenance: PR must come from the same repository "${repositoryPolicy.nameWithOwner}", ` +
+          `not "${headRepository ?? 'unknown'}"`
+      );
+    }
+    if (pr.baseRefName !== repositoryPolicy.defaultBranch) {
+      fail.push(
+        `base_branch: unattended merges target default branch "${repositoryPolicy.defaultBranch}", ` +
+          `not "${pr.baseRefName ?? 'unknown'}"`
+      );
+    }
+  }
+  if (!authorLogin || !TRUSTED_AUTHORS.has(authorLogin.toLowerCase())) {
+    fail.push(
+      `trusted_author: "${authorLogin ?? 'unknown'}" is not listed in ` +
+        'workflow.json autonomy.trustedAuthors'
+    );
+  }
   if (pr.isDraft) fail.push('not_draft: the PR is a draft');
   if (diff.error) fail.push(`diff_inspected: ${diff.error}`);
   if (required.error) fail.push(`checks_configured: ${required.error}`);
@@ -341,8 +442,7 @@ function evaluate(pr) {
   // repos: the moment anything landed on main, every other open PR went BEHIND, nothing in the loop
   // had ever called `gh pr update-branch` (zero occurrences in the whole marketplace), and so the
   // queue could absorb exactly one merge and then stopped forever. Fourteen of twenty-five open
-  // pull requests were sitting on this single reason, three of them already carrying
-  // `agent:approved` — the system had decided they should merge and then could not.
+  // pull requests were sitting on this single reason even though their deterministic gates passed.
   const mergeState = String(pr.mergeStateStatus ?? '').toUpperCase();
   const stale = mergeState === 'BEHIND';
   // UNSTABLE means a non-required check failed. Required checks were read independently above, so
@@ -352,28 +452,20 @@ function evaluate(pr) {
     fail.push(`mergeable: mergeStateStatus=${mergeState}`);
   }
   if (pr.reviewDecision === 'CHANGES_REQUESTED') fail.push('no_blocking_review: a review requested changes');
-  if (!labels.includes('agent:approved')) fail.push('agent_approved: no `agent:approved` label — nothing has reviewed this');
-  if (labels.includes('agent:changes-requested')) fail.push('agent_approved: `agent:changes-requested` is still set');
-  for (const h of HOLD_LABELS) if (labels.includes(h)) fail.push(`no_human_hold: \`${h}\` is set`);
-  // Every unattended merge needs approval-specific provenance. A successful reviewer run is not
-  // sufficient: requesting changes is also a successful workflow execution, and a label can be
-  // supplied independently. The proof binds the applied output to this head/base/body revision.
-  if (agentApproved) {
-    const trusted = FIXTURE
-      ? (pr.trustedApproval === false
-          ? { ok: false, why: 'no approval-specific proof covers this revision' }
-          : { ok: true })
-      : approvalProof.prove(pr);
-    if (trusted.infrastructure) infrastructureFailures.add(trusted.why);
-    if (!trusted.ok) fail.push(`trusted_agent_approval: ${trusted.why}`);
+  if (labels.includes('agent:changes-requested')) {
+    fail.push('no_blocking_review: `agent:changes-requested` is still set');
   }
-  if (agentApproved && controlsChanged && !diff.error) {
+  for (const h of HOLD_LABELS) if (labels.includes(h)) fail.push(`no_human_hold: \`${h}\` is set`);
+  // A control-plane pull request must be judged by the policy already on the protected base. This
+  // deterministic evaluator runs regardless of advisory review labels, so a model outage cannot
+  // deadlock the queue and a proposed workflow still cannot approve itself.
+  if (controlsChanged && !diff.error) {
     const trustedGates = trustedPrGatesFor(pr, diff.text);
     if (!trustedGates.ok) fail.push(`trusted_pr_gates: ${trustedGates.why}`);
   }
   if (LEVEL === 0) fail.push('level_permits: autonomy level 0 merges nothing — a human decides');
   else if (LEVEL === 1 && changeClass !== 'low-risk') {
-    fail.push('level_permits: level 1 may merge docs, tests and the runbook only');
+    fail.push('level_permits: level 1 may merge docs, new tests and the runbook only');
   }
 
   // ── Platform-only gates ────────────────────────────────────────────────────
@@ -420,10 +512,10 @@ function evaluate(pr) {
           'unclassified break gets announced without migration steps, which starts N agents down ' +
           'an unverified path'
       );
-    } else if (surface[1].toLowerCase() === 'breaking' && !agentApproved) {
+    } else if (surface[1].toLowerCase() === 'breaking' && migrationEvidence.length <= 40) {
       fail.push(
-        'surface_declared: "Surface: breaking" needs a live `agent:approved` verdict — the agent ' +
-          'must verify the migration evidence before every consumer is told to follow it'
+        'migration_evidence: "Surface: breaking" needs a ## Migration evidence section with more ' +
+          'than 40 substantive characters before consumers are told to upgrade'
       );
     }
   }
@@ -516,7 +608,7 @@ for (const { pr, fail, changeClass, stale } of results) {
   // ── Stale but otherwise clean: repair it, do not merge it ──────────────────
   // Deliberately gated on `fail.length === 0` — a branch is only worth updating when freshness is
   // the LAST thing wrong with it. Updating every BEHIND pull request regardless would re-trigger
-  // CI on branches that are also unreviewed, unapproved or red, spending a full check run per
+  // CI on branches that are otherwise blocked or red, spending a full check run per
   // fifteen-minute tick to learn nothing.
   //
   // And it updates WITHOUT merging, even though the gates all passed a moment ago. The update
