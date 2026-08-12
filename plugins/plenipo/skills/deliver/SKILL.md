@@ -55,7 +55,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 | Input | Where it comes from | Used for |
 |---|---|---|
 | Owner / repo / project | `workflow.json` → `github`, else `gh repo view`, else `gh api user` | every query — **never hardcode an owner** |
-| Open **loop** PRs and their labels | `gh pr list --state open --json number,labels,headRefName`, keeping only `headRefName` matching `^(feat\|fix\|chore)/` | admission control, and finding rejected work |
+| Open **loop-candidate** PRs and their review state | `gh pr list --state open --json number,labels,headRefName,body,reviewDecision`; keep `feat/`, `fix/`, `chore/` and `codex/`, then validate the opening protocol envelope | admission control, including malformed PRs that need revision |
 | Board items and columns | `gh project item-list` | what is Ready, what is In Progress |
 | Bug issues | `gh issue list --label type:bug --state open` | p0 bugs preempt features |
 | Ceilings | `workflow.json` → `autonomy.maxOpenPRs` (default 3) | the back-pressure limit |
@@ -95,7 +95,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 
    | Priority | Condition | Action |
    |---|---|---|
-   | 1 | an open PR labelled `agent:changes-requested` | fix that PR — it is closer to done than anything else, and an unaddressed rejection blocks the merge queue |
+   | 1 | an open PR labelled `agent:changes-requested` or carrying a `CHANGES_REQUESTED` review | fix that PR — it is closer to done than anything else, and an unaddressed rejection blocks the merge queue |
    | 2 | a card `In Progress` with no PR | resume it; never start a second item |
    | 3 | an open `type:bug` issue at `priority:p0` | a shipped defect outranks new scope |
    | 4 | `Ready` cards exist and open loop PRs < `maxOpenPRs` | take the top one by Build order |
@@ -106,10 +106,12 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    the single most important line in the skill: an unattended builder with no ceiling converts a
    review backlog into an unreviewable one, and every extra branch makes the next rebase worse.
 
-   **Count only PRs this loop could actually merge** — head branch `feat/`, `fix/` or `chore/`.
-   Anything else, Dependabot above all, fails `is_loop_pr` in `merge-gate.mjs` and can therefore
-   never leave the queue by any action this loop takes. Counting them turns the ceiling into a
-   deadlock rather than back-pressure: it was measured at 8 Dependabot PRs against a `maxOpenPRs`
+   **Count only loop-candidate PRs** — head branch `feat/`, `fix/`, `chore/` or `codex/`. Every one
+   must open its body with a valid `<!-- plenipo-agent ... -->` protocol envelope before it can
+   merge; a missing or malformed envelope is rejected work for the revision path, so it still
+   counts. Anything else, Dependabot above all, fails `is_loop_pr` in `merge-gate.mjs` and can
+   therefore never leave the queue by any action this loop takes. Counting them turns the ceiling
+   into a deadlock rather than back-pressure: it was measured at 8 Dependabot PRs against a `maxOpenPRs`
    of 3 in one repo and 6 against 3 in another, and both build loops reported `No-op` every tick
    for weeks while the board still had Ready cards and only one or two loop PRs were genuinely in
    flight. Name the excluded count in the report — *"9 open, 1 loop PR, 8 Dependabot"* — because a

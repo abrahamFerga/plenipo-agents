@@ -89,9 +89,10 @@ asking for something that changes scope, weakens an invariant, or contradicts th
    ```
 
 7. **Update the PR body** so it still describes what the PR now does — the evidence section
-   especially. A reviewer should never have to reconstruct the current state from a comment thread.
+   especially. Nobody should have to reconstruct current state from comments.
 
-8. **Re-request review** and leave the card in **In Review**. Do not move it, and do not merge.
+8. **Let required checks rerun** and leave the card in **In Review**. Request optional review only
+   when a person asked for it or the revision needs judgement. Do not move or merge the PR.
 
 9. **Count your passes.** Three rounds without converging means the disagreement is not about the
    code — stop and say so. Escalate with what each round changed and what the reviewer still wants.

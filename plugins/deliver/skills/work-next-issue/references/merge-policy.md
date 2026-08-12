@@ -1,184 +1,87 @@
 # Who merges, and what may be automated
 
-The maker's build pass ends at **In Review** with an open PR. That is deliberate; a fresh reviewer
-context judges it, the maker loop revises any findings, and only the deterministic merger moves it
-to Done after every live gate passes.
+The maker's build pass ends at **In Review** with an open PR. The deterministic merger moves it to
+Done only after every live gate passes. A local or cloud reviewer can add a useful second opinion,
+but a model opinion never grants merge authority and provider availability never blocks the queue.
 
 ## The rule everything else follows
 
-**The agent that wrote the change must never be the one that approves it.**
+**Authorization comes from repository policy, not from a positive label.**
 
-This is the *Self-Approving Loop* anti-pattern: the same model produces and grades, and the grade
-drifts upward while quality stalls. It is not a hypothetical — the fastest route from a red check to
-a green one is almost always to edit the check, and an agent that writes the code, writes the test,
-and merges the PR has no adversary anywhere in that chain.
+CI is an L1 check on the tests that exist; it cannot prove every product judgement. The unattended
+path therefore layers several independent constraints:
 
-Auto-merge-on-green does exactly this. CI is an **L1 check on the tests that happen to exist**; it
-cannot tell you the feature does what was asked, which needs an independent **L4** judgement plus
-runtime evidence. Benchmark-passing PRs
-have been measured merging at a **24.2 percentage-point lower rate** than the benchmark implied —
-machine-green and human-acceptable are different things.
+- the PR comes from the same repository, targets its default branch, has a valid protocol envelope,
+  and was opened by an actor explicitly listed in `autonomy.trustedAuthors`;
+- GitHub's required checks exist and are green at the current head;
+- the PR is mergeable, not a draft, and has no `CHANGES_REQUESTED` review or explicit hold;
+- the body closes its issue and records runtime plus red-before-green evidence;
+- the recorded autonomy level permits the change class and the tick stays under its merge cap;
+- a control change is evaluated by `pr-gates.mjs` downloaded from the protected base.
+
+That prevents a fork, a branch-name lookalike, a model label, or a PR-owned workflow from granting
+itself authority.
 
 ## Merge policy by blast radius
 
 | Change class | Who merges | Gate |
 |---|---|---|
-| Docs, `RUNBOOK.md`, test-only additions, a green version bump | deterministic merger | independent agent verdict + required checks |
-| A product feature — module tool, tab, endpoint | deterministic merger | independent agent verdict + full test ladder |
-| Any change to the platform | deterministic merger | independent agent verdict + required checks + consumer conformance |
-| Anything touching RBAC, approvals, tenant isolation, audit, or secrets | deterministic merger, never the maker | protected-diff gate + scoped acceptance test + independent verdict |
+| Docs, `RUNBOOK.md`, tests, a green version bump | deterministic merger at level 1+ | required checks + evidence + provenance |
+| A product feature — module tool, tab, endpoint | deterministic merger at level 2+ | full test ladder + required checks + evidence + provenance |
+| An ordinary platform change | deterministic merger at the recorded level | product gates + consumer conformance + surface declaration |
+| A breaking platform surface | deterministic merger at the recorded level | above + substantive `## Migration evidence` |
+| The merge policy itself, or removal of an RBAC/approval/tenant/audit invariant | owner/admin bootstrap only | `control_policy_locked` fails closed; no label overrides it |
 
-The last row is the one that matters. Those five are the platform's entire value proposition, so a
-model label may never waive their deterministic tests and the writer context may never review them.
+The last row is deliberately rare and manual. A proposed gate cannot safely be the authority that
+decides whether its own weakening is acceptable. This is not a per-PR approval ritual: ordinary
+feature, documentation, test, manifest, and platform work stays label-free and unattended.
 
-`CODEOWNERS` documents ownership, while `pr-gates.mjs` is the enforceable content/path mechanism in
-an unattended repository because it is **deterministic and lives in CI**, not in a prompt:
-
-```text
-# .github/CODEOWNERS
-/src/**/Authorization/    @<owner>
-/src/**/Approvals/        @<owner>
-/src/**/Persistence/      @<owner>
-```
+`CODEOWNERS` documents ownership. `pr-gates.mjs` is the enforceable protected-base policy, while the
+repository ruleset makes its status check mandatory. Requiring a GitHub approving review is a
+separate owner choice and deliberately makes the queue human-dependent.
 
 ## What GitHub can and cannot do for you
 
-Verified July 2026 — check before relying on any of it, these move:
-
 | Mechanism | Reality |
 |---|---|
-| **Copilot code review** | Leaves **comments only**. It never "Approves" or "Requests changes," so it **cannot satisfy a required-reviewers rule**. Useful as a second pair of eyes; useless as a gate |
-| **Auto-merge + Copilot review together** | **Actively dangerous.** Auto-merge waits only for *explicitly configured* conditions, so the PR can merge while the review is still running. Do not pair them and assume the review gates anything |
-| **Branch protection / rulesets** | The server-side gate. Require deterministic checks; requiring an approving review deliberately makes the loop human-dependent |
-| **Merge queue** | Worth enabling on the **platform** repo — the serial shared resource. The queue re-tests batched changes before they land |
-| **GitHub Agentic Workflows** (`gh-aw`) | Markdown workflows compiled into Actions, running on Copilot CLI / Claude / Codex / Gemini. **Read-only by default**, writes through preapproved "safe outputs." Public preview |
+| **Required status checks** | The server-side contract. Name only deterministic contexts that really report |
+| **Copilot or agent review** | A useful, optional second opinion. Keep it dispatch-only and comment-only |
+| **GitHub auto-merge** | Waits only for configured conditions and can race optional review; do not pair it with this loop |
+| **Scheduled `merge-gate.mjs`** | The only default-branch merger: re-reads required checks, provenance, holds, mergeability, policy, level, and cap immediately before merging |
+| **Merge queue** | Useful on the serial platform repo, where batched candidates must be retested |
 
-### `merge-pull-request` — what it can and cannot do
+The scheduled merger uses `--match-head-commit`, so a push between evaluation and merge cannot land
+an unexamined revision. A stale-but-otherwise-ready branch is updated in one tick and considered for
+merge only after its checks rerun on the next tick.
 
-gh-aw ships a `merge-pull-request` safe output, and it is **far better gated than "let an agent
-merge" sounds.** Verified against the handler source (`actions/setup/js/merge_pull_request.cjs`),
-July 2026 — re-verify, it is marked experimental and its ADR is still Draft.
+## Earning autonomy
 
-The agent never holds a merge token. It emits a structured request; a separate trusted job evaluates
-**sixteen gates** and performs the merge only if every one passes. Gates are accumulated, not
-short-circuited, so a blocked merge reports every reason at once.
-
-**Three gates are hardcoded with no opt-out, and they are the ones that matter:**
-
-| Gate | Blocks when |
-|---|---|
-| `target_branch_protected` | the base branch has branch protection |
-| `target_branch_default` | the base branch is the repo's default branch |
-| `target_branch_has_no_open_pr` | the base branch is not itself the head of another open PR |
-
-Read those together: **it cannot merge into `main`, and it cannot merge into any protected branch.**
-It is built for merging *intermediate* PRs in a stack — never the one that lands on your default
-branch. The tool enforces the policy in this file by construction.
-
-The rest are also on your side: `pr_is_draft`, `merge_conflicts`, `not_mergeable`,
-`required_checks_missing` / `required_checks_failing` (derived from your branch protection),
-`pending_reviewers`, `blocking_review_state` (fires on `CHANGES_REQUESTED` **and** `REVIEW_REQUIRED`),
-and `unresolved_review_threads`. So a required review still blocks it — maker-checker survives.
-
-Configurable narrowing: `required-labels` (all must be present), `required-title-prefix`,
-`allowed-branches` (globs on the **head** ref), `max` (1–10), and `staged: true` to evaluate the
-gates and preview the outcome **without merging** — use that first.
-
-There is **no** merge-method restriction, **no** path/file filter, and **no** author filter. The
-agent picks `merge`/`squash`/`rebase` itself, and `allowed-branches` does not constrain the base.
-
-### Where an agentic workflow belongs
-
-**Triage first.** An event-driven workflow on `issues.labeled: platform-request` that clusters,
-verdicts, comments, and labels is the strongest fit — read-mostly, its only write is a comment, and
-nobody wants to poll that queue by hand.
-
-**Merging: yes, within its gates.** Given it physically cannot touch `main` or a protected branch,
-`merge-pull-request` is a reasonable way to automate the low-risk tier and stacked intermediate
-merges. The safety comes from the gates, not from the agent's judgement — which is the whole point.
-
-**So protect your branches.** Every gate above that matters is *derived from branch protection*. On
-an unprotected repo, `target_branch_protected` never fires and `required_checks_*` have nothing to
-read. The policy in this file is only real if branch protection is real.
-
-Because the feature is experimental, do not make it load-bearing. The repository's own
-`merge-gate.mjs` remains the only default-branch merger.
-
-## Earning autonomy — how the human comes out of the loop
-
-"A human approves every feature" is the **starting** position, not the destination. At several
-products in parallel it makes one person the serializing resource for all of them, which defeats the
-point. But the way out is a **stronger verifier**, never a bigger batch.
-
-### Why bigger batches are the wrong escape
-
-Shipping in large chunks instead of PRs does not remove review — it **defers and enlarges** it, and
-it costs the agent three things it needs even with no human present:
-
-- **Attribution.** "Change one thing per turn and re-run the checks" exists so a red check points at
-  a cause. In a large chunk something breaks and nothing says which change did it.
-- **The place checks run.** The PR is where CI, conformance, and the diff live. No PR means the first
-  verification happens after the code is already on `main`.
-- **Comprehension debt.** The faster a loop ships code nobody read, the wider the gap between what
-  exists and what anyone understands.
-
-### What makes an automatic merge legitimate
-
-Auto-merge is unsafe by default because the agent that wrote the code also wrote the tests that gate
-it. Green then means only that nothing adversarial happened. Replace that, and the human is out of
-the loop honestly:
-
-1. **A separate reviewing agent** — different context, prompted to *refute* rather than confirm, able
-   to block. Maker ≠ checker is the structural fix, not a nicety.
-2. **Red-before-green evidence in the PR body** — the regression test run against the *unfixed* code
-   and observed failing. That is the difference between a test and a decoration.
-3. **The consumer conformance gate**, for anything touching the platform.
-4. **Cheap revert** — merge queue, green `main`, a rollback path. Autonomy is affordable exactly when
-   mistakes are cheap to undo.
-
-### The asymmetry that buys most of it
-
-A bad **product** merge hurts one product. A bad **platform** merge hurts every product built on it.
-
-| | Autonomy |
-|---|---|
-| Products (many, parallel) | can run **fully unattended** once earned |
-| Platform (one, serial) | unattended only behind required CI, independent verdict and consumer conformance |
-| The spine — RBAC, approvals, tenancy, audit, secrets | independent verdict plus protected-diff tests; never the maker's own approval |
-
-So no human relay serializes N repositories; the stronger verifier carries the larger blast radius.
-
-### The ratchet
-
-Per product, graduating on artifacts that make green trustworthy — not on a promise:
+The way out of manual merging is a stronger deterministic verifier, never a bigger batch.
 
 | Level | May auto-merge | Entry requirement |
 |---|---|---|
-| **0** | nothing | default for a product with no runbook |
-| **1** | docs, runbook, test-only changes | `RUNBOOK.md` installed and rungs 1–3 green |
-| **2** | features, on an adversarial reviewer's approval | + golden evals present, + registered in the platform's `consumers.json` |
-| **3** | unattended inside a revert budget | + level 2 clean over a stretch, and the owner said so in words |
+| **0** | nothing | default for a repo with no earned autonomy |
+| **1** | docs, runbook, and test-only changes | run surface installed and required checks proven |
+| **2** | product features | golden evals present and level 1 stayed clean |
+| **3** | the same classes unattended inside a revert budget | level 2 stayed clean and the owner explicitly recorded it |
 
-Record the level in the product's `workflow.json`. **Never infer it** — an agent deciding it has
-earned autonomy is the self-approving loop wearing a different hat.
+Record the level and `trustedAuthors` in `workflow.json`. Never infer either. An agent deciding it has
+earned more authority is the self-approving loop wearing a different hat.
 
-**Spine changes never become ordinary work.** They keep the protected-diff and independent-review
-requirements at every level because the cost of being wrong does not shrink.
-
-**Platform changes use the recorded level plus stronger gates.** They require `consumers_green` —
-every registered consumer rebuilt and retested against the candidate — and breaking surface changes
-need a fresh verdict over explicit migration evidence. That is `/plenipo:steward`, not this loop.
+Platform changes add `consumers_green`; breaking surfaces add migration evidence. Locked control or
+security-invariant removals remain owner/admin bootstrap changes at every level because their blast
+radius is the mechanism that defines the levels themselves.
 
 ## What the build loop must do
 
-1. Open the PR with the runtime evidence, not just "tests pass" — the exact request exercised, the
-   observed output, and the regression test seen red before the fix.
-2. Move the card to **In Review** and stop the maker pass. That is `Success` for that pass, not for
-   the whole issue.
-3. Let the independent reviewer comment and label. `agent:changes-requested` routes back to
-   `/deliver:revise-pr`; a new commit expires the old verdict and triggers re-review.
-4. Never merge your own code directly. The scheduled deterministic merger alone may land it after
-   the label, required checks, mergeability, holds and autonomy policy all pass.
+1. Open the PR with the exact request exercised, observed output, and regression test seen red then
+   green—not merely “tests pass.”
+2. Put a valid `plenipo-agent` envelope first, include `Closes #N`, and move the card to **In Review**.
+3. Stop the maker pass. A later deterministic `ship` tick owns merge; an optional reviewer may leave
+   comments but is not a prerequisite.
+4. Route a formal `CHANGES_REQUESTED` review or `agent:changes-requested` hold to
+   `/deliver:revise-pr` before taking new work.
+5. Never call bare `gh pr merge`; it bypasses the repository's live gate list and merge cap.
 
-A conductor draining a backlog therefore revisits rejected PRs before starting new work and applies
-back-pressure while review is in flight. Open PRs are bounded work-in-progress, not a human inbox.
+The build loop applies back-pressure while open loop PRs reach `maxOpenPRs`. Open PRs are bounded
+work-in-progress, not a human inbox.

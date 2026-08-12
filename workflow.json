@@ -14,13 +14,14 @@
 
     "//set-by": "A human set this to 3 in words on 2026-08-01, having been told the ladder's stated entry requirement ('level 2 clean over a stretch') was unmet: this repo had never merged autonomously at any level. Recorded here because that is the fact a future tick needs and the conversation is gone.",
 
-    "//what-3-means-here": "Level 3 permits unattended merges across the marketplace, including its verifier and workflow controls. Every merge needs an approval-specific artifact from the protected-base reviewer; control paths are also re-evaluated by pr-gates.mjs downloaded from main, so a PR cannot replace the wrapper or policy that judges itself.",
+    "//what-3-means-here": "Level 3 permits unattended ordinary marketplace changes. Required checks, trusted provenance, mergeability, explicit holds and the merge cap remain mandatory. The merge-policy trust root and removals of security invariants fail control_policy_locked and require an owner/admin bootstrap; no autonomy level or label can override that stop.",
 
-    "//unattended-merge": "The owner explicitly requested no human intervention on 2026-08-10. The repository ruleset must require deterministic status checks but no approving review. agent-merge.yml uses the configured user PAT so label, branch-update and merge events trigger the next workflows instead of being suppressed as GITHUB_TOKEN events.",
+    "//unattended-merge": "The owner explicitly requested no human intervention on 2026-08-10. The repository ruleset must require deterministic status checks but no approving review. agent-merge.yml uses the configured user PAT so branch-update and merge events trigger the next workflows instead of being suppressed as GITHUB_TOKEN events.",
 
-    "//cloud-approver": "pr-approval-verdict.md and agent-approval-reset.yml are installed as a pair. The label alone is never authority: merge-gate.mjs verifies the exact run's safe-output artifact, head, base and body revision before merging.",
+    "//cloud-review": "pr-approval-verdict.md is dispatch-only and comment-only. It is an optional second opinion, never merge authority; model unavailability cannot block the deterministic merge queue.",
 
     "level": 3,
+    "trustedAuthors": ["abrahamFerga"],
     "maxOpenPRs": 3,
     "maxMergesPerTick": 2,
     "readyFloor": 3,

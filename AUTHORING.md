@@ -22,15 +22,17 @@ Plugins **auto-discover** everything under `skills/` and `agents/`. There is no 
 and **no catalog file** — adding one is an explicit non-goal. Only a whole new *plugin* needs a
 `marketplace.json` entry.
 
-## The five plugins
+## The seven plugins
 
 | Plugin | Loop | Default |
 |---|---|---|
+| `plenipo` | front door — eight bounded verbs | on |
 | `harness` | control plane — always available | on |
 | `scout` | discovery | off |
 | `define` | definition | off |
 | `shape` | design | off |
 | `deliver` | build + verification | on |
+| `steward` | platform request + release loop | platform repo only |
 
 Put a skill in the loop that *runs* it. If a skill is needed in every loop, it belongs in `harness`.
 
@@ -144,7 +146,7 @@ Constraints specific to plugin-shipped agents:
 
 ## Checklist — new skill
 
-0. Ask whether it needs to exist. The user-facing surface is the seven `plenipo` verbs; a new skill
+0. Ask whether it needs to exist. The user-facing surface is the eight `plenipo` verbs; a new skill
    they must remember is a cost, and the right answer is often a step inside a verb instead.
 1. Create `plugins/<plugin>/skills/<name>/` under the plugin that owns its loop.
 2. Write `SKILL.md`: valid frontmatter, the section order above, `DO NOT USE FOR:` in the
@@ -152,7 +154,7 @@ Constraints specific to plugin-shipped agents:
 3. Decide automatic vs manual and set `disable-model-invocation` accordingly.
 4. Verify every version, package id, and API name against source.
 5. **Run `node eng/validate-marketplace.mjs` — it must exit 0.**
-6. Run `npx markdownlint-cli2 "**/*.md"`.
+6. Run `npx --yes markdownlint-cli2@0.23.2 "**/*.md" "#node_modules"`.
 7. Add a row to the matching table in `README.md`.
 
 ## Checklist — new agent, hook, or script

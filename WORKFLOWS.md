@@ -20,21 +20,12 @@ credentials, and proof steps live.
 | Runs | GitHub Copilot, via `gh aw` | a Node script or shell |
 | Committed artifact | source `.md` **plus** compiled `.lock.yml` | the `.yml` itself |
 | Writes | only what `safe-outputs:` declares | whatever the job's `permissions:` allow |
-| May gate a merge | **no** — never merges; one may apply a label a deterministic gate reads | **yes** — that is the point |
+| May gate a merge | **no** — review output is advisory | **yes** — that is the point |
 
 An agentic workflow can be argued out of an opinion; a required status check cannot. That is why no
-agentic workflow here merges anything, and why every agentic *review* is pinned to
-`allowed-events: [COMMENT]`.
-
-One template is a deliberate, bounded exception.
-[`pr-approval-verdict.md`](plugins/harness/skills/install-github-agentic-workflows/assets/pr-approval-verdict.md)
-applies the `agent:approved` label that `merge-gate.mjs` requires before it will merge anything. It
-still merges nothing itself: the label is an **input** to a deterministic gate that independently
-re-checks that every required status check is green, that the branch is mergeable, that no hold
-label is set,
-that the spine guard passed, and that `autonomy.level` permits the change class. Necessary, never
-sufficient. Install it only when you want merges to happen with nobody at the machine, and read the
-risk note in the installing skill before you do.
+agentic workflow here gates or merges anything, and why every agentic *review* is pinned to
+`allowed-events: [COMMENT]`. The optional `pr-approval-verdict.md` template is dispatch-only: use it
+when a PR deserves another set of eyes, without making provider availability part of CI.
 
 ## Agentic workflows
 
@@ -59,7 +50,7 @@ marketplace has its own.
 | [`platform-release-impact.md`](plugins/harness/skills/install-github-agentic-workflows/assets/platform-release-impact.md) | platform | release published, or dispatch | 1 issue **in one named product repo** |
 | [`marketplace-harness-gap-triage.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-harness-gap-triage.md) | marketplace | issue labeled `harness-gap`, reopened, dispatched, or a needs-info body edit | ≤3 labels, remove waiting labels, 1 comment |
 | [`marketplace-pr-intent-review.md`](plugins/harness/skills/install-github-agentic-workflows/assets/marketplace-pr-intent-review.md) | marketplace | pull request | ≤8 inline comments, 1 `COMMENT` review |
-| [`pr-approval-verdict.md`](plugins/harness/skills/install-github-agentic-workflows/assets/pr-approval-verdict.md) | any role — **opt-in** | pull request, or dispatch | 1 verdict label, remove `agent:changes-requested`, ≤6 inline comments, 1 comment |
+| [`pr-approval-verdict.md`](plugins/harness/skills/install-github-agentic-workflows/assets/pr-approval-verdict.md) | any role — **opt-in** | dispatch only | ≤4 inline comments, 1 advisory comment |
 
 The three that write across repositories — escalation, harness feedback, and release-impact — need a
 GitHub App installed on exactly the two repos involved, never a broad PAT. The rest need only
@@ -85,11 +76,10 @@ From [`plugins/plenipo/skills/setup/assets/`](plugins/plenipo/skills/setup/asset
 
 | Template | Trigger | Purpose |
 |---|---|---|
-| [`agent-gates.yml`](plugins/plenipo/skills/setup/assets/agent-gates.yml) | pull request, incl. `edited`/`labeled` | runs the protected base's `pr-gates.mjs`; **make it a required check** or it gates nothing |
-| [`agent-merge.yml`](plugins/plenipo/skills/setup/assets/agent-merge.yml) | schedule every 15 min, or dispatch | independently recovers issue-triage and PR verdicts, then runs `merge-gate.mjs`; merging needs `agent:approved` and `autonomy.level >= 1` |
-| [`agent-approval-reset.yml`](plugins/plenipo/skills/setup/assets/agent-approval-reset.yml) | pull request `synchronize`/`edited`/`reopened`, or dispatch | drops verdict labels when the diff or evidence body changes — **install it before trusting any auto-merge** |
-| [`approval-proof.mjs`](plugins/plenipo/skills/setup/assets/approval-proof.mjs) · [`pr-gates.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.mjs) · [`merge-gate.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.mjs) · [`verdict-retry.mjs`](plugins/plenipo/skills/setup/assets/verdict-retry.mjs) · [`triage-retry.mjs`](plugins/plenipo/skills/setup/assets/triage-retry.mjs) | — | approval provenance, deterministic evidence/merge policy and bounded PR/issue recovery |
-| [`approval-proof.test.mjs`](plugins/plenipo/skills/setup/assets/approval-proof.test.mjs) · [`pr-gates.test.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.test.mjs) · [`merge-gate.test.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.test.mjs) · [`verdict-retry.test.mjs`](plugins/plenipo/skills/setup/assets/verdict-retry.test.mjs) · [`triage-retry.test.mjs`](plugins/plenipo/skills/setup/assets/triage-retry.test.mjs) · [`agent-approval-reset.test.mjs`](plugins/plenipo/skills/setup/assets/agent-approval-reset.test.mjs) | — | no-network regression proof for the policy scripts and verdict lifecycle |
+| [`agent-gates.yml`](plugins/plenipo/skills/setup/assets/agent-gates.yml) | pull request, incl. body edits and new commits | runs the protected base's `pr-gates.mjs`; **make it a required check** or it gates nothing |
+| [`agent-merge.yml`](plugins/plenipo/skills/setup/assets/agent-merge.yml) | schedule every 15 min, or dispatch | independently recovers issue triage, then runs `merge-gate.mjs`; merging needs green required checks and `autonomy.level >= 1`, not an approval label |
+| [`pr-gates.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.mjs) · [`merge-gate.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.mjs) · [`triage-retry.mjs`](plugins/plenipo/skills/setup/assets/triage-retry.mjs) | — | deterministic evidence/merge policy and bounded issue-triage recovery |
+| [`pr-gates.test.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.test.mjs) · [`merge-gate.test.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.test.mjs) · [`triage-retry.test.mjs`](plugins/plenipo/skills/setup/assets/triage-retry.test.mjs) | — | no-network regression proof for the policies the scheduled loop actually executes |
 | [`CODEOWNERS`](plugins/plenipo/skills/setup/assets/CODEOWNERS) | — | the paths an agent may never merge unreviewed |
 
 Needs-info triage has a requester-side return path rather than a human relay. Product `deliver` and
@@ -99,22 +89,13 @@ or `report-harness-gap`. Those skills accept only a marked `github-actions[bot]`
 successful v2 run is verified on the live default branch, then repair the existing issue body. The
 guarded `edited` event and scheduled `triage-retry.mjs` take it back from there.
 
-The reviewer is irreducibly a judgement, so the unattended profile installs one agentic
-`pr-approval-verdict.md` — the only component that produces both `agent:approved` and the
-approval-specific safe-output artifact `merge-gate.mjs` trusts. It replaces the role-specific PR intent
-reviewer; installing both spends two model calls on the same diff and makes provider throttling more
-likely without adding an independent gate. It runs as `pull_request_target` with checkout disabled,
-so the reviewer policy already on the protected base judges the proposed diff. Every merge proves
-the exact output, head, base and body revision; control-plane changes also run `pr-gates.mjs`
-downloaded from the protected base, independent of the PR-owned required-check wrapper.
-
-**`pr-approval-verdict.md` and `agent-approval-reset.yml` are a pair, and installing the first
-without the second is worse than installing neither.** `agent:approved` is a statement about a diff,
-not about a pull request, and `safe-outputs.add-labels` can only ever *add*. Approve at commit A,
-push commit B, or replace the runtime evidence in the body, and the scheduled merger otherwise sees
-a verdict for state that no longer exists. The reset is deliberately dumb — no AI, no secrets and
-no third-party actions — and it fails visibly if a non-404 API error prevents stale labels from
-being removed.
+The reviewer is irreducibly a judgement, so it is optional and separate from merge authority.
+`pr-approval-verdict.md` runs only when dispatched with an exact PR, head and base, and can write
+comments only. Do not stack it with a role-specific intent reviewer: that spends two model calls on
+the same diff without adding an independent signal. Control-plane merges instead run
+`pr-gates.mjs` downloaded from the protected base, independent of the PR-owned required-check
+wrapper. A provider outage therefore leaves an optional review absent; it does not leave a required
+check red or the merge queue waiting on a label.
 
 From [`plugins/steward/skills/install-request-surface/assets/`](plugins/steward/skills/install-request-surface/assets),
 installed by `/steward:install-request-surface` into the platform repo:

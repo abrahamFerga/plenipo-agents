@@ -21,11 +21,11 @@ to move the load-bearing rules **out of markdown and into the repo**: two node s
 codes, branch protection that makes them mandatory, a label vocabulary the other verbs steer by, and
 one number — the autonomy level — that decides what may merge without a human.
 
-Autonomy level 1 or higher needs one write-capable user/App token so GitHub emits the workflow
-events that its built-in `GITHUB_TOKEN` deliberately suppresses. The same fine-grained
-`COPILOT_GITHUB_TOKEN` used for inference may be used when it has Actions read plus Contents, Issues
-and Pull requests write on this repository. Verdict dispatch/rerun uses the workflow's built-in
-token with scoped Actions write; the reviewer explicitly permits that bot bootstrap.
+Autonomy level 1 or higher needs one write-capable user/App token so GitHub emits branch-update,
+merge, and issue-close events that its built-in `GITHUB_TOKEN` deliberately suppresses. The same
+fine-grained `COPILOT_GITHUB_TOKEN` may be used when it has Actions read plus Contents, Issues, and
+Pull requests write on this repository. Optional model review has separate read/comment scope and
+is never part of merge authority.
 
 **Terminal states:** `Success` (every item in the checklist below is present and the gate scripts
 were each seen fail and pass) · `No-op` (already installed and current) · `Blocked` (`gh`
@@ -71,12 +71,11 @@ your code).
 | 3 | the `autonomy` block | `workflow.json` | the only place the merge level is recorded |
 | 4 | labels | the repo | the verbs' state machine — without them the loops cannot find work |
 | 5 | `pr-gates.mjs` + `agent-gates.yml` | `.github/` | **the evidence and spine checks, loaded from the protected base — the real gate** |
-| 6 | `approval-proof.mjs` + `merge-gate.mjs` + `verdict-retry.mjs` + `triage-retry.mjs` + `agent-merge.yml` | `.github/` | approval provenance, one merge policy and bounded recovery when the model provider fails |
-| 6b | `agent-approval-reset.yml` | `.github/` | expires `agent:approved` on new commits — **required before any cloud approval is trusted** |
+| 6 | `merge-gate.mjs` + `triage-retry.mjs` + `agent-merge.yml` | `.github/` | one deterministic merge policy plus bounded issue-triage recovery |
 | 7 | `CODEOWNERS` | repo root | records ownership of spine paths; `pr-gates.mjs` remains the unattended enforcement |
 | 8 | branch protection | GitHub settings | what makes 5 and 6 mandatory instead of advisory |
 | 9 | `.claude/settings.json` | the repo | plugins on, permissions scoped, destructive verbs denied |
-| 10 | gh-aw verdict workflow | `.github/workflows/` | required at autonomy 1+; it is the independent approval authority the merger can prove |
+| 10 | optional gh-aw PR review | `.github/workflows/` | a dispatch-only, comment-only second opinion; never merge authority |
 
 ## Workflow
 
@@ -89,7 +88,8 @@ your code).
 
    ```jsonc
    "autonomy": {
-     "level": 0,              // 0 nothing · 1 docs+tests · 2 features on review · 3 unattended
+     "level": 0,              // 0 nothing · 1 docs+tests · 2 features · 3 unattended
+     "trustedAuthors": [],    // exact logins allowed to open unattended PRs
      "maxOpenPRs": 3,         // build back-pressure: the ceiling ../deliver stops at
      "maxMergesPerTick": 2,   // blast radius per ship tick
      "readyFloor": 3,         // ../define refills below this
@@ -98,12 +98,18 @@ your code).
    }
    ```
 
+   Before setting level 1 or higher, ask the owner which exact GitHub logins may open unattended
+   PRs and record them in `trustedAuthors`. This is `Approval-required`: never infer it from recent
+   commit authors, collaborators, or the token owner. Missing or empty means the merger trusts no
+   author and fails closed. Existing repos upgrading this policy must add the allowlist before their
+   first scheduled merge tick.
+
 3. **Create the labels.** `gh label create --force` is idempotent, so this is safe to re-run:
 
    ```bash
-   for L in "agent:ready:0E8A16" "agent:in-progress:FBCA04" "agent:blocked:B60205" \
-            "agent:done:6E7781" "agent:needs-triage:D4C5F9" "agent:approved:0E8A16" \
-            "agent:changes-requested:D93F0B" "human-hold:B60205" "human-approved:5319E7" \
+    for L in "agent:ready:0E8A16" "agent:in-progress:FBCA04" "agent:blocked:B60205" \
+             "agent:done:6E7781" "agent:needs-triage:D4C5F9" \
+             "agent:changes-requested:D93F0B" "human-hold:B60205" \
             "needs-human:B60205" "type:bug:D73A4A" "type:enhancement:A2EEEF" \
             "regression:D73A4A" "security:B60205"; do
      gh label create "${L%:*}" --color "${L##*:}" --force
@@ -113,11 +119,9 @@ your code).
    The `type:*`, `scope:*`, `priority:*` and `seam:*` families come from `sync-backlog`; do not
    duplicate its taxonomy here, only add what the loop verbs need.
 
-4. **Copy the gate, verdict-recovery and policy-test files** from `assets/` into `.github/scripts/`
-   and their workflows into `.github/workflows/`. This includes `approval-proof.mjs`,
-   `verdict-retry.mjs`, `triage-retry.mjs`, all six `*.test.mjs` files,
-   `fixtures/check-rollup.json`, and
-   `agent-approval-reset.yml`. Copy them
+4. **Copy the gate, triage-recovery and policy-test files** from `assets/` into `.github/scripts/`
+   and their workflows into `.github/workflows/`. This includes `pr-gates.mjs`, `merge-gate.mjs`,
+   `triage-retry.mjs`, their three `*.test.mjs` files, and `fixtures/check-rollup.json`. Copy them
    **verbatim** — resist
    "improving" them in transit, because the one property that matters is that the same file runs in
    CI and locally.
@@ -139,23 +143,20 @@ your code).
    check never seen red may be asserting nothing.
 
    ```bash
-   # pr-gates: red, then green
-   printf 'diff --git a/x.cs b/x.cs\n--- a/x.cs\n+++ b/x.cs\n-  b.HasQueryFilter(x => true);\n' > /tmp/d
-   PR_HEAD_REF=feat/1-x PR_BODY='' node .github/scripts/pr-gates.mjs /tmp/d   # expect exit 1, 4 gates
-   PR_HEAD_REF=feat/1-x PR_LABELS=agent:approved \
-     PR_BODY="$(printf 'Closes #1\n## Runtime evidence\nPOST /api/agui/x streamed RUN_FINISHED, no RUN_ERROR.\n## Regression test\nXTests.Y seen red before, green after.\n')" \
-     node .github/scripts/pr-gates.mjs /tmp/d                                  # expect exit 0
+   # pr-gates: an ordinary protected change is red without evidence, then green with it
+   printf 'diff --git a/.github/example.yml b/.github/example.yml\n--- a/.github/example.yml\n+++ b/.github/example.yml\n+enabled: true\n' > /tmp/d
+   PR_HEAD_REF=feat/1-x PR_BODY='' node .github/scripts/pr-gates.mjs /tmp/d   # expect exit 1
+   PR_HEAD_REF=feat/1-x \
+     PR_BODY="$(printf '<!-- plenipo-agent kind=handoff from=example ref=example#1 status=open -->\nCloses #1\n## Runtime evidence\nThe example workflow ran and recorded its expected result.\n## Regression test\nExampleGateTest was seen red before the fix and green after it.\n')" \
+     node .github/scripts/pr-gates.mjs /tmp/d                                # expect exit 0
 
    # merge-gate: it must refuse at level 0
    node .github/scripts/merge-gate.mjs        # expect every open PR BLOCKed on level_permits
 
    # policy regression suite: no network and no writes
    node .github/scripts/pr-gates.test.mjs
-   node .github/scripts/approval-proof.test.mjs
    node .github/scripts/merge-gate.test.mjs
-   node .github/scripts/verdict-retry.test.mjs
    node .github/scripts/triage-retry.test.mjs
-   node .github/scripts/agent-approval-reset.test.mjs
    ```
 
    Record both outcomes in the report. If the first command exits 0, the gate is inert and
@@ -190,6 +191,15 @@ your code).
    Verify with `gh api repos/$OWNER/$NAME/branches/$DEFAULT/protection`. Changing protection is
    `Approval-required`: ask before you write it.
 
+   **Bootstrap locked-control upgrades deliberately.** A PR that edits the merge-policy trust root
+   or removes a security invariant must fail `control_policy_locked`; neither a label nor autonomy
+   level can clear it. Report `Approval-required` with the exact locked paths. The repository owner
+   must review that diff, keep every *other* required check green, then use the repository's admin
+   bypass to merge it outside `agent-merge`. The expected `control_policy_locked` failure is the sole
+   bypassed context — that is why an admin bootstrap is necessary. Never disable or delete the
+   ruleset, weaken its required contexts, or invent a positive label. Once the new policy is on the
+   default branch, rerun this setup there and prove the installed and asset copies still agree.
+
 7. **Copy `CODEOWNERS`**, substituting the resolved owner. Enabling *Require review from Code
    Owners* is a separate, human decision — it forces a human on every spine PR, which is exactly
    right for some products and too slow for others.
@@ -199,17 +209,16 @@ your code).
    the deny list matches Bash strings only and cannot see inside the gate script, so
    `autonomy.level` remains the authoritative control over merging.
 
-9. **Install the approval authority before setting autonomy above 0.** Point at
-   `/harness:install-github-agentic-workflows`; do not hand-roll it. The merger verifies the exact
-   reviewer run's safe-output artifact, head, base and body revision, so a local label or a generic
-   successful run is intentionally insufficient. Configure `COPILOT_GITHUB_TOKEN` with Copilot
-   Requests read, Actions read, and Contents, Issues and Pull requests write. That user token is
-   used for labels, branch updates and merges so downstream workflows run; the scoped built-in token
-   owns verdict dispatch/rerun because it already has Actions write.
+9. **Optionally install cloud review.** Point at `/harness:install-github-agentic-workflows`; do not
+   hand-roll it. `pr-approval-verdict.md` is dispatch-only and comment-only, so a model outage cannot
+   fail a PR check or block the merger. The deterministic merger does not consume its output. Keep
+   `COPILOT_GITHUB_TOKEN` scoped to the read and comment permissions the installed workflows need;
+   the scheduled merger's separate token owns branch updates and merges.
 
-10. **Report the checklist** — each of the ten items as present or missing, the recorded autonomy
-    level, both gate-script outcomes from step 5 with their exit codes, the protection state, and
-    the exact `/loop` commands that now drive this repo. State which claims are L1 (the exit codes),
+10. **Report the checklist** — each installed item as present or missing, the recorded autonomy
+    level and trusted-author logins, both gate-script outcomes from step 5 with their exit codes, the
+    protection state, and the exact `/loop` commands that now drive this repo. State which claims are
+    L1 (the exit codes),
     L2 (the config is present and parses) and L4 (that the whole arrangement is *wise*).
 
 ## Guardrails
@@ -219,19 +228,16 @@ your code).
 - **Never set `autonomy.level` above what a human said in this session**, and never raise it
   because the loop has been doing well. That judgement is the one thing the loop is structurally
   unfit to make.
-- **Never let a proposed gate or reviewer judge the PR that introduces it.** The cloud verdict runs
-  without checkout from the protected base; `merge-gate.mjs` verifies its approval-specific
-  safe-output artifact for every merge, and independently downloads/runs the base `pr-gates.mjs`
-  for control paths (including old paths on rename/delete). `CODEOWNERS` records the same boundary.
+- **Never let a proposed gate judge the PR that introduces it.** `merge-gate.mjs` independently
+  downloads and runs the base `pr-gates.mjs` for control paths, including old paths on rename or
+  deletion. `CODEOWNERS` records the same boundary; optional model review is not part of it.
 - **Never require an approving review *and* expect the scheduled merger to work.** Choose: a human
   gate, or an automated one. Configuring both and assuming the automation still runs is how a queue
   silently stops. If an owner deliberately wants a repo to merge by hand, say so with autonomy
   level 0; blast radius raises the deterministic proof bar, but it does not silently reinsert a
   human into a repository the owner explicitly configured for unattended operation.
-- **Never install a cloud approver without `agent-approval-reset.yml`.** `safe-outputs.add-labels`
-  can only add, so nothing in the reviewer can withdraw a verdict that its own later commits
-  invalidated: approve at commit A, push commit B, and every gate is green over code nothing read.
-  The reviewer and the reset ship as a pair.
+- **Never make cloud review a required check or merge input.** Provider capacity is external state;
+  keep the workflow dispatch-only and comment-only so its absence cannot strand the queue.
 - **Never pair GitHub's own auto-merge with any of this.** Auto-merge waits only for explicitly
   configured conditions, so a PR can merge while a review is still running.
 - **Never commit a secret.** The reviewer and mutation path read the fine-grained PAT from repository
@@ -246,15 +252,17 @@ your code).
 | Naming a required check that does not exist | PRs wait forever on a context that never reports | read the names from `gh pr checks` |
 | "Improving" the gate scripts while copying them | CI and the local verb now disagree about what green means | copy verbatim; change the asset, then re-copy |
 | Starting at autonomy level 2 | a product with no track record merging its own features | 0, then earn each step |
-| Autonomy above 0 without the cloud verdict | labels have no independently provable authority and nothing can merge | install and stage the verdict workflow first |
+| Autonomy above 0 with no `trustedAuthors` | every PR correctly fails closed, so the queue never moves | have the owner record exact allowed logins in step 2 |
+| A policy upgrade stops on `control_policy_locked` | the trust root is correctly refusing to authorize itself | report `Approval-required` and follow the owner/admin bootstrap in step 6; never add a bypass label |
+| Making cloud review required | a provider outage becomes a red check or a stuck queue | keep it dispatch-only and advisory |
 | Skipping the runbook because the code builds | nothing downstream can produce runtime evidence, so gate 4 blocks every PR forever | step 1 first |
 | Treating this as install-once | an upgrade moves check names and package pins; the gates rot silently | re-run after every platform upgrade |
 
 ## Related skills
 
 - `/deliver:install-runbook` — step 1's run-and-prove surface. **Load when:** `RUNBOOK.md` is absent.
-- `/harness:install-github-agentic-workflows` — the approval authority from step 9. **Load when:**
-  autonomy is above 0 or review must keep running with the machine off.
+- `/harness:install-github-agentic-workflows` — the optional cloud review from step 9. **Load when:**
+  a PR needs a second opinion while the machine is off.
 - `/harness:install-agent-config` — step 1's cross-tool rules. **Load when:** the repo is Claude-only.
 - `../ship/SKILL.md` — runs `merge-gate.mjs`; every gate it reports comes from here. **Load when:**
   deciding what may merge.
