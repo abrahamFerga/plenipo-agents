@@ -61,7 +61,7 @@ anything is announced.
 
    | Class | Examples |
    |---|---|
-   | **Breaking** | a removed or renamed public type/member; a changed signature; a changed DI lifetime or registration order; a newly required config key; a migration that alters existing data; a changed JSON shape on an endpoint a product reads; a changed default that flips behaviour |
+   | **Breaking** | a removed or renamed public type/member; a changed signature; a changed DI lifetime or registration order; a newly required config key; a migration that alters existing data; a changed JSON shape on an endpoint a product reads; a changed default that flips behaviour; **a raised dependency floor** (a consumer referencing that package directly below the new floor fails restore with NU1605 — the platform's `CompatibilitySuppressions.xml` files list the public-surface breaks and the conformance run's "Dependency floors" summary lists the floors, read both) |
    | **Non-breaking** | a new seam, a new manifest field, a fixed bug, a new endpoint, a performance change |
 
    Two classes hide here and are the ones that actually bite, because no compiler sees them:
