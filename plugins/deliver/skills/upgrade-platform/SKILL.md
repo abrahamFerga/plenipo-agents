@@ -127,6 +127,20 @@ a behavioural change a human should see.
    or migrations. Do not skip it. If Docker is unavailable, the upgrade is **unverified** — say so
    rather than opening a PR that claims otherwise.
 
+   Upgrading `PlenipoVersion` also upgrades the **`Plenipo.Testing`** kit, so the yardstick moved
+   with the platform: run its classes on their own and read what is new.
+
+   ```bash
+   dotnet test tests/<Product>.IntegrationTests --filter "SpineConformance|ManifestConformance|TenancyConformance|GoldenEvals"
+   ```
+
+   A kit test that is red after an upgrade and was not present before is the platform telling the
+   product about an invariant it now enforces (the release notes list them by number). That is a
+   product fix to make in this PR — never a reason to edit or exclude the kit's test. A product
+   upgrading to the first release that ships the kit adopts it here: `/deliver:install-runbook`
+   writes `Fixture.cs`, and the copied `IntegrationFixture.cs`, `EvalCase.cs` and eval runner are
+   deleted in the same PR.
+
 8. **Check the surfaces no test covers.** Two known blind spots:
    - **the CSP hash**, if the product pins a SHA-256 of platform-authored inline HTML — a platform
      change to it white-screens the SPA and **no backend test can see it**. Load the app.
