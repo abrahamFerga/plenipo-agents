@@ -142,8 +142,13 @@ a behavioural change a human should see.
    deleted in the same PR.
 
 8. **Check the surfaces no test covers.** Two known blind spots:
-   - **the CSP hash**, if the product pins a SHA-256 of platform-authored inline HTML — a platform
-     change to it white-screens the SPA and **no backend test can see it**. Load the app.
+   - **the CSP hash**, if the product still pins a SHA-256 of platform-authored inline HTML — a
+     platform change to it white-screens the SPA and **no backend test can see it**. Load the app.
+     Releases that ship `PlenipoCsp` retire this class: the host stamps a per-request nonce onto
+     every served `<script>`, and the product's CSP middleware emits `'nonce-{PlenipoCsp.NonceFor(context)}'`
+     instead of the hash (the platform's `BUILDING_A_PRODUCT.md` shows the seven lines). Make that
+     switch in the first upgrade that offers it, delete the `sha256-` literal, and the kit's `S15`
+     invariant guards the shell from then on — this step is then a one-time migration, not a sweep.
    - **DI override tricks**, if the product relies on last-registration-wins to replace a platform
      service. A platform switching to `TryAdd*` or moving its registration silently un-overrides you.
 
