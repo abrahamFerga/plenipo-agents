@@ -117,9 +117,13 @@ Your triage is what keeps those from being the default path.
    A sample module that reaches thousands of lines and tracks a real product's roadmap is a product
    living in the wrong repo.
 
-6. **On accept, adopt the acceptance test.** Copy the requester's acceptance test into the platform's
-   own suite as a conformance test. This is what stops the change being silently regressed later,
-   after everyone has forgotten why it exists — and it is why the request form demands one.
+6. **On accept, adopt the acceptance test — into the kit, not the sample suite.** The requester's
+   acceptance test becomes a numbered invariant in `Plenipo.Testing`'s `PlenipoSpineConformance`
+   (or the manifest/tenancy pack, whichever it belongs to), parameterised by the `ProductContract`
+   so it holds for every product rather than only the one that filed it. Seen red on the sample host
+   before the fix, green after, in the PR that makes the fix. This is what stops the change being
+   silently regressed later, after everyone has forgotten why it exists — and it is why the request
+   form demands one. The platform's `docs/TESTING_CONTRACT.md` §3.2 is the list; add the row.
 
 7. **Implement one at a time.** Products are parallel; the platform is serial. Concurrent platform
    changes are how a shared dependency becomes unmergeable.

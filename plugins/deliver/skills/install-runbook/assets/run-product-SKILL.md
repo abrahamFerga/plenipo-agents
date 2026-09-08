@@ -57,6 +57,9 @@ still performs **real, audited tool calls and triggers the approval gate**.
   request or the UI, then lock it in with a test that fails without the fix.
 - **Use `AdminClient()` for anything security-shaped.** `AuthorizedScopeAsync()` bypasses RBAC and
   the approval gate by design, so it can never prove they work.
+- **The platform's invariants run here.** `tests/{{Product}}.IntegrationTests/Fixture.cs` derives
+  the `Plenipo.Testing` kit; its four one-line classes are the spine, manifest, tenancy and eval
+  packs. A red one is a finding about this product, never a reason to edit the kit.
 - **A new tool needs three things**: the `ToolDescriptor` in the manifest, the `ModuleTool` in the
   tool source, and the same permission string in both. `/api/admin/security/catalog` shows the gap.
 - **Writes are approval-gated.** A tool that changes state sets `RequiresApproval = true`; the

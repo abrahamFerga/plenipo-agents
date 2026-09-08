@@ -1,7 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <!-- E2E against the real host: Testcontainers Postgres, real migrations, real seeding, real
-       job processor, real approval store — the Mock AI provider is the only stand-in. -->
+       job processor, real approval store — the Mock AI provider is the only stand-in.
+       The fixture, the AG-UI parser, the eval runner and the platform's invariants come from the
+       Plenipo.Testing package at the product's platform version; xunit, Mvc.Testing and
+       Testcontainers arrive through it, so an advisory in a test dependency is fixed once, on the
+       platform, and reaches this product on upgrade. Eval cases under Evals/cases/*.json are copied
+       to the output by the package's own targets — no Content item needed here. -->
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
@@ -10,20 +15,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" Version="10.0.9" />
-    <PackageReference Include="Testcontainers.PostgreSql" Version="4.13.0" />
-    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.7.0" />
-    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="Plenipo.Testing" Version="$(PlenipoVersion)" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.8.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\{{Product}}.Host\{{Product}}.Host.csproj" />
-  </ItemGroup>
-
-  <!-- Golden-conversation evals are data, not code: they must reach the test output. -->
-  <ItemGroup>
-    <Content Include="Evals\cases\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

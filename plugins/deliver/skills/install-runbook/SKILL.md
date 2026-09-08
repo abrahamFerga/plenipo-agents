@@ -63,8 +63,8 @@ a Plenipo product host yet; stop.
    |---|---|
    | Runbook | `RUNBOOK.md` |
    | Discovery skill | `.claude/skills/run-<product>/SKILL.md` |
-   | E2E fixture | `tests/<Product>.IntegrationTests/IntegrationFixture.cs` |
-   | E2E project | `tests/<Product>.IntegrationTests/<Product>.IntegrationTests.csproj` |
+   | E2E fixture on the kit | `tests/<Product>.IntegrationTests/Fixture.cs` — derives `PlenipoHostFixture<Program>` and declares the four kit classes |
+   | E2E project | `tests/<Product>.IntegrationTests/<Product>.IntegrationTests.csproj` — references `Plenipo.Testing` at `$(PlenipoVersion)` |
    | Golden evals | `tests/<Product>.IntegrationTests/Evals/cases/*.json` |
    | Request catalog | `<product>.http` |
    | IDE launch | `.claude/launch.json` |
@@ -75,13 +75,21 @@ a Plenipo product host yet; stop.
    |---|---|
    | `RUNBOOK.md` | `RUNBOOK.md` |
    | `run-product-SKILL.md` | `.claude/skills/run-<product>/SKILL.md` |
-   | `IntegrationFixture.cs.template` | `tests/<Product>.IntegrationTests/IntegrationFixture.cs` |
+   | `Fixture.cs.template` | `tests/<Product>.IntegrationTests/Fixture.cs` |
    | `IntegrationTests.csproj.template` | `tests/<Product>.IntegrationTests/<Product>.IntegrationTests.csproj` |
    | `eval-case.json` | `tests/<Product>.IntegrationTests/Evals/cases/<module>-write-requires-approval.json` |
    | `launch.json` | `.claude/launch.json` |
 
    Never overwrite an existing file silently. If one is **stale**, show the specific wrong lines and
    ask before replacing.
+
+   **A copied harness is drift, not an install.** A product that predates the kit carries its own
+   `IntegrationFixture.cs`, `Evals/EvalCase.cs` and an eval runner copied from the platform's sample
+   suite. Once the csproj references `Plenipo.Testing`, those files are the duplicate the kit
+   exists to remove: replace them with `Fixture.cs` (the product's `ProductContract` plus the four
+   one-line kit classes), delete the copies, and keep only the product's own journeys. The kit is
+   versioned with the platform, so a product cannot adopt it before the release that first ships it
+   — until then report the copies as drift and leave them.
 
 4. **Seed real content, not placeholders.** A runbook full of `{{…}}` is worse than none — an agent
    will trust it and be wrong. Every substitution must resolve to something you read from the repo.
@@ -98,8 +106,11 @@ a Plenipo product host yet; stop.
    dotnet test  tests/<Product>.IntegrationTests
    ```
 
-   Both must pass, and the run must include the new fixture booting a Testcontainers Postgres.
-   If Docker isn't available, say so explicitly and mark the install **unverified** rather than done.
+   Both must pass, and the run must include the fixture booting a Testcontainers Postgres and the
+   kit's `SpineConformance`, `ManifestConformance`, `TenancyConformance` and `GoldenEvals` classes
+   passing against the product — a kit invariant that fails here is a finding about the product,
+   not about the install. If Docker isn't available, say so explicitly and mark the install
+   **unverified** rather than done.
 
 7. **Report drift.** List what you wrote, what you left alone, and anything stale you found but
    didn't change. Drift you stayed silent about is drift the next agent inherits.
@@ -112,6 +123,13 @@ a Plenipo product host yet; stop.
   Otherwise rung 4 fails on first run and the next agent deletes the whole harness.
 - **pgvector, always.** The fixture image must be `pgvector/pgvector`, never stock `postgres` — the
   platform's RAG migration creates a vector column at startup.
+- **Never copy the platform's fixture, parser or eval runner into a product.** They ship in
+  `Plenipo.Testing`; a copy is a fork of the harness that no platform fix ever reaches, and the
+  reason four products each carried their own Testcontainers advisory. The product owns one file:
+  `Fixture.cs`.
+- **The `ProductContract` names real tools.** `ReadTool` must be ungated and `WriteTool` must be
+  `RequiresApproval = true` in the manifest; `PlenipoManifestConformance` checks both on the first
+  run, and a wrong name fails every spine test at once.
 - **No secrets in any generated file.** Provider keys are per-tenant runtime settings.
 - **Keep the discovery skill thin.** Depth belongs in `RUNBOOK.md`; the skill is the index that
   makes it findable. If the skill grows past ~80 lines you are duplicating the runbook.

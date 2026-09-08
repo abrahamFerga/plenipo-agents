@@ -75,7 +75,12 @@ is too unstable to sweep — one `Blocked`-class defect filed at p0, and stop) �
    read surfaces, the admin surfaces), drives the UI, reads telemetry, and returns ranked findings
    with reproductions. **Do not sweep inline** — the agent exists so a hundred requests and their
    output never enter this context, and so the thing that reports breakage is not the thing that
-   files it.
+   files it. When a finding violates one of the fleet contract's numbered invariants (S1 … S14 in
+   the platform's `docs/TESTING_CONTRACT.md` §3.2 — the model saw a forbidden tool, a write ran
+   without approval, an approver lacked the tool's permission, a denial left no audit row, a second
+   tenant saw data), the finding names the number: that is the `Plenipo.Testing` test that should
+   have caught it, and its absence or its passing while the product misbehaves is itself a finding
+   for the platform.
 
 4. **Discard what is not a finding.** Keep only what the agent actually observed, with a
    reproduction. Drop style opinions, "this could be faster" without a measurement, and anything it

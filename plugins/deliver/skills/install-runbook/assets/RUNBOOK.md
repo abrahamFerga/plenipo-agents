@@ -230,33 +230,50 @@ testing something it does not ship.
 
 ### Rung 3 — how the E2E host is built
 
-`tests/{{Product}}.IntegrationTests/IntegrationFixture.cs` boots the **real** `{{Product}}.Host`
-via `WebApplicationFactory<Program>` against a **Testcontainers** Postgres. Platform *and* module
-migrations run, the dev tenant seeds, hosted services start. The **Mock AI provider is the only
-stand-in** — everything else is production code.
+`tests/{{Product}}.IntegrationTests/Fixture.cs` is the one harness file this repo owns. It derives
+`PlenipoHostFixture<Program>` from the **`Plenipo.Testing`** package (pinned at `PlenipoVersion`,
+like every other platform package) and supplies a `ProductContract` — the module id, one ungated
+read tool, one approval-gated write tool, the tenant-scoped read routes. The kit boots the **real**
+`{{Product}}.Host` via `WebApplicationFactory<Program>` against a **Testcontainers** pgvector
+Postgres: platform *and* module migrations run, the dev tenant seeds, hosted services start. The
+**Mock AI provider is the only stand-in** — everything else is production code.
 
 ```csharp
-_postgres = new PostgreSqlBuilder()
-    .WithImage("pgvector/pgvector:pg17")   // the platform's RAG migration needs the vector extension
-    .WithDatabase("plenipo_platform")
-    .Build();
-await _postgres.StartAsync();
+public sealed class Fixture : PlenipoHostFixture<Program>
+{
+    public override ProductContract Contract { get; } = new(
+        ModuleId: "{{ModuleId}}", ReadTool: "{{read_tool_name}}", WriteTool: "{{write_tool_name}}",
+        ReadEndpoints: ["/api/{{ModuleId}}/…"]);
+}
 
-Environment.SetEnvironmentVariable("ConnectionStrings__plenipo-platform", _postgres.GetConnectionString());
-Environment.SetEnvironmentVariable("ConnectionStrings__plenipo-audit",    _postgres.GetConnectionString());
+[Collection("api")] public sealed class SpineConformance(Fixture f)    : PlenipoSpineConformance<Program>(f);
+[Collection("api")] public sealed class ManifestConformance(Fixture f) : PlenipoManifestConformance<Program>(f);
+[Collection("api")] public sealed class TenancyConformance(Fixture f)  : PlenipoTenancyConformance<Program>(f);
+[Collection("api")] public sealed class RedTeamConformance(Fixture f)  : PlenipoRedTeamConformance<Program>(f);
+[Collection("api")] public sealed class GoldenEvals(Fixture f)         : PlenipoGoldenEvals<Program>(f);
 ```
 
-Two entry points, and picking the right one matters:
+Those five one-line classes are **the platform's invariants running against this product**: the
+model never sees a tool the caller may not call, a write is parked and released only by someone
+holding the tool's own permission and executed as the requester, every decision and denial is
+audited, the manifest and the tool source agree, every tenant-owned entity is filtered, a second
+tenant sees nothing, an injected instruction is stopped before the model and personal data is
+redacted before it. They are numbered after the fleet contract (S1 … S15, R1 … R4); a sweep finding
+that names one is naming the test that should have caught it. Upgrading `PlenipoVersion` upgrades
+them. Never copy the platform's own fixture into this repo — that is how a harness forks.
 
-- **`fixture.AdminClient()`** — an `HttpClient` carrying the dev-auth headers. Use it to prove
-  anything that must hold **through the HTTP surface**: routes, RBAC 403s, the AG-UI stream,
-  approvals, admin endpoints. *Prefer this.*
+Two entry points on the fixture, and picking the right one matters:
+
+- **`fixture.ClientFor(role)`** / **`fixture.AdminClient()`** — an `HttpClient` carrying the
+  dev-auth headers. Use it to prove anything that must hold **through the HTTP surface**: routes,
+  RBAC 403s, the AG-UI stream (`client.ChatAsync(moduleId, message)` parses it), approvals, admin
+  endpoints. *Prefer this.* Pass a narrower role to assert a 403.
 - **`fixture.AuthorizedScopeAsync()`** — a DI scope with tenant, user, and permissions populated,
   so you can resolve tool classes and call them directly. This is how tools run *after* the
   approval pipeline has done its part. Use it for dense domain assertions; it deliberately
   **bypasses** RBAC and the approval gate, so it can never prove those work.
 
-A test that asserts "this write is approval-gated" **must** go through `AdminClient()`.
+A test that asserts "this write is approval-gated" **must** go through the HTTP client.
 
 #### The approval-gate test is mandatory
 
@@ -349,9 +366,13 @@ reasons — that means the diagnosis is wrong, not the fix.
 
 ## 9. CI
 
-`.github/workflows/ci.yml` gates every PR with, in order: restore → **vulnerability audit**
-(`dotnet list package --vulnerable --include-transitive`, failing on any hit) → Release build →
-Release test. Docker is available on the runner, so rungs 3 and 4 run there too.
+`.github/workflows/ci.yml` gates every PR in the order the fleet contract fixes (§5.2 of the
+platform's `docs/TESTING_CONTRACT.md`): restore → **vulnerability audit** (`dotnet list package
+--vulnerable --include-transitive`, failing on any hit, so a vulnerable package is named rather than
+buried in a restore error) → Release build → rung 1 → rungs 3 and 4 (Docker is available on the
+runner) → frontend install, audit, test, build, and the committed-bundle freshness check. A
+suppression for an advisory is a `NuGetAuditSuppress` item with the advisory URL and a reason;
+the kit's own dependencies carry the platform's pins, so this repo only ever adds its own.
 
 Green CI is the floor, not the proof. CI cannot tell you the feature does what was asked — only
 §7 can.

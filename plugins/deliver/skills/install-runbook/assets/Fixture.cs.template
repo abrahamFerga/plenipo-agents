@@ -1,0 +1,59 @@
+// Template: tests/{{Product}}.IntegrationTests/Fixture.cs
+// Replace {{Product}}, {{ModuleId}}, {{read_tool_name}}, {{write_tool_name}} and the endpoints with
+// values READ FROM THE MANIFEST — never invented. Delete this header when you copy it in.
+//
+// This is the only harness file a product owns. The container, the host factory, the dev-auth
+// clients, the tenant helpers, the AG-UI parser, the eval runner and the platform's invariants all
+// come from the Plenipo.Testing package, versioned with the platform: upgrading PlenipoVersion
+// upgrades the yardstick. Do not copy the platform's own IntegrationFixture.cs into a product.
+
+using Plenipo.Testing;
+using Plenipo.Testing.Conformance;
+using Plenipo.Testing.Evals;
+using Xunit;
+
+namespace {{Product}}.IntegrationTests;
+
+/// <summary>
+/// The real {{Product}}.Host on a throwaway Postgres (pgvector, via Testcontainers): platform and
+/// module migrations run, the dev tenant and seed data land, hosted services start. Everything is
+/// real except the AI provider (Mock) — the same keyless posture the platform's own suite uses.
+/// </summary>
+public sealed class Fixture : PlenipoHostFixture<Program>
+{
+    /// <summary>What the kit needs to know about this product. Every value is read from the manifest.</summary>
+    public override ProductContract Contract { get; } = new(
+        ModuleId: "{{ModuleId}}",
+        ReadTool: "{{read_tool_name}}",          // a tool the approver may call without approval
+        WriteTool: "{{write_tool_name}}",        // declared RequiresApproval = true
+        // ApproverRole / NarrowRole default to system_admin / user; name product roles here when
+        // the product's own roles are what should prove the gate (both must hold chat.use).
+        ReadEndpoints: ["/api/{{ModuleId}}/…"]); // tenant-scoped GETs a second tenant must see nothing on
+
+    // Product-specific host configuration (a fake for an external API, an extra setting) goes here:
+    // protected override void ConfigureWebHost(IWebHostBuilder builder, WebApplicationFactory<Program> factory) { … }
+}
+
+[CollectionDefinition("api")]
+public sealed class ApiCollection : ICollectionFixture<Fixture>;
+
+// The platform's invariants, executed against THIS host on every pull request. Each class is one
+// line by design: the tests live in the kit, so a request the platform accepts from any product
+// becomes a guard here on the next upgrade.
+
+[Collection("api")]
+public sealed class SpineConformance(Fixture fixture) : PlenipoSpineConformance<Program>(fixture);
+
+[Collection("api")]
+public sealed class ManifestConformance(Fixture fixture) : PlenipoManifestConformance<Program>(fixture);
+
+[Collection("api")]
+public sealed class TenancyConformance(Fixture fixture) : PlenipoTenancyConformance<Program>(fixture);
+
+/// <summary>The guardrails, probed through this product's pipeline: injection blocked, PII redacted, findings audited.</summary>
+[Collection("api")]
+public sealed class RedTeamConformance(Fixture fixture) : PlenipoRedTeamConformance<Program>(fixture);
+
+/// <summary>Runs every Evals/cases/*.json through the real pipeline. Add a case by dropping a file.</summary>
+[Collection("api")]
+public sealed class GoldenEvals(Fixture fixture) : PlenipoGoldenEvals<Program>(fixture);

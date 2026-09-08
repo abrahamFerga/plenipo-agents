@@ -153,7 +153,13 @@ Each rung maps to a level on the verification ladder (see the `loop-discipline` 
 | 5. Frontend | UI builds, units pass | L1 | `pnpm -C frontend -r lint && -r test && build` |
 
 **Rung 3** boots the real host via `WebApplicationFactory<Program>` against a Testcontainers
-pgvector instance. Two entry points, and the choice is load-bearing:
+pgvector instance. The fixture, the AG-UI parser, the eval runner and the platform's invariants come
+from the **`Plenipo.Testing`** package (the platform publishes the tests, the products execute
+them): a product owns one `Fixture.cs` deriving `PlenipoHostFixture<Program>` with a
+`ProductContract`, plus one-line subclasses of `PlenipoSpineConformance`,
+`PlenipoManifestConformance`, `PlenipoTenancyConformance` and `PlenipoGoldenEvals`. Those run the
+fleet contract's numbered invariants (S1 … S14) against the product on every pull request, and
+upgrading the platform upgrades them. Two entry points, and the choice is load-bearing:
 
 - **`AdminClient()`** — an `HttpClient` with dev-auth headers, going through the *real* pipeline.
   The **only** way to prove RBAC, the approval gate, or the AG-UI protocol. Prefer it.

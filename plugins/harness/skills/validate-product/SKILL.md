@@ -173,11 +173,17 @@ paperwork. Each numbered step is one check group; every row states its own decis
    | Runbook | `RUNBOOK.md` | exists |
    | Run skill | `.claude/skills/run-*/SKILL.md` | at least one |
    | Integration tests | `tests/*.IntegrationTests/*.csproj` | at least one |
+   | Integration tests on the kit | that csproj references `Plenipo.Testing` and a `Fixture.cs` derives `PlenipoHostFixture` | warn when the platform pin is a release that ships the kit and the product still has none |
+   | Copied harness | `IntegrationFixture.cs`, `Evals/EvalCase.cs`, or a class named `GoldenConversationEvals`/`GoldenEvalTests`/`EvalTests` under `tests/` | **drift** once the csproj references `Plenipo.Testing`: the kit exists to remove exactly these copies |
    | Golden evals | `tests/*.IntegrationTests/Evals/cases/*.json` | at least one case |
    | Request catalog | `*.http` at the repo root | exists |
 
    Also flag **stale**: a `RUNBOOK.md` naming a project, port, or module id that no longer exists in
    the repo is worse than a missing one, because an agent will trust it.
+
+   **Quarantine age.** A test carrying `[Trait("Category", "Quarantine")]` must sit next to an issue
+   link (`// quarantined: #N`). Read the issue's creation date; a test quarantined for more than
+   14 days is a **fail** — a quarantine with no end is a deletion nobody agreed to.
 
 9. **The loop can close its own loop.** Only when `.github/workflows/agent-merge.yml` exists. Every
    rule here fails **silently, on the happy path** — the run is green, the merge lands, and only the
