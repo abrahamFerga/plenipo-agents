@@ -50,6 +50,10 @@ public sealed class ManifestConformance(Fixture fixture) : PlenipoManifestConfor
 [Collection("api")]
 public sealed class TenancyConformance(Fixture fixture) : PlenipoTenancyConformance<Program>(fixture);
 
+/// <summary>The guardrails, probed through this product's pipeline: injection blocked, PII redacted, findings audited.</summary>
+[Collection("api")]
+public sealed class RedTeamConformance(Fixture fixture) : PlenipoRedTeamConformance<Program>(fixture);
+
 /// <summary>Runs every Evals/cases/*.json through the real pipeline. Add a case by dropping a file.</summary>
 [Collection("api")]
 public sealed class GoldenEvals(Fixture fixture) : PlenipoGoldenEvals<Program>(fixture);

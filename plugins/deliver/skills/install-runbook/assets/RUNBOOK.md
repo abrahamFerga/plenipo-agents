@@ -249,16 +249,18 @@ public sealed class Fixture : PlenipoHostFixture<Program>
 [Collection("api")] public sealed class SpineConformance(Fixture f)    : PlenipoSpineConformance<Program>(f);
 [Collection("api")] public sealed class ManifestConformance(Fixture f) : PlenipoManifestConformance<Program>(f);
 [Collection("api")] public sealed class TenancyConformance(Fixture f)  : PlenipoTenancyConformance<Program>(f);
+[Collection("api")] public sealed class RedTeamConformance(Fixture f)  : PlenipoRedTeamConformance<Program>(f);
 [Collection("api")] public sealed class GoldenEvals(Fixture f)         : PlenipoGoldenEvals<Program>(f);
 ```
 
-Those four one-line classes are **the platform's invariants running against this product**: the
+Those five one-line classes are **the platform's invariants running against this product**: the
 model never sees a tool the caller may not call, a write is parked and released only by someone
 holding the tool's own permission and executed as the requester, every decision and denial is
 audited, the manifest and the tool source agree, every tenant-owned entity is filtered, a second
-tenant sees nothing. They are numbered after the fleet contract (S1 … S14); a sweep finding that
-names one is naming the test that should have caught it. Upgrading `PlenipoVersion` upgrades them.
-Never copy the platform's own fixture into this repo — that is how a harness forks.
+tenant sees nothing, an injected instruction is stopped before the model and personal data is
+redacted before it. They are numbered after the fleet contract (S1 … S15, R1 … R4); a sweep finding
+that names one is naming the test that should have caught it. Upgrading `PlenipoVersion` upgrades
+them. Never copy the platform's own fixture into this repo — that is how a harness forks.
 
 Two entry points on the fixture, and picking the right one matters:
 
