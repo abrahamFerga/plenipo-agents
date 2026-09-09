@@ -15,11 +15,12 @@ executable is one Node validator.
 
 ```bash
 node eng/validate-marketplace.mjs          # structural invariants; must exit 0
+claude plugin validate --strict .          # the vendor's own manifest validator
 node eng/generate-agent-docs.mjs --check   # AGENTS.md index in sync with the skills on disk
 npx markdownlint-cli2 "**/*.md" "#node_modules"
 ```
 
-All three run in CI. If you added, renamed, or deleted a skill, run `node eng/generate-agent-docs.mjs`
+All four run in CI. If you added, renamed, or deleted a skill, run `node eng/generate-agent-docs.mjs`
 (without `--check`) and commit the result.
 
 ## The rules most often broken

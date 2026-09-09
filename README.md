@@ -23,10 +23,11 @@ shaped this way; read it once.
 
 ### Claude Code
 
-The pinned Sonnet 5 and Opus 5 routes require Claude Code 2.1.219 or newer. Check with
-`claude --version` and upgrade with `claude update` before installing. The bundled names work as-is
-with Claude subscriptions and the Anthropic API. Bedrock, Vertex AI, and Foundry deployments must
-map them to provider-specific IDs or deployment names with Claude Code's `modelOverrides` setting.
+The pinned Sonnet 5 and Opus 5 routes require Claude Code 2.1.251 or newer — the version from
+which an agent's pinned model outranks `CLAUDE_CODE_SUBAGENT_MODEL`. Check with `claude --version`
+and upgrade with `claude update` before installing. The bundled names work as-is with Claude
+subscriptions and the Claude API. Bedrock, Vertex AI, and Foundry deployments must map them to
+provider-specific IDs or deployment names with Claude Code's `modelOverrides` setting.
 
 ```text
 /plugin marketplace add abrahamFerga/plenipo-agents
@@ -62,14 +63,16 @@ codex plugin add harness@plenipo-agents
 codex plugin add deliver@plenipo-agents
 ```
 
-Codex records the marketplace and plugin state in `~/.codex/config.toml`. Start a new session after
-installation so the bundled skills appear. The marketplace currently ships Claude-compatible
-manifests; Codex accepts them through its legacy plugin compatibility path. See the
+Codex records the marketplace and plugin state in `~/.codex/config.toml`; start a new session after
+installing so the bundled skills appear, and mention one as `$<plugin>:<skill>`. Codex looks for a
+marketplace index at `.agents/plugins/marketplace.json` first and falls back to
+`.claude-plugin/marketplace.json`, and for each plugin it prefers the Agent Plugins open-standard
+`plugin.json` at the plugin root — this repo ships both. One Codex fact matters for safety: it
+ignores `disable-model-invocation` in skill frontmatter, so a human-fired operation is only as safe
+in Codex as the skill body's own refusal to run unasked. See the
 [Codex plugin commands](https://learn.chatgpt.com/docs/developer-commands?surface=cli#cli-codex-plugin).
 
 ### GitHub Copilot CLI
-
-Copilot CLI can install the same marketplace and its existing `.claude-plugin` manifests:
 
 ```bash
 copilot plugin marketplace add abrahamFerga/plenipo-agents
@@ -77,11 +80,27 @@ copilot plugin install harness@plenipo-agents
 copilot plugin install deliver@plenipo-agents
 ```
 
-See GitHub's
+Copilot CLI looks for `marketplace.json` at the repository root, then under `.plugin/`,
+`.github/plugin/`, and finally `.claude-plugin/`; for a plugin it prefers `.plugin/plugin.json`,
+then the Agent Plugins `plugin.json` at the plugin root, which this repo ships. Invoke a skill as
+`/<skill>`; `/skills list` shows what is loaded. See GitHub's
 [Copilot plugin installation guide](https://docs.github.com/en/copilot/how-tos/copilot-cli/customize-copilot/plugins-finding-installing).
 For Copilot in VS Code, the cloud agent, and code review, also commit the repository instruction
-files described in [Codex and Copilot](#codex-and-copilot). Plugin installation makes workflows
-available; instruction files carry the durable rules of one repository.
+files described in [Codex, Copilot and Cursor](#codex-copilot-and-cursor). Plugin installation
+makes workflows available; instruction files carry the durable rules of one repository.
+
+### Cursor
+
+Cursor loads plugins in the Agent Plugins open-standard format and reads only its own marketplace
+index, so this repo ships `plugins/<plugin>/plugin.json` beside every Claude Code manifest and a
+`.cursor-plugin/marketplace.json` at the root — generated from the Claude manifests, and held equal
+to them by the validator. Add the repository as a marketplace with `/plugin marketplace add
+https://github.com/abrahamFerga/plenipo-agents.git` inside the `agent` CLI, or on a Teams or
+Enterprise plan through Dashboard → Plugins → Team Marketplaces → *Import from Repo*, then install
+the loops you need from the Customize sidebar; Cursor has no non-interactive install command.
+Skills are the portable unit: every verb and reference skill loads as `/<skill>`. The pinned Opus 5
+worker agents are Claude Code's routing mechanism, so in Cursor, Codex and Copilot a verb runs
+inline on the session model instead of delegating.
 
 ## The seven plugins
 
@@ -103,7 +122,8 @@ or `Approval-required`. *An error or an exhausted budget never counts as success
 ## Skills
 
 The invocation column uses Claude Code syntax. In Codex, mention the same bundled skill as
-`$<plugin>:<skill>`; in Copilot CLI, invoke it as `/<skill>` or select it from the skill picker.
+`$<plugin>:<skill>`; in Copilot CLI, invoke it as `/<skill>` (`/skills list` shows what is loaded);
+in Cursor, type `/<skill>` in Agent chat or let it pick the skill from its description.
 
 ### `plenipo` — the only surface you need to remember
 
@@ -181,10 +201,10 @@ That keeps ordinary PRs label-free without letting a PR authorize the policy tha
 
 | Agent | Claude route | Delegate when |
 |---|---|---|
-| `deliver:product-developer` | Opus 5 · medium · 60 turns | `/plenipo:deliver` has selected one issue or rejected PR. Loads the one matching build/revision skill on demand, writes and proves the change, never reviews or merges it |
-| `deliver:product-improver` | Opus 5 · high · 60 turns | you want the product made *better* rather than an issue closed — uses the app as its intended user, logs friction, and ships **one** proven improvement as a PR |
+| `deliver:product-developer` | Opus 5 · xhigh · 60 turns · own worktree | `/plenipo:deliver` has selected one issue or rejected PR. Loads the one matching build/revision skill on demand, writes and proves the change, never reviews or merges it |
+| `deliver:product-improver` | Opus 5 · high · 60 turns · own worktree | you want the product made *better* rather than an issue closed — uses the app as its intended user, logs friction, and ships **one** proven improvement as a PR |
 | `plenipo:pr-reviewer` | Sonnet 5 · medium · 24 turns | a pull request needs an independent second opinion — reads the issue, evidence and diff, tries to *refute* it, and cannot edit, push, label or merge |
-| `deliver:e2e-tester` | Sonnet 5 · medium · 40 turns | the system needs a sweep for observed breakage — boots it, walks real journeys, drives the UI, and returns ranked findings with reproductions; never edits |
+| `deliver:e2e-tester` | Sonnet 5 · medium · 40 turns · own worktree | the system needs a sweep for observed breakage — boots merged code, walks real journeys, drives the UI, and returns ranked findings with reproductions; never edits |
 
 #### Token-efficient Claude Code routing
 
@@ -198,27 +218,35 @@ claude --model claude-sonnet-5
 If Claude Code is already open, use `/model` and press `s`. Typing `/model claude-sonnet-5`
 directly also saves Sonnet 5 as your user default, which may be broader than intended.
 
-The worker boundary promotes only code-changing work to pinned Opus 5: `/plenipo:deliver` does its
-cheap checks first, then delegates a real issue or rejected PR to `deliver:product-developer`.
-`/plenipo:test` delegates its sweep to Sonnet 5. The unattended `ship` path launches no model at all;
-invoke the Sonnet 5 `plenipo:pr-reviewer` or dispatch the comment-only cloud reviewer only when a
-second opinion is worth its cost, never both for the same review. Every Claude Code worker requests
-an exact `claude-sonnet-5` or `claude-opus-5` model ID so a provider alias cannot silently select an
-older generation. Claude Code 2.1.219 or newer and provider access to both models are therefore hard
-requirements. Exact frontmatter is routing intent, not enforcement: when an organization policy
-blocks that subagent model, Claude Code can fall back to the inherited coordinator model. Make sure
-the effective model policy permits both routes. On Bedrock, Vertex AI, or Foundry, map
-`claude-sonnet-5` and `claude-opus-5` to the provider's version IDs, inference profiles, or deployment
-names with `modelOverrides`; the frontmatter stays unchanged while that deployment mapping is
-provider-specific. See
-Claude Code's [model configuration](https://code.claude.com/docs/en/model-config).
+The worker boundary promotes only code-changing work to pinned Opus 5 at `xhigh` effort — Claude
+Code's own default for coding, and the level Anthropic recommends for long-horizon agentic work
+handed a full spec: `/plenipo:deliver` does its cheap checks first, then delegates a real issue or
+rejected PR to `deliver:product-developer`, which runs in its own worktree cut from the default
+branch so the tick never switches your checkout. `/plenipo:test` delegates its sweep to Sonnet 5,
+also in a worktree. The unattended `ship` path launches no model at all; invoke the Sonnet 5
+`plenipo:pr-reviewer` or dispatch the comment-only cloud reviewer only when a second opinion is
+worth its cost, never both for the same review. Claude Fable 5.1 is the escalation tier, not a
+route: when an issue ends `Stalled` under Opus 5, `deliver` re-delegates it once with the
+per-invocation `fable` model, journals it, and hands it to a human if that stalls too.
 
-Do not set `CLAUDE_CODE_SUBAGENT_MODEL` or pass a per-invocation model override when you want this
-routing, because both take precedence over agent frontmatter. `CLAUDE_CODE_EFFORT_LEVEL` likewise
-overrides each worker's declared effort. Invoking `/deliver:work-next-issue`
-directly also bypasses the worker boundary and uses the current session model: launch that direct
-session with `claude --model claude-opus-5`, or use `/plenipo:deliver` to route automatically. See
-Claude Code's
+Every Claude Code worker requests an exact `claude-sonnet-5` or `claude-opus-5` model ID so a
+provider alias cannot silently select an older generation. Since Claude Code 2.1.251 that
+frontmatter outranks `CLAUDE_CODE_SUBAGENT_MODEL` — only a per-invocation model, or
+`CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`, beats it — and since 2.1.246 a worker that hits `maxTurns`
+returns a partial result the coordinator can resume. **Claude Code 2.1.251 or newer** and provider
+access to both models are therefore hard requirements. Exact frontmatter is routing intent, not
+enforcement: when an organization policy blocks that subagent model, Claude Code can fall back to
+the inherited coordinator model. Make sure the effective model policy permits both routes. On
+Bedrock, Vertex AI, or Foundry, map `claude-sonnet-5` and `claude-opus-5` to the provider's version
+IDs, inference profiles, or deployment names with `modelOverrides`; the frontmatter stays unchanged
+while that deployment mapping is provider-specific. See Claude Code's
+[model configuration](https://code.claude.com/docs/en/model-config).
+
+Do not set `CLAUDE_CODE_SUBAGENT_MODEL_FORCE` when you want this routing, and leave
+`CLAUDE_CODE_EFFORT_LEVEL` unset so each worker's declared effort applies. Invoking
+`/deliver:work-next-issue` directly also bypasses the worker boundary and uses the current session
+model: launch that direct session with `claude --model claude-opus-5 --effort xhigh`, or use
+`/plenipo:deliver` to route automatically. See Claude Code's
 [subagent reference](https://code.claude.com/docs/en/sub-agents) and
 [model configuration](https://code.claude.com/docs/en/model-config).
 
@@ -251,8 +279,9 @@ spends more than it saves.
   complete body into every agent run, including runs that stop at preflight.
 - Return issue numbers, SHAs, paths, terminal states and evidence — never command transcripts. Keep
   the noisy exploration inside the worker context.
-- Resume a branch that hit a circuit breaker instead of restarting from zero, and escalate model
-  tier once for a named ambiguity rather than repeatedly retrying with longer prompts.
+- Resume a worker that hit its turn cap — message it, or pick up its pushed branch — instead of
+  restarting from zero, and escalate model tier once, to Fable 5.1, for a named ambiguity rather
+  than repeatedly retrying Opus 5 with longer prompts.
 
 ## The part that saves the most time
 
@@ -310,29 +339,35 @@ commits were already product-driven** (the largest single category), **zero issu
 filed** against 62 PRs, and one product carries **235 lines of middleware rewriting platform JSON**
 to patch four platform bugs — marked deletion-ready, with nothing tracking when to delete it.
 
-## Codex and Copilot
+## Codex, Copilot and Cursor
 
 Cross-tool support has two separate layers:
 
-1. **Plugin installation** makes the reusable Plenipo skills available to Codex or Copilot.
+1. **Plugin installation** makes the reusable Plenipo skills available to Codex, Copilot or Cursor
+   — through the Agent Plugins open-standard manifest each plugin ships, which all three read.
 2. **Repository instructions** give every agent the durable facts for the product it has opened.
 
 Each durable fact still lives in exactly one file — duplication across these is the top cause of
 contradictory agent behaviour.
 
-| File | Codex | Copilot agent surfaces¹ | github.com Chat | Copilot code review | Claude Code |
-|---|---|---|---|---|---|
-| `AGENTS.md` — the source | ✅ | ✅ | ❌ | ✅ | ❌ |
-| `CLAUDE.md` — `@AGENTS.md` + Claude specifics | ❌ | ✅ | ❌ | ❌ | ✅ |
-| `.github/copilot-instructions.md` — Copilot-wide + Chat standalone | ❌ | ✅ | ✅ | ✅ | ❌ |
-| `.github/instructions/*.instructions.md` — path-scoped | ❌ | ✅ | ❌ | ✅ | ❌ |
-| `.github/agents/*.agent.md` — assignable custom agents | ❌ | ✅ | ❌ | ❌ | ❌ |
+| File | Codex | Copilot agent surfaces¹ | github.com Chat | Copilot code review | Cursor | Claude Code |
+|---|---|---|---|---|---|---|
+| `AGENTS.md` — the source, root and nested | ✅ | ✅ | ❌ | ✅ | ✅ | ❌ |
+| `CLAUDE.md` — `@AGENTS.md` + Claude specifics | ❌ | ✅ | ❌ | ❌ | ✅² | ✅ |
+| `.github/copilot-instructions.md` — Copilot-wide + Chat standalone | ❌ | ✅ | ✅ | ✅ | ❌ | ❌ |
+| `.github/instructions/*.instructions.md` — path-scoped, `applyTo:` | ❌ | ✅ | ❌ | ✅ | ❌ | ❌ |
+| `.claude/rules/*.md` — path-scoped, `paths:` | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| `.cursor/rules/*.mdc` — path-scoped, `globs:` | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| `.github/agents/*.agent.md` — assignable custom agents | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| `.claude/skills/`, `.claude/agents/` — a product's own skills and agents | ❌ | skills ✅ | ❌ | ❌ | ✅ | ✅ |
 
-¹ Copilot agent surfaces here means VS Code, Copilot CLI, and the cloud agent. Support varies in
-other IDEs; consult GitHub's current
+¹ Copilot agent surfaces here means VS Code, Copilot CLI, and the cloud agent (the product GitHub
+renamed from "coding agent" in April 2026). Support varies in other IDEs; consult GitHub's current
 [custom-instructions support matrix](https://docs.github.com/en/copilot/reference/custom-instructions-support).
+² Cursor reads `CLAUDE.md` as literal, always-applied rules, so the `@AGENTS.md` import line is
+inert text there; Cursor gets the rules from `AGENTS.md` itself.
 
-Three facts shape this arrangement:
+Four facts shape this arrangement:
 
 - **Claude Code does not read `AGENTS.md`.** `CLAUDE.md` imports it with `@AGENTS.md`; a symlink
   would require Developer Mode or Administrator privileges on Windows.
@@ -342,6 +377,8 @@ Three facts shape this arrangement:
   The limit is configurable, but a shared repository cannot depend on every user raising it. Keep
   the chain comfortably below the default. See the
   [Codex `AGENTS.md` guide](https://learn.chatgpt.com/docs/agent-configuration/agents-md).
+- **Path-scoped rules have three incompatible formats and no shared reader.** They are the one
+  place a rule must be copied; keep each copy tiny, identical, and listed together so drift shows.
 
 The skill index is generated, kept small, and checked in CI:
 
@@ -352,7 +389,9 @@ node eng/generate-agent-docs.mjs --check   # CI: fail if it is out of sync
 
 The bundled `install-agent-config` skill installs this shape into any repo. The steward also ships
 as a **Copilot custom agent**, so a platform request can be triaged on github.com by assigning it —
-no checkout, no local session.
+no checkout, no local session. Codex users migrating a product repo can also run `/import` in the
+Codex CLI, which converts its Claude Code instructions, skills, hooks and subagents into Codex's own
+layout; review the imported permissions afterwards.
 
 ## What this repo will not do
 
@@ -380,8 +419,11 @@ Deterministic (L1) checks: manifests parse and agree with the directory tree; fr
 and `name` matches its folder; descriptions fit the budget and carry a `DO NOT USE FOR:` clause;
 bodies stay under the size limit; **no link escapes its plugin root** (plugins install in isolation,
 so a path to a sibling plugin or the repo root simply does not exist at runtime); descriptions don't
-overlap enough to make routing ambiguous; nothing hardcodes a GitHub owner. It runs in CI on every
-push.
+overlap enough to make routing ambiguous; nothing hardcodes a GitHub owner; every agent pins an
+exact model generation, a Claude Code effort level and a turn cap. It runs in CI on every push,
+followed by the vendor's own check — `claude plugin validate --strict` on the marketplace and on
+each plugin — which rejects any manifest or frontmatter field the runtime would otherwise tolerate
+silently.
 
 Pull requests intentionally have **two automatic required checks**. `Validate marketplace` runs
 the structural validator, generated-index check, unattended-loop regression suites, asset-drift
@@ -401,7 +443,9 @@ Stated plainly, because a harness that hides its own gaps is not one:
   literature, **not** from recorded observations of an agent failing to author a Plenipo module.
   Until there are evals, every claim about how well this routes is level-4 evidence — a considered
   opinion, not a measurement. This is the largest unpaid debt, and it is the same debt the
-  predecessor never paid.
+  predecessor never paid. The runner now exists — `claude plugin eval` scores cases under `evals/`
+  against a plugin, with a no-plugin baseline arm and a cost ceiling — but it is still early access
+  and its case format is not yet stable enough to author against, so nothing is checked in.
 - **`validate-marketplace.mjs` checks structure, not correctness.** It proves a skill is
   well-formed and its links resolve. It cannot prove the advice inside is right.
 - **The platform is a moving target.** Package versions and API names in these skills were verified

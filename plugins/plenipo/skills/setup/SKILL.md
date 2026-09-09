@@ -76,6 +76,7 @@ your code).
 | 8 | branch protection | GitHub settings | what makes 5 and 6 mandatory instead of advisory |
 | 9 | `.claude/settings.json` | the repo | plugins on, permissions scoped, destructive verbs denied |
 | 10 | optional gh-aw PR review | `.github/workflows/` | a dispatch-only, comment-only second opinion; never merge authority |
+| 11 | optional `agent-tick.yml` | `.github/workflows/` | the booting verbs on a GitHub-hosted runner, so the loop no longer needs your machine; off until a variable says `on` |
 
 ## Workflow
 
@@ -216,7 +217,23 @@ your code).
    `COPILOT_GITHUB_TOKEN` scoped to the read and comment permissions the installed workflows need;
    the scheduled merger's separate token owns branch updates and merges.
 
-10. **Report the checklist** — each installed item as present or missing, the recorded autonomy
+10. **Optionally install the Actions tick.** Copy `assets/agent-tick.yml` to `.github/workflows/`,
+    substituting the marketplace owner in `plugin_marketplaces`. It runs `deliver`, `test` or
+    `define` on a GitHub-hosted runner through the Claude Code GitHub Action, which is what lets a
+    product keep building while the machine that owns the checkout is off. Read the header of the
+    template before copying it: it lists the two secrets (`CLAUDE_CODE_OAUTH_TOKEN` from
+    `claude setup-token`, and the write PAT with Projects access the merger already uses), the
+    Claude GitHub App, and the fact that the PAT's owner must be in `trustedAuthors`. Add `TICKS.md`
+    to `.gitignore` — the journal is not product code, and the workflow keeps its own copy on the
+    `agent-journal` branch.
+
+    It ships fail-closed: the job runs only while the repository variable `AGENT_TICK` is `on`, and
+    the cron is commented out. Prove it the way every other gate here is proven — dispatch it once
+    by hand, read the run, and confirm the PR it opened carried real runtime evidence — before
+    enabling the schedule. Never run a product's ticks from both this workflow and a local `/loop`
+    at once: they would each hold half the journal.
+
+11. **Report the checklist** — each installed item as present or missing, the recorded autonomy
     level and trusted-author logins, both gate-script outcomes from step 5 with their exit codes, the
     protection state, and the exact `/loop` commands that now drive this repo. State which claims are
     L1 (the exit codes),
@@ -239,6 +256,11 @@ your code).
   human into a repository the owner explicitly configured for unattended operation.
 - **Never make cloud review a required check or merge input.** Provider capacity is external state;
   keep the workflow dispatch-only and comment-only so its absence cannot strand the queue.
+- **Leave Copilot code review's approval setting off.** Since September 2026 Copilot code review
+  can submit an approval that counts toward a required-approvals rule; it is off by default, and
+  turning it on makes a model opinion satisfy a human gate — the self-approving loop with GitHub's
+  blessing. The deterministic merger ignores approvals either way; the setting only matters if you
+  also require reviews, and then it quietly hollows the requirement out.
 - **Never pair GitHub's own auto-merge with any of this.** Auto-merge waits only for explicitly
   configured conditions, so a PR can merge while a review is still running.
 - **Never commit a secret.** The reviewer and mutation path read the fine-grained PAT from repository
@@ -256,6 +278,9 @@ your code).
 | Autonomy above 0 with no `trustedAuthors` | every PR correctly fails closed, so the queue never moves | have the owner record exact allowed logins in step 2 |
 | A policy upgrade stops on `control_policy_locked` | the trust root is correctly refusing to authorize itself | report `Approval-required` and follow the owner/admin bootstrap in step 6; never add a bypass label |
 | Making cloud review required | a provider outage becomes a red check or a stuck queue | keep it dispatch-only and advisory |
+| Enabling the Actions tick's cron before a dispatched run was read | a runner spends subscription usage every two hours on a tick nobody has seen succeed | dispatch once, read the run, then enable the schedule |
+| Running a product from a local `/loop` and the Actions tick at once | two journals, each missing the other's ticks, so stagnation detection lies | one writer per product |
+| A ruleset requiring "additional approval for unattributed Copilot pull requests" | a PR Copilot opens under its own identity needs one more approval than configured; loop PRs are opened under a human PAT, so this only bites if a cloud agent starts opening them | know the default is on, and decide it deliberately |
 | Skipping the runbook because the code builds | nothing downstream can produce runtime evidence, so gate 4 blocks every PR forever | step 1 first |
 | Treating this as install-once | an upgrade moves check names and package pins; the gates rot silently | re-run after every platform upgrade |
 
@@ -264,6 +289,8 @@ your code).
 - `/deliver:install-runbook` — step 1's run-and-prove surface. **Load when:** `RUNBOOK.md` is absent.
 - `/harness:install-github-agentic-workflows` — the optional cloud review from step 9. **Load when:**
   a PR needs a second opinion while the machine is off.
+- `assets/agent-tick.yml` — the optional Actions tick from step 10, which lets `deliver` and `test`
+  run while the machine is off. Its header is the install note.
 - `/harness:install-agent-config` — step 1's cross-tool rules. **Load when:** the repo is Claude-only.
 - `../ship/SKILL.md` — runs `merge-gate.mjs`; every gate it reports comes from here. **Load when:**
   deciding what may merge.

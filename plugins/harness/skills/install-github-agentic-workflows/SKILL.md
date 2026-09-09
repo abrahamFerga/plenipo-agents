@@ -54,15 +54,27 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    edits. Read the owner from the remote/API; every placeholder in an asset must become the actual
    repository slug before compilation.
 
-2. **Install the compiler.** From the repository root:
+2. **Install the compiler and check the repo.** From the repository root:
 
    ```bash
    gh extension install github/gh-aw
+   gh aw doctor
    gh aw init --engine copilot
    ```
 
-   `init` installs the GitHub/Copilot authoring dispatcher, marks lock files generated, and adds the
-   local authoring integration. It does not configure a model credential or make a workflow live.
+   `doctor` verifies authentication and repository setup before anything is written. `init`
+   installs the Copilot authoring dispatcher (`.github/agents/agentic-workflows.md` and
+   `.github/skills/agentic-workflows/SKILL.md`), `.github/mcp.json` for Copilot CLI, a
+   `copilot-setup-steps.yml`, and marks lock files generated. It does not configure a model
+   credential or make a workflow live.
+
+   Facts about the tool, verified 2026-09-09: gh-aw has been in public preview since June 2026;
+   the engines are `copilot` (the default), `claude`, `codex`, `gemini` and `pi`; the compiler's
+   default Copilot model is `auto`, which the templates here override with a pinned cheap model;
+   and **compiler versions 0.83.3 through 0.85.3 were retired for a security advisory**. A lock file
+   whose first line names one of them must be recompiled — `gh aw upgrade` does that, re-vendors the
+   dispatcher files, applies codemods to the sources, and bumps `.github/aw/actions-lock.json` in
+   one pass, so it is the maintenance command to run whenever the pinned extension moves.
 
 3. **Install the role-specific source files.** Copy files from `assets/` to `.github/workflows/`;
    never edit a generated `.lock.yml`.
@@ -122,7 +134,9 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    secret. It must be a fine-grained PAT owned by an account with a Copilot license and
    **Copilot Requests: Read**, plus only the repository read/comment permissions required by the
    installed safe outputs. The optional PR reviewer never labels, pushes, or merges. Do not use an
-   OAuth token (`gho_…`) or store the token in source.
+   OAuth token (`gho_…`) or store the token in source. Where the organization pays for Copilot, a
+   workflow can instead declare `permissions: copilot-requests: write` and skip the PAT entirely;
+   prefer that when it is available, because there is then no long-lived secret to rotate.
    For cross-repository routing, create one GitHub App installed only on Plenipo and the named child
    repositories. Grant metadata read plus `Contents: read`, `Issues: read/write`, and
    `Pull requests: read/write`; do not grant administration, workflows, or contents write. In every
@@ -141,14 +155,18 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
    Review the compiler's safe-update report. New `COPILOT_GITHUB_TOKEN` references are expected for
    Copilot; `GH_AW_ROUTER_APP_PRIVATE_KEY` is expected only in a cross-repository router.
    Record these, any new actions, and any redirects in the PR description. `--approve` approves the
-   compiled manifest change; it is not permission to skip that review.
+   compiled manifest change; it is not permission to skip that review. `gh aw validate` is
+   `compile --validate --no-emit` plus the three scanners, so it needs `actionlint`, `zizmor` and
+   `poutine` on the PATH — they are not bundled with the extension; a machine without them can
+   still compile, and the scanners then run in CI.
 
-6. **Prove writes before enabling them.** Compile a staged copy first (`gh aw compile --staged
-   --approve`) and dispatch it against a disposable issue/PR. Inspect the action summary: it must
-   request only the configured label, comment, review, or cross-repository issue. Restore normal
-   compilation, run one real issue and one PR through the workflow, and verify the resulting safe
-   outputs plus the absence of any unexpected mutation. A compile-only result is L1/L2, not runtime
-   proof.
+6. **Prove writes before enabling them.** `gh aw trial <workflow>` runs a workflow against a
+   simulated repository and is the cheapest first proof. Then compile a staged copy
+   (`gh aw compile --staged --approve`) and dispatch it against a disposable issue/PR. Inspect the
+   action summary: it must request only the configured label, comment, review, or cross-repository
+   issue. Restore normal compilation, run one real issue and one PR through the workflow, and verify
+   the resulting safe outputs plus the absence of any unexpected mutation. A compile-only result is
+   L1/L2, not runtime proof.
 
    Comment-only `*-pr-intent-review.md` workflows are advisory and optional. Before enabling one
    on every pull request, use `gh aw health` to prove the provider is reliable enough for the
@@ -203,7 +221,9 @@ output requires an owner to authorize it · `Exhausted` — the run limit ends b
   installation and `repositories:` list to the two repositories that need to communicate.
 - Keep `allowed-events: [COMMENT]` on PR reviews. A model must never submit GitHub's own `APPROVE`,
   which branch protection may count as a required approving review. Never give a reviewer label,
-  merge, or push permission, and never make provider availability a required status check.
+  merge, or push permission, and never make provider availability a required status check. The
+  same rule covers Copilot code review itself: since September 2026 it can be switched to submit a
+  counting approval, and that setting stays off in any repo these workflows are installed in.
 - Apply repository Actions variables/secrets and GitHub labels only after the owner confirms the
   target slug. Never create or reveal a secret value.
 

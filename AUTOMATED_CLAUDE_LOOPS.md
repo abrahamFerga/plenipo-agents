@@ -46,23 +46,34 @@ and can run alongside anything.
 
 Start the outer session on Sonnet 5: `claude --model claude-sonnet-5`. It handles scheduling, admission
 control, board reads, deterministic gates and `No-op` ticks. When `deliver` finds actual work, it
-delegates only the selected issue or rejected PR to the pinned Opus 5
-`deliver:product-developer`. `test` delegates its bounded sweep to a Sonnet 5 agent. The unattended
-`ship` path launches no model; use the Sonnet 5 `plenipo:pr-reviewer` or dispatch the comment-only
-cloud reviewer only when a second opinion is worth its cost, never both for one review. Do not set
-`CLAUDE_CODE_SUBAGENT_MODEL`,
-because it overrides those per-agent routes and collapses every worker back onto one tier.
-These pinned routes require Claude Code 2.1.219 or newer and access to Sonnet 5 and Opus 5. The
-bundled names work directly with Claude subscriptions and the Anthropic API. Bedrock, Vertex AI, and
-Foundry deployments map them to provider-specific version IDs, inference profiles, or deployment
-names with `modelOverrides`. They express routing intent rather than overriding an organization
-model policy: a blocked subagent route can fall back to the inherited coordinator model, so the
-effective allowlist must permit both routes.
+delegates only the selected issue or rejected PR to the pinned Opus 5 `deliver:product-developer`,
+which runs at `xhigh` effort — Claude Code's own default for coding, and the level Anthropic
+recommends for long-horizon agentic work handed a full spec — inside its own worktree cut from the
+default branch, so a tick never switches your checkout to a feature branch. `test` delegates its
+bounded sweep to a Sonnet 5 agent in a worktree of its own. The unattended `ship` path launches no
+model; use the Sonnet 5 `plenipo:pr-reviewer` or dispatch the comment-only cloud reviewer only when
+a second opinion is worth its cost, never both for one review. Claude Fable 5.1 is the escalation
+tier, not a route: an issue that ends `Stalled` under Opus 5 is re-delegated once with the
+per-invocation `fable` model, journaled, and handed to a human if it stalls again.
+
+Since Claude Code 2.1.251 an agent's frontmatter outranks `CLAUDE_CODE_SUBAGENT_MODEL`; only a
+per-invocation model, or `CLAUDE_CODE_SUBAGENT_MODEL_FORCE=1`, beats it. Do not set either when you
+want this routing — the force flag collapses every worker back onto one tier — and leave
+`CLAUDE_CODE_EFFORT_LEVEL` unset so each worker's declared effort applies. A worker that hits
+`maxTurns` returns a result marked partial from 2.1.246, which is what makes resuming possible.
+These pinned routes therefore require **Claude Code 2.1.251 or newer** and access to Sonnet 5 and
+Opus 5, plus Fable 5.1 if you want the escalation. The bundled names work directly with Claude
+subscriptions and the Claude API. Bedrock, Vertex AI, and Foundry deployments map them to
+provider-specific version IDs, inference profiles, or deployment names with `modelOverrides`. They
+express routing intent rather than overriding an organization model policy: a blocked subagent
+route can fall back to the inherited coordinator model, so the effective allowlist must permit both
+routes.
 
 The agents load conditional skills through the Skill tool instead of preloading their full bodies.
 That trims input tokens as well as price per token, and it keeps build/test transcripts out of the
-coordinator's context. Their `maxTurns` fields are runaway guards, not targets: resume an exhausted
-branch rather than replaying the work from the beginning.
+coordinator's context. Their `maxTurns` fields are runaway guards, not targets: a capped worker is
+resumed by messaging it, or from its pushed branch by the next tick, never by replaying the work
+from the beginning.
 
 ### When to add the fleet scheduler
 
@@ -174,14 +185,21 @@ Start attended, in the repo you care about. One session, one verb, read the term
 ```
 
 When you trust what it does unattended, wrap the same verb in a timer in that same session —
-`/loop 20m /plenipo:deliver`. `/loop` runs inside an open Claude Code session, so to survive a
-reboot schedule the headless form instead, one scheduled task per verb, staggered:
+`/loop 20m /plenipo:deliver`. Intervals take `s`, `m`, `h` or `d`; drop the interval and the loop
+paces itself between a minute and an hour; and **a `/loop` expires after seven days**, silently, so
+a session left running for a week stops without an error — re-issue it, or move to the scheduled
+form. `/loop` runs inside an open Claude Code session, so to survive a reboot schedule the headless
+form instead, one scheduled task per verb, staggered:
 
 ```bash
-claude -p "/plenipo:deliver" --permission-mode acceptEdits
+claude -p "/plenipo:deliver" --model claude-sonnet-5 --permission-mode acceptEdits --max-turns 120
 ```
 
-Check the flags against `claude --help` on your version before relying on them; they move.
+`--max-turns` is the tick's circuit breaker and `--max-budget-usd` its dollar ceiling under API-key
+billing; a tick that hits either ends `Exhausted`, never `Success`. Check the flags against
+`claude --help` on your version before relying on them; they move. And when the machine itself is
+the constraint, the [Actions tick](#running-the-booting-verbs-without-your-machine) runs the same
+verb on a GitHub-hosted runner.
 
 Only once you have more repos than you want to open by hand does `/loop 20m /plenipo:fleet` earn its
 place — and it needs a `fleet.json` first (see *Many repos, one machine*).
@@ -243,7 +261,7 @@ So there are two planes, and they never share a context:
 
 | | Writes code | Judges code |
 |---|---|---|
-| **Where** | an Opus 5 `deliver:product-developer` on your machine (needs Docker) | a fresh Sonnet 5 `plenipo:pr-reviewer`, or dispatch-only GitHub Actions |
+| **Where** | an Opus 5 `deliver:product-developer` in its own worktree, on your machine or on a GitHub-hosted runner (needs Docker either way) | a fresh Sonnet 5 `plenipo:pr-reviewer`, or dispatch-only GitHub Actions |
 | **Can** | branch, implement, test, open a PR | read and comment when explicitly dispatched |
 | **Cannot** | bypass required checks or explicit holds | edit, push, label, approve, or merge |
 
@@ -361,8 +379,11 @@ of the loop is a stronger verifier, never a bigger batch.
 ### Do not add GitHub's auto-merge
 
 It waits only for conditions you explicitly configured, so a PR can merge while a review is still
-running. And GitHub's own AI review leaves **comments only** — it never Approves, so it satisfies no
-required-reviewers rule. Useful as a second pair of eyes; useless as a gate.
+running. Nor does GitHub's own AI review make it safer. Copilot code review comments by default,
+and since September 2026 it *can* be switched to submit an approval that counts toward a
+required-reviewers rule — leave that off. A model approval satisfying a human gate is the
+self-approving loop with GitHub's blessing, and it is exactly what the deterministic merger here
+refuses to be. Useful as a second pair of eyes; never a gate.
 
 ## Many repos, one machine
 
@@ -391,6 +412,38 @@ Ask for a status instead of a tick and it prints the whole portfolio — Ready, 
 p0 bugs, autonomy level, last swept, quarantined — and touches nothing. That report is your daily
 supervision, and it is the honest way to start: watch what it *would* have chosen for a few days
 before letting it choose.
+
+## Running the booting verbs without your machine
+
+`ship`, `define` and `steward` never boot anything, and `agent-merge.yml` already merges on a
+schedule while your laptop is shut. `deliver` and `test` are different: they boot the product under
+Docker, so until now they needed a machine of yours to be awake. The Claude Code GitHub Action
+removes that constraint. A GitHub-hosted Ubuntu runner has Docker, and the optional
+[`agent-tick.yml`](plugins/plenipo/skills/setup/assets/agent-tick.yml) that `/plenipo:setup` can
+install runs one `/plenipo:<verb>` tick there — installing this marketplace's plugins, running the
+verb exactly as a local session would, and handing whatever it wrote (a branch, a PR, a bug issue)
+to the same required checks and the same scheduled merger. It never merges.
+
+| Need | Why |
+|---|---|
+| `CLAUDE_CODE_OAUTH_TOKEN` (from `claude setup-token`) or `ANTHROPIC_API_KEY`, as a repo secret | the model: runs draw down the subscription, or bill the key with `--max-budget-usd` as the ceiling |
+| the write PAT the merger uses, with Projects access | `gh project` cannot see a user's board with the workflow's own token; the PAT's owner must be in `trustedAuthors` |
+| the Claude GitHub App on the repo | the action pushes as the app, and app pushes trigger the required checks that `GITHUB_TOKEN` pushes suppress |
+| `AGENT_TICK=on` as a repo variable | the workflow fails closed without it, and the same variable is the off switch |
+| a public repository | Actions minutes are free there, which is what keeps free software free to build |
+
+It ships with the cron commented out. **Dispatch it by hand first**, read the run, and confirm the
+PR it opened carries real runtime evidence; only then enable the schedule. Two GitHub rules matter
+once you do: a scheduled run is attributed to the human who last edited the cron line and refuses a
+bot actor, and a public repo's schedules switch off after 60 days without activity — a quiet product
+stops ticking silently. The tick keeps its `TICKS.md` on an `agent-journal` branch so consecutive
+runs share a memory; run a product's ticks from **one** place, this workflow or a local `/loop`,
+never both.
+
+Claude Code's cloud routines — scheduled cloud sessions, a research preview since April 2026 — are
+the other no-machine option, and the natural one for `define` and `steward`, which need only `gh`.
+Whether their sandbox can run Docker is unverified, so the booting verbs stay on Actions until
+someone has watched one boot there.
 
 ## When you want it to stop
 
@@ -455,10 +508,14 @@ deserves:
   both for the same routine review. Install the cloud workflow through
   `/harness:install-github-agentic-workflows`: it compiles SHA-pinned lock files and can be proven
   in staged mode before it can write anything.
-- **Building needs a trusted writer machine, not a person in the loop.** Runtime proof means booting
-  the product under Docker, so build, sweep and PR revision run in the persistent local timer.
-  Review and merge keep working in the cloud while that machine is off; new code waits until the
-  writer resumes.
+- **Building needs Docker, not a person in the loop.** Runtime proof means booting the product, so
+  build, sweep and PR revision run wherever Docker is — the persistent local timer, or a
+  GitHub-hosted runner through the Actions tick. Review and merge keep working in the cloud either
+  way.
+- **The Actions tick is a template, not field truth** — **L4**. Every input it uses exists in the
+  action's own `action.yml`, and the plugin-install path is the one Anthropic documents, but no
+  product has yet produced a merged PR from a runner-side tick. Dispatch it by hand and read the run
+  before believing the cron.
 - **The instructions in every skill are advisory.** No tool enforces markdown. Anything that must
   be enforced is in CI or in a gate script — which is exactly why the load-bearing parts of this
   design are two node files with exit codes rather than three paragraphs of prose.

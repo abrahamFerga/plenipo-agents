@@ -3,7 +3,7 @@
   "owner": {
     "name": "Abraham Fernandez"
   },
-  "description": "The outer harness for building AI-first products on the Plenipo platform. Five loop-scoped plugins: harness (always-on control plane — platform contract, runbook knowledge, config, validation, the conductor), scout (find an unclaimed industry worth a product), define (research -> spec -> plan -> GitHub backlog), shape (module, tool, permission and connector design + ADRs), and deliver (issue-driven build plus the run -> observe -> fix -> lock-in verification loop). Enable per loop to keep context minimal.",
+  "description": "The outer harness for building AI-first products on the Plenipo platform. Seven plugins: plenipo (the front door — eight bounded loop verbs, each safe on a timer), harness (always-on control plane — platform contract, runbook knowledge, loop discipline, validation, the conductor), scout (find an unclaimed industry worth a product), define (research -> spec -> plan -> GitHub backlog), shape (module, tool, permission and connector design + ADRs), deliver (issue-driven build plus the run -> observe -> fix -> lock-in verification loop, with the Opus 5 worker agents), and steward (the platform's own request and release loop). Enable everything for an unattended run; enable per loop when working one phase by hand.",
   "plugins": [
     {
       "name": "plenipo",

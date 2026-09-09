@@ -21,6 +21,7 @@ timeout-minutes: 12
 max-ai-credits: 120K
 concurrency:
   group: pr-advisory-review-${{ inputs.pr_number }}
+  job-discriminator: "${{ inputs.pr_number }}"
   cancel-in-progress: true
 # The reviewer reads PR metadata and diffs through GitHub tools. It never checks out or executes a
 # pull request's code, and its comments carry no merge authority.

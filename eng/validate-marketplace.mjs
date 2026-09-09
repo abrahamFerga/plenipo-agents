@@ -26,12 +26,18 @@ const MAX_NAME = 64;
 const MAX_DESCRIPTION = 1024;
 const MAX_BODY_LINES = 450;
 const MAX_REFERENCE_LINES = 600;
-// Claude Code accepts inherit, family aliases, other full ids, fable and higher effort levels too.
-// This marketplace pins Sonnet 5 and Opus 5 so a provider alias cannot silently select an older
-// generation. Haiku remains a family alias because it is the explicitly cheapest tier. See
+// Claude Code accepts inherit, family aliases, `[1m]` variants and any full model id. This
+// marketplace pins an exact generation — Haiku 4.5, Sonnet 5, Opus 5, or Fable 5.1 for a deliberate
+// escalation — so a provider alias cannot silently select an older generation. Bare `haiku` stays
+// allowed because it is the explicitly cheapest tier; `inherit`, bare `sonnet`, bare `opus` and bare
+// `fable` are rejected. Effort accepts Claude Code's full range: `xhigh` is Claude Code's own default
+// for coding work, and `max` exists for a worker whose correctness matters more than its bill. See
 // AUTHORING.md.
-const AGENT_MODELS = new Set(['haiku', 'claude-sonnet-5', 'claude-opus-5']);
-const AGENT_EFFORT_LEVELS = new Set(['low', 'medium', 'high']);
+const AGENT_MODELS = new Set(['haiku', 'claude-haiku-4-5', 'claude-sonnet-5', 'claude-opus-5', 'claude-fable-5-1']);
+const AGENT_EFFORT_LEVELS = new Set(['low', 'medium', 'high', 'xhigh', 'max']);
+// The only isolation Claude Code offers, and the only one a code-writing worker should run in: a
+// worktree cut from the default branch, so a tick never switches the coordinator's checkout.
+const AGENT_ISOLATION = new Set(['worktree']);
 
 // ── Minimal frontmatter reader ────────────────────────────────────────────────
 // Deliberately not a YAML parser: skill frontmatter is a flat map of scalars and
@@ -89,6 +95,68 @@ for (const name of declared) {
 }
 for (const name of onDisk) {
   if (!declared.has(name)) err(marketplacePath, `plugins/${name}/ exists but is not declared in marketplace.json`);
+}
+
+// ── 1b. The open-standard manifests must agree with the Claude Code ones ──────
+// Codex, Copilot CLI and Cursor all load an Agent Plugins 1.0 `plugin.json` at a plugin's root, and
+// Cursor reads only its own `.cursor-plugin/marketplace.json` index. Both are generated from the
+// Claude manifests, and this check is what keeps them from silently diverging — a version or
+// description that differs between the two is a plugin that installs differently per tool.
+const OPEN_SCHEMA = 'https://agent-plugins.org/schemas/1.0.0/plugin.schema.json';
+const OPEN_NAME_RE = /^(?!.*(?:--|\.\.))[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/;
+
+for (const plugin of [...onDisk].sort()) {
+  const claudePath = join(ROOT, 'plugins', plugin, '.claude-plugin', 'plugin.json');
+  const openPath = join(ROOT, 'plugins', plugin, 'plugin.json');
+  if (!existsSync(openPath)) {
+    err(openPath, 'missing — every plugin ships an Agent Plugins 1.0 manifest at its root so Codex, Copilot and Cursor can install it');
+    continue;
+  }
+  let open;
+  let claude;
+  try {
+    open = JSON.parse(readFileSync(openPath, 'utf8'));
+    claude = existsSync(claudePath) ? JSON.parse(readFileSync(claudePath, 'utf8')) : {};
+  } catch (e) {
+    err(openPath, `invalid JSON: ${e.message}`);
+    continue;
+  }
+  if (open.$schema !== OPEN_SCHEMA) err(openPath, `"$schema" must be exactly ${OPEN_SCHEMA}`);
+  if (open.name !== plugin) err(openPath, `name "${open.name}" must equal the folder name "${plugin}"`);
+  if (typeof open.name === 'string' && !OPEN_NAME_RE.test(open.name)) err(openPath, `name "${open.name}" violates the Agent Plugins name pattern`);
+  if (open.version !== claude.version) err(openPath, `version "${open.version}" must equal .claude-plugin/plugin.json's "${claude.version}" — bump both`);
+  if (open.description !== claude.description) err(openPath, 'description must equal .claude-plugin/plugin.json\'s — the two manifests are one source rendered twice');
+  for (const key of Object.keys(open)) {
+    if (!['$schema', 'name', 'version', 'description', 'author', 'homepage', 'repository', 'license', 'keywords', 'extensions'].includes(key)) {
+      err(openPath, `"${key}" is not an Agent Plugins 1.0 field — the schema forbids additional properties`);
+    }
+  }
+}
+
+const cursorPath = join(ROOT, '.cursor-plugin', 'marketplace.json');
+if (!existsSync(cursorPath)) {
+  err(cursorPath, 'missing — Cursor reads only its own marketplace index, never .claude-plugin/marketplace.json');
+} else {
+  let cursor;
+  try {
+    cursor = JSON.parse(readFileSync(cursorPath, 'utf8'));
+  } catch (e) {
+    err(cursorPath, `invalid JSON: ${e.message}`);
+    cursor = null;
+  }
+  if (cursor) {
+    if (cursor.name !== marketplace.name) err(cursorPath, `name "${cursor.name}" must equal .claude-plugin/marketplace.json's "${marketplace.name}"`);
+    if (!cursor.owner?.name) err(cursorPath, 'missing owner.name — Cursor requires it');
+    const listed = new Map((cursor.plugins ?? []).map((p) => [p.name, p]));
+    for (const name of onDisk) {
+      const entry = listed.get(name);
+      if (!entry) err(cursorPath, `plugins/${name}/ exists but is not listed — Cursor users cannot install it`);
+      else if (entry.source !== `./plugins/${name}`) err(cursorPath, `plugin "${name}" source "${entry.source}" must be "./plugins/${name}"`);
+    }
+    for (const name of listed.keys()) {
+      if (!onDisk.has(name)) err(cursorPath, `lists plugin "${name}" but plugins/${name}/ does not exist`);
+    }
+  }
 }
 
 // ── 2. Per-plugin checks ──────────────────────────────────────────────────────
@@ -201,16 +269,26 @@ for (const plugin of [...onDisk].sort()) {
       } else if (!AGENT_MODELS.has(fm.model)) {
         err(
           agentPath,
-          `model "${fm.model}" must be haiku, claude-sonnet-5 or claude-opus-5 — do not use inherit or an unpinned Sonnet/Opus alias`
+          `model "${fm.model}" must be one of ${[...AGENT_MODELS].join(', ')} — do not use inherit or an unpinned Sonnet/Opus/Fable alias`
         );
       }
-      if (fm.model !== 'haiku' && !fm.effort) {
-        err(agentPath, 'missing effort — non-Haiku agents must declare low, medium or high');
+      const isHaiku = fm.model === 'haiku' || fm.model === 'claude-haiku-4-5';
+      if (!isHaiku && !fm.effort) {
+        err(agentPath, `missing effort — non-Haiku agents must declare one of ${[...AGENT_EFFORT_LEVELS].join(', ')}`);
       } else if (fm.effort && !AGENT_EFFORT_LEVELS.has(fm.effort)) {
-        err(agentPath, `effort "${fm.effort}" must be low, medium or high for portable model routing`);
+        err(agentPath, `effort "${fm.effort}" must be one of ${[...AGENT_EFFORT_LEVELS].join(', ')}`);
       }
       if (!/^[1-9]\d*$/.test(fm.maxTurns ?? '')) {
         err(agentPath, 'maxTurns must be a positive integer — every delegated context needs a circuit breaker');
+      }
+      if (fm.isolation !== undefined && !AGENT_ISOLATION.has(fm.isolation)) {
+        err(agentPath, `isolation "${fm.isolation}" is not a Claude Code isolation mode — use "worktree" or omit it`);
+      }
+      // Loop memory lives in GitHub and the journals, where every machine and every tool can read
+      // it. A per-agent memory file is a second memory that only one machine holds, and it diverges
+      // from the board the moment a tick runs elsewhere.
+      if (fm.memory !== undefined) {
+        err(agentPath, '"memory" is not used in this marketplace — persist state to GitHub or a journal file, never to per-agent memory');
       }
       // These are silently ignored for plugin-shipped agents; relying on them is a latent bug.
       for (const ignored of ['hooks', 'mcpServers', 'permissionMode']) {

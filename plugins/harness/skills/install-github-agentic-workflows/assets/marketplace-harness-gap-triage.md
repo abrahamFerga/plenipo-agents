@@ -33,6 +33,7 @@ timeout-minutes: 12
 max-ai-credits: 140K
 concurrency:
   group: harness-gap-triage-${{ github.event.issue.number || inputs.issue_number }}
+  job-discriminator: "${{ github.event.issue.number || inputs.issue_number }}"
   cancel-in-progress: false
 permissions:
   contents: read

@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "deliver",
+  "version": "0.4.0",
+  "description": "The build and verification loops: take one Ready issue at a time from the board to a merged PR, and prove each change at runtime rather than at compile time. Ships the Plenipo module and connector SDK references Claude reaches for while coding, the runbook installer that gives a product its execution + verification surface, and the run -> exercise -> observe -> diagnose -> fix -> lock-in loop. The default coding-loop plugin.",
+  "author": {
+    "name": "Abraham Fernandez"
+  },
+  "license": "MIT",
+  "keywords": [
+    "plenipo",
+    "harness-engineering",
+    "loop-engineering",
+    "claude-code",
+    "codex",
+    "copilot",
+    "cursor"
+  ]
+}

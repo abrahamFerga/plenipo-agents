@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "harness",
+  "version": "0.3.0",
+  "description": "Always-on control plane: what the Plenipo platform already gives you (so you never rebuild it), how any Plenipo product is run and proven, the workflow.json/settings.json pair, config + guardrail validation, and the conductor that drives the scout -> define -> shape -> deliver loops end to end. Keep enabled in every loop.",
+  "author": {
+    "name": "Abraham Fernandez"
+  },
+  "license": "MIT",
+  "keywords": [
+    "plenipo",
+    "harness-engineering",
+    "loop-engineering",
+    "claude-code",
+    "codex",
+    "copilot",
+    "cursor"
+  ]
+}

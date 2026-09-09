@@ -7,8 +7,9 @@ description: >
   change, and returns only the terminal state and evidence. It never selects new work, reviews its
   own code, merges, or invents adjacent scope.
 model: claude-opus-5
-effort: medium
+effort: xhigh
 maxTurns: 60
+isolation: worktree
 disallowedTools: Agent
 ---
 

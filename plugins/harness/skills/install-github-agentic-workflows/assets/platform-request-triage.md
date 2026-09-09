@@ -33,6 +33,7 @@ timeout-minutes: 12
 max-ai-credits: 120K
 concurrency:
   group: platform-request-triage-${{ github.event.issue.number || inputs.issue_number }}
+  job-discriminator: "${{ github.event.issue.number || inputs.issue_number }}"
   cancel-in-progress: false
 permissions:
   contents: read

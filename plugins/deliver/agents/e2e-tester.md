@@ -8,6 +8,7 @@ description: >
 model: claude-sonnet-5
 effort: medium
 maxTurns: 40
+isolation: worktree
 disallowedTools: Edit, Write, NotebookEdit, Agent
 ---
 
@@ -23,10 +24,14 @@ account of how the system actually behaves.
    absence, because it means every session before you rediscovered this by hand. Do not load that
    generic reference when the product's concrete runbook is present.
 
-2. **Boot it.** Prefer the Aspire AppHost. Use `aspire run` rather than `dotnet run` if you intend to
-   read telemetry — an AppHost started with `dotnet run` is invisible to the Aspire MCP. Wait for
-   `/alive`, then confirm `/api/platform/modules` lists the module. Docker must be running; if it
-   isn't, that is `Blocked`, not a finding.
+2. **Boot it — from merged code.** You run in a fresh worktree cut from the local default branch,
+   never from whatever the caller's checkout had open. Before booting, `git fetch origin` and
+   fast-forward to the remote default branch, then record `git rev-parse --short HEAD`: that sha is
+   what every finding is evidence about, and the sweep loop deduplicates on it. Prefer the Aspire
+   AppHost. Use `aspire run` rather than `dotnet run` if you intend to read telemetry — an AppHost
+   started with `dotnet run` is invisible to the Aspire MCP. Wait for `/alive`, then confirm
+   `/api/platform/modules` lists the module. Docker must be running; if it isn't, that is `Blocked`,
+   not a finding.
 
 3. **Sweep the journeys, not the endpoints.** Anyone can curl a route. Walk what a user actually does,
    in order, carrying state between steps:

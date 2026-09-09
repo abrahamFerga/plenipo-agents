@@ -1,0 +1,129 @@
+# .github/workflows/agent-tick.yml — one Claude Code tick on GitHub's machine instead of yours.
+#
+# The two verbs that must BOOT the product, `deliver` and `test`, need Docker, which is why the
+# operator's manual says building needs a trusted writer machine. A GitHub-hosted Ubuntu runner has
+# Docker, so this workflow runs one `/plenipo:<verb>` tick through the Claude Code GitHub Action: it
+# installs this marketplace's plugins, runs the verb exactly as a local session would, and whatever
+# the tick writes — a branch, a pull request, a bug issue — still goes through `agent-gates.yml` and
+# the scheduled merger. Nothing here merges. `ship` is deliberately not offered: `agent-merge.yml`
+# already owns merging on its own schedule, and two mergers is one too many.
+#
+# Fails closed. It runs only while the repository variable AGENT_TICK is exactly `on`; turn it off
+# with the variable, no commit required. The cron is commented out on purpose: dispatch it by hand
+# first, read the run, confirm the pull request it opened carried real runtime evidence, and only
+# then enable the schedule. A tick nobody has watched is L4.
+#
+# Repository secrets it needs:
+#   CLAUDE_CODE_OAUTH_TOKEN  from `claude setup-token` (Pro, Max, Team and Enterprise plans); runs
+#                            draw down that subscription. Or ANTHROPIC_API_KEY for API billing — then
+#                            pass `anthropic_api_key:` instead and add `--max-budget-usd <n>` to
+#                            claude_args as the dollar ceiling.
+#   COPILOT_GITHUB_TOKEN     the same write-capable fine-grained PAT the merger uses, plus Projects
+#                            read and write: the verbs read the board with `gh project`, which the
+#                            workflow's own GITHUB_TOKEN cannot see. Pull requests the tick opens are
+#                            authored by this token's owner, so that login must be listed in
+#                            `autonomy.trustedAuthors` or the merger correctly refuses them.
+# The Claude GitHub App must be installed on the repository (`/install-github-app` from Claude Code,
+# or github.com/apps/claude): the action authenticates its git pushes as that app, and pushes made
+# by an app — unlike GITHUB_TOKEN pushes — trigger the required checks.
+#
+# Two GitHub facts shape the schedule. A scheduled run is attributed to the user who last edited the
+# cron line, and the action refuses to start for a bot actor, so a human must make that edit. And a
+# public repository's schedules are disabled after 60 days without activity: a quiet product stops
+# ticking silently, which is one more reason the fleet report names last-served dates.
+#
+# Run a product's ticks from ONE place — this workflow, or a local `/loop` — never both at once. The
+# journal below lives on the `agent-journal` branch so consecutive cloud ticks share a memory; a
+# local session keeps its own, and two writers would each read half the history.
+name: Agent tick
+
+on:
+  workflow_dispatch:
+    inputs:
+      verb:
+        description: The one-tick verb to run.
+        type: choice
+        default: deliver
+        options: [deliver, test, define]
+  # schedule:
+  #   - cron: '17 */2 * * *'     # deliver, every two hours — dispatch by hand first (see above)
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  id-token: write
+  actions: read
+
+# One tick at a time. Two booting verbs cannot share a runner's pinned Postgres port any more than
+# they can share yours, and serialising is what makes the no-progress detector mean something.
+concurrency:
+  group: agent-tick
+  cancel-in-progress: false
+
+jobs:
+  tick:
+    name: /plenipo:${{ inputs.verb || 'deliver' }}
+    if: vars.AGENT_TICK == 'on'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # The product's toolchain. Docker is already on the runner; the AppHost and the Testcontainers
+      # fixture both use it. global.json pins the .NET SDK the product targets.
+      - uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
+        with:
+          global-json-file: global.json
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - run: corepack enable
+
+      # The verb's memory. TICKS.md is not product code and never lands on the default branch; on a
+      # runner it would vanish with the job, and a loop with no memory cannot tell a stalled night
+      # from a productive one. So it is restored from, and saved back to, the `agent-journal` branch.
+      - name: Restore the tick journal
+        run: |
+          echo TICKS.md >> .git/info/exclude
+          git show origin/agent-journal:TICKS.md > TICKS.md 2>/dev/null || rm -f TICKS.md
+
+      # Exactly what a local session runs: the plugins come from this marketplace, the coordinator
+      # runs on Sonnet 5, and the pinned Opus 5 worker takes over only once the verb has found real
+      # work — the same routing as `claude --model claude-sonnet-5` on your machine. `--max-turns` is
+      # the tick's circuit breaker: a tick that hits it ends `Exhausted`, never `Success`.
+      - uses: anthropics/claude-code-action@93f0fe1f6f57c1c6047dddacd7d728ecec7f28a7 # v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          plugin_marketplaces: https://github.com/<owner>/plenipo-agents.git
+          plugins: |
+            plenipo@plenipo-agents
+            harness@plenipo-agents
+            deliver@plenipo-agents
+          settings: .claude/settings.json
+          prompt: "/plenipo:${{ inputs.verb || 'deliver' }}"
+          claude_args: |
+            --model claude-sonnet-5
+            --max-turns 120
+        env:
+          GH_TOKEN: ${{ secrets.COPILOT_GITHUB_TOKEN }}
+
+      - name: Save the tick journal
+        if: always()
+        run: |
+          set -euo pipefail
+          [ -f TICKS.md ] || exit 0
+          git config user.name  "agent-tick"
+          git config user.email "agent-tick@users.noreply.github.com"
+          journal="$(mktemp -d)"
+          if git fetch -q origin agent-journal 2>/dev/null; then
+            git worktree add -q "$journal" -B agent-journal origin/agent-journal
+          else
+            git worktree add -q --orphan "$journal"
+          fi
+          cp TICKS.md "$journal/TICKS.md"
+          git -C "$journal" add TICKS.md
+          git -C "$journal" commit -q -m "tick: ${{ inputs.verb || 'deliver' }} $(date -u +%FT%TZ)" || exit 0
+          git -C "$journal" push -q origin HEAD:agent-journal
