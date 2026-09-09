@@ -68,6 +68,23 @@ Retrying an identical action after an identical error is not learning; it is spi
 **Escalate with evidence.** When handing off, carry the reproduction, the observations, and what was
 ruled out. A bare "I couldn't do it" wastes the whole run.
 
+### Where the ceilings actually live
+
+A stopping rule that exists only in prose is a stopping rule the model can talk itself past. Each
+ceiling below is enforced by the harness, and each maps to exactly one terminal state:
+
+| Ceiling | Enforced by | Produces |
+|---|---|---|
+| turns per delegated worker | `maxTurns` in the agent file | a result marked partial, which the caller resumes; `Exhausted` if it cannot |
+| turns per headless tick | `claude -p --max-turns` | `Exhausted` |
+| dollars per headless tick, under API-key billing | `claude -p --max-budget-usd` | `Exhausted` |
+| open PRs, merges, filed issues, new capabilities per tick | the `autonomy` block in `workflow.json` | `No-op`, with the ceiling named |
+| consecutive failed ticks on one product | the fleet's quarantine streak of three | the product is skipped, and named in every report |
+| a timer's own life | `/loop` expires after seven days | silence — re-issue it, or move to a scheduled headless tick |
+
+The last row is the one nobody expects: a session left looping for a week stops without an error,
+so a fleet that "went quiet" is the first thing to check against the timer's age.
+
 ## The five anti-patterns
 
 | Anti-pattern | What it looks like | The guard |

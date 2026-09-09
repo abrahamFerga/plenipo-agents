@@ -27,6 +27,11 @@ agentic workflow here gates or merges anything, and why every agentic *review* i
 `allowed-events: [COMMENT]`. The optional `pr-approval-verdict.md` template is dispatch-only: use it
 when a PR deserves another set of eyes, without making provider availability part of CI.
 
+`agent-tick.yml` sits between the two families: plain Actions YAML that launches a Claude Code
+session. It belongs in the deterministic table because everything it *writes* is judged by the
+deterministic gates afterwards — the PR it opens must still pass `pr-gates.mjs` and the scheduled
+merger — and because it launches nothing unless a repository variable says so.
+
 ## Agentic workflows
 
 From [`plugins/harness/skills/install-github-agentic-workflows/assets/`](plugins/harness/skills/install-github-agentic-workflows/assets),
@@ -78,6 +83,7 @@ From [`plugins/plenipo/skills/setup/assets/`](plugins/plenipo/skills/setup/asset
 |---|---|---|
 | [`agent-gates.yml`](plugins/plenipo/skills/setup/assets/agent-gates.yml) | pull request, incl. body edits and new commits | runs the protected base's `pr-gates.mjs`; **make it a required check** or it gates nothing |
 | [`agent-merge.yml`](plugins/plenipo/skills/setup/assets/agent-merge.yml) | schedule every 15 min, or dispatch | independently recovers issue triage, then runs `merge-gate.mjs`; merging needs green required checks and `autonomy.level >= 1`, not an approval label |
+| [`agent-tick.yml`](plugins/plenipo/skills/setup/assets/agent-tick.yml) | dispatch, or an opt-in cron | runs one booting verb — `deliver`, `test` or `define` — on a GitHub-hosted runner through the Claude Code GitHub Action, so building no longer needs your machine; fails closed unless the `AGENT_TICK` variable is `on`, keeps its journal on the `agent-journal` branch, and never merges |
 | [`pr-gates.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.mjs) · [`merge-gate.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.mjs) · [`triage-retry.mjs`](plugins/plenipo/skills/setup/assets/triage-retry.mjs) | — | deterministic evidence/merge policy and bounded issue-triage recovery |
 | [`pr-gates.test.mjs`](plugins/plenipo/skills/setup/assets/pr-gates.test.mjs) · [`merge-gate.test.mjs`](plugins/plenipo/skills/setup/assets/merge-gate.test.mjs) · [`triage-retry.test.mjs`](plugins/plenipo/skills/setup/assets/triage-retry.test.mjs) | — | no-network regression proof for the policies the scheduled loop actually executes |
 | [`CODEOWNERS`](plugins/plenipo/skills/setup/assets/CODEOWNERS) | — | the paths an agent may never merge unreviewed |
@@ -139,7 +145,8 @@ hash of platform-authored inline HTML being the highest-risk invisible break.
 
 ## What is deliberately not a template
 
-`agentics-maintenance.yml` appears in every repo that uses agentic workflows, and it is **generated**
-— `gh aw compile` emits it from the gh-aw source whenever a workflow uses expiring safe outputs.
-It is byte-identical across repos because it is generated, not copied. Do not vendor it here and do
-not hand-edit it in a product; run the compiler.
+`agentics-maintenance.yml` is **generated** — `gh aw compile` emits it only while some workflow
+uses expiring safe outputs (`expires` on a created issue, discussion or PR) or configures
+`safe-outputs.noop`, and removes it again when none does, as it did in this repo after the
+September 2026 recompile. It is byte-identical across repos because it is generated, not copied.
+Do not vendor it here and do not hand-edit it in a product; run the compiler.

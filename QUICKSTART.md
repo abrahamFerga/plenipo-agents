@@ -8,7 +8,8 @@ Choose the agent you use. The marketplace carries the same Plenipo workflows to 
 
 ### Claude Code
 
-The Sonnet 5 coordinator and Opus 5 development workers require Claude Code 2.1.219 or newer.
+The Sonnet 5 coordinator and Opus 5 development workers require Claude Code 2.1.251 or newer —
+the version from which an agent's pinned model outranks the subagent-model environment variable.
 Check with `claude --version` and upgrade with `claude update` first.
 
 ```text
@@ -33,7 +34,14 @@ copilot plugin install harness@plenipo-agents
 copilot plugin install deliver@plenipo-agents
 ```
 
-Copilot CLI recognizes the marketplace's existing `.claude-plugin` manifests.
+Copilot CLI reads the Agent Plugins `plugin.json` each plugin ships, and falls back to the
+`.claude-plugin` manifests for the marketplace index.
+
+### Cursor
+
+Inside the `agent` CLI, `/plugin marketplace add https://github.com/abrahamFerga/plenipo-agents.git`,
+then install `harness` and `deliver` from the Customize sidebar (on a Teams or Enterprise plan you can
+import the repo as a team marketplace instead). Every skill then answers to `/<skill>`.
 
 ## 2. Turn on the two Claude Code plugins you need
 
@@ -64,11 +72,13 @@ deployment names with Claude Code's
 [`modelOverrides`](https://code.claude.com/docs/en/model-config). In every deployment, the effective
 model allowlist must permit both routes; otherwise the worker can fall back to its coordinator.
 
-For Codex and Copilot CLI, the install commands above already select the same pair. `harness` +
-`deliver` is the right pair for ~90% of days.
+For Codex, Copilot CLI and Cursor, the install steps above already select the same pair, and
+`harness` with `deliver` is the right pair for ~90% of days. The Sonnet-5-coordinator,
+Opus-5-worker split is Claude Code's; in the other tools a verb runs inline on whatever model the
+session uses.
 
 The examples below use Claude Code's `/<plugin>:<skill>` syntax. In Codex, mention the same skill as
-`$<plugin>:<skill>`; in Copilot CLI, invoke it as `/<skill>` or select it from the skill picker.
+`$<plugin>:<skill>`; in Copilot CLI, invoke it as `/<skill>` (`/skills list` shows what is loaded).
 
 That's the whole setup. Turn everything on instead if you intend to leave a timer running — see
 [AUTOMATED_CLAUDE_LOOPS.md](AUTOMATED_CLAUDE_LOOPS.md).
@@ -167,11 +177,13 @@ you watched both happen. Every skill here holds you to that.
 | Claude Code | `/harness:install-agent-config` |
 | OpenAI Codex | `$harness:install-agent-config` |
 | GitHub Copilot CLI | `/install-agent-config` |
+| Cursor | `/install-agent-config` |
 
-Run that skill once from any host where `harness` is installed. It writes `AGENTS.md` for Codex and
-Copilot, a `CLAUDE.md` that imports it, and the `.github/` instruction files for Copilot. Plugin
-installation supplies reusable workflows; these committed files supply the durable facts for one
-repository. Each fact lives in exactly one place, so the tools cannot contradict each other.
+Run that skill once from any host where `harness` is installed. It writes `AGENTS.md` for Codex,
+Copilot and Cursor, a `CLAUDE.md` that imports it, the `.github/` instruction files for Copilot, and
+the path-scoped rule files each tool reads. Plugin installation supplies reusable workflows; these
+committed files supply the durable facts for one repository. Each fact lives in exactly one place,
+so the tools cannot contradict each other.
 
 ## Where to go deeper
 

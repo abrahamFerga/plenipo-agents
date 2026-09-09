@@ -1,0 +1,60 @@
+{
+  "name": "plenipo-agents",
+  "owner": {
+    "name": "Abraham Fernandez"
+  },
+  "metadata": {
+    "description": "The outer harness for building AI-first products on the Plenipo platform. Seven plugins: plenipo (the front door — eight bounded loop verbs, each safe on a timer), harness (always-on control plane — platform contract, runbook knowledge, loop discipline, validation, the conductor), scout (find an unclaimed industry worth a product), define (research -> spec -> plan -> GitHub backlog), shape (module, tool, permission and connector design + ADRs), deliver (issue-driven build plus the run -> observe -> fix -> lock-in verification loop, with the Opus 5 worker agents), and steward (the platform's own request and release loop). Enable everything for an unattended run; enable per loop when working one phase by hand."
+  },
+  "plugins": [
+    {
+      "name": "define",
+      "source": "./plugins/define",
+      "description": "The definition loop: decide WHAT to build. Competitive industry research -> product spec (SPEC.md) -> plan with the module split, tool inventory and RBAC model (PLAN.md) -> the feature backlog published as GitHub issues on a project board. Enable at kickoff; disable once the backlog is published so its descriptions stop costing context.",
+      "version": "0.1.0",
+      "license": "MIT"
+    },
+    {
+      "name": "deliver",
+      "source": "./plugins/deliver",
+      "description": "The build and verification loops: take one Ready issue at a time from the board to a merged PR, and prove each change at runtime rather than at compile time. Ships the Plenipo module and connector SDK references Claude reaches for while coding, the runbook installer that gives a product its execution + verification surface, and the run -> exercise -> observe -> diagnose -> fix -> lock-in loop. The default coding-loop plugin.",
+      "version": "0.4.0",
+      "license": "MIT"
+    },
+    {
+      "name": "harness",
+      "source": "./plugins/harness",
+      "description": "Always-on control plane: what the Plenipo platform already gives you (so you never rebuild it), how any Plenipo product is run and proven, the workflow.json/settings.json pair, config + guardrail validation, and the conductor that drives the scout -> define -> shape -> deliver loops end to end. Keep enabled in every loop.",
+      "version": "0.3.0",
+      "license": "MIT"
+    },
+    {
+      "name": "plenipo",
+      "source": "./plugins/plenipo",
+      "description": "The front door. Eight loop verbs that drive every other plugin so you never have to remember the rest: setup (make a repo loop-ready), launch (nothing to a Ready backlog), define (keep the backlog full), deliver (next issue to a PR), test (sweep end to end and file the bugs), ship (review, gate, merge), steward (the platform's own request queue, behind a consumer-conformance gate), fleet (one tick across many products). Each verb is one bounded tick with a named terminal state, so it runs the same typed on demand or as `/loop <interval> /plenipo:<verb>`. Enable this plus every other plugin when you intend to run unattended.",
+      "version": "0.3.0",
+      "license": "MIT"
+    },
+    {
+      "name": "scout",
+      "source": "./plugins/scout",
+      "description": "The discovery loop: inventory every product already built on Plenipo, map industry coverage, and rank unclaimed verticals by how well the platform's spine (chat-first, RBAC-before-the-model, approvals, audit, multi-tenancy, documents, RAG, connectors, channels) fits them — ending in a go/no-go opportunity brief. Enable when choosing what to build next; disable once a vertical is picked.",
+      "version": "0.1.0",
+      "license": "MIT"
+    },
+    {
+      "name": "shape",
+      "source": "./plugins/shape",
+      "description": "The design loop: decide the SHAPE once, against the platform rather than from scratch. Which modules and manifests, which tools and the permission gating each, which writes are approval-gated, which connectors and plans, which host seams — recorded in ARCH.md plus ADRs for every non-default choice, with the backlog marked Ready. Enable to design, then disable for the long delivery phase.",
+      "version": "0.1.0",
+      "license": "MIT"
+    },
+    {
+      "name": "steward",
+      "source": "./plugins/steward",
+      "description": "The platform side of the request protocol, enabled in the Plenipo repo only: triage the incoming platform-request queue from every product, dedupe demand across them, answer each with a structured verdict the requesting agent can act on, implement what is accepted one change at a time, and release with a consumer-conformance gate so a change cannot silently break the products already built on it.",
+      "version": "0.3.0",
+      "license": "MIT"
+    }
+  ]
+}

@@ -113,10 +113,13 @@ scheduler, a tenancy filter helper, or a permissions library. Each of those is t
 
 2. **Create the repo shell.** Directory, `git init`, `LICENSE`, a README that states the vertical
    in one sentence, and `workflow.json` with `name`, `industry` (kebab-case), `stage`, `cloud`,
-   `connectors[]`, `capabilities[]`, `github{}`. Resolve the owner from `gh api user` — **never
-   hardcode it**. Write `.claude/settings.json` declaring this marketplace and the plugins the repo
-   should enable. Creating the **remote** GitHub repo is a public, irreversible act: ask first, and
-   report `Approval-required` until a human says yes.
+   `connectors[]`, `capabilities[]`, `github{}`. A product built here is free software by default:
+   `LICENSE` is MIT and `github.visibility` is `public` unless the human chose otherwise at the
+   launch pause, and either deviation is one line in `DECISIONS.md`. A public repo is also what
+   keeps the loops free to run — GitHub Actions minutes cost nothing there. Resolve the owner from
+   `gh api user` — **never hardcode it**. Write `.claude/settings.json` declaring this marketplace
+   and the plugins the repo should enable. Creating the **remote** GitHub repo is a public,
+   irreversible act: ask first, and report `Approval-required` until a human says yes.
 
 3. **Vendor the platform, then guard the feed.** Download every `Plenipo.*.nupkg` of the pinned
    version into `.packages/` and commit them — the packages publish to a feed that needs a PAT even

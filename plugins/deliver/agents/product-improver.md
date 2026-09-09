@@ -8,6 +8,7 @@ description: >
 model: claude-opus-5
 effort: high
 maxTurns: 60
+isolation: worktree
 disallowedTools: Agent
 ---
 

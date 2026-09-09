@@ -13,10 +13,12 @@ Windows, and this repo is developed there.
 - **Editing a `SKILL.md` is live.** Editing `agents/`, `hooks/`, or `scripts/` is not — those are
   cached by plugin version, so bump `version` in that plugin's `plugin.json` and run
   `/reload-plugins`.
-- When adding or renaming a skill, regenerate the cross-tool index and keep CI green:
+- When adding or renaming a skill, regenerate the cross-tool index and keep CI green; when touching
+  a plugin manifest, also regenerate the open-standard copies Codex, Copilot and Cursor install from:
 
   ```bash
   node eng/generate-agent-docs.mjs
+  node eng/generate-open-manifests.mjs
   node eng/validate-marketplace.mjs
   ```
 

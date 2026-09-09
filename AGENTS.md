@@ -17,6 +17,7 @@ This repo contains **no application code** — it is markdown skills plus one No
 
 ```bash
 node eng/validate-marketplace.mjs                      # L1 — structural invariants; must exit 0
+claude plugin validate --strict .                      # L1 — the vendor's own manifest validator
 node eng/generate-agent-docs.mjs --check               # L1 — generated index matches sources
 node plugins/plenipo/skills/setup/assets/pr-gates.test.mjs
 node plugins/plenipo/skills/setup/assets/merge-gate.test.mjs
@@ -24,8 +25,8 @@ node plugins/plenipo/skills/setup/assets/triage-retry.test.mjs
 npx --yes markdownlint-cli2@0.23.2 "**/*.md" "#node_modules" # L2 — prose conventions
 ```
 
-Both run in CI on every push. **Run them before saying you are done.** There is nothing else to
-build: no compile step, no package install.
+All of these run in CI on every push (the vendor validator also runs per plugin there). **Run them
+before saying you are done.** There is nothing else to build: no compile step, no package install.
 
 ## Repository layout
 
@@ -243,8 +244,8 @@ other tools should **open the file when its description matches the task**.
   slash command and refusing to advance until that phase's exit check passes.
   → [`plugins/harness/skills/conduct/SKILL.md`](plugins/harness/skills/conduct/SKILL.md)
 - **install-agent-config** *(reference)* — Give a repo cross-tool agent configuration so OpenAI
-  Codex, GitHub Copilot (VS Code, cloud agent, code review) and Claude Code all work from the same
-  rules: AGENTS.md as the single source, a CLAUDE.md that imports it, a thin .github/copi…
+  Codex, GitHub Copilot (VS Code, cloud agent, code review), Cursor and Claude Code all work from
+  the same rules: AGENTS.md as the single source, a CLAUDE.md that imports it, a thin .git…
   → [`plugins/harness/skills/install-agent-config/SKILL.md`](plugins/harness/skills/install-agent-config/SKILL.md)
 - **install-github-agentic-workflows** *(action)* — Install and govern GitHub Agentic Workflows
   in a Plenipo platform or product repository: initialize gh-aw authoring, add bounded Copilot

@@ -45,7 +45,7 @@ separate owner choice and deliberately makes the queue human-dependent.
 | Mechanism | Reality |
 |---|---|
 | **Required status checks** | The server-side contract. Name only deterministic contexts that really report |
-| **Copilot or agent review** | A useful, optional second opinion. Keep it dispatch-only and comment-only |
+| **Copilot, Bugbot, Codex or agent review** | A useful, optional second opinion. Keep it comment-only. Copilot code review can now submit a counting approval (off by default, since September 2026); leave that off, because a model approval satisfying a required-review rule is the self-approving loop in GitHub's own clothes. Cursor's Bugbot comments and can fail a status check but never approves |
 | **GitHub auto-merge** | Waits only for configured conditions and can race optional review; do not pair it with this loop |
 | **Scheduled `merge-gate.mjs`** | The only default-branch merger: re-reads required checks, provenance, holds, mergeability, policy, level, and cap immediately before merging |
 | **Merge queue** | Useful on the serial platform repo, where batched candidates must be retested |

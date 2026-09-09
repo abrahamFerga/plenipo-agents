@@ -32,7 +32,7 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 | `No-op` | nothing to do, and that is correct: nothing Ready, or review is the constraint |
 | `Blocked` | Docker down, `gh` unauthenticated, dirty tree, or no `RUNBOOK.md` to prove against |
 | `Stalled` | two consecutive ticks moved nothing — stop the timer, the diagnosis is wrong |
-| `Exhausted` | the tick budget ran out mid-implementation; the branch is pushed, no PR opened |
+| `Exhausted` | the worker hit its turn cap or the tick its budget mid-implementation; the branch is pushed, no PR opened, and the next tick resumes it |
 | `Approval-required` | the chosen item needs a human decision before code can be written |
 
 ## When to Use
@@ -119,17 +119,32 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
    filter nobody can see is indistinguishable from a ceiling that is not being enforced.
 
 6. **Hand off.** Delegate `build issue #<n>` to the `deliver:product-developer` agent. It is
-   pinned to Opus 5 with a turn circuit breaker and invokes `/deliver:work-next-issue` on demand;
-   that skill owns the whole procedure — branch, implement, climb the ladder, prove at runtime,
-   open the PR, move the card to In Review. **Do not implement inline**, re-perform any of its steps
-   here, or summarize its procedure into this tick. The cheap coordinator should not carry a
-   development transcript.
+   pinned to Opus 5 at `xhigh` effort with a turn circuit breaker, runs in its own worktree cut from
+   the default branch so your checkout never switches branches under you, and invokes
+   `/deliver:work-next-issue` on demand; that skill owns the whole procedure — branch, implement,
+   climb the ladder, prove at runtime, open the PR, move the card to In Review. **Do not implement
+   inline**, re-perform any of its steps here, or summarize its procedure into this tick. The cheap
+   coordinator should not carry a development transcript.
 
    For rule 1, delegate `revise PR #<n>` to the same agent. It invokes `/deliver:revise-pr`, which
    owns reading every thread, classifying each point as must-fix / discuss / out-of-scope,
    re-proving the change at runtime, and replying so the reviewer can see what happened without
    re-reading the diff. When it reports back, remove `agent:changes-requested` so
    `../ship/SKILL.md` re-evaluates the PR.
+
+   **A capped worker is resumed, not re-run.** When the agent returns a result marked partial at
+   its turn cap, the branch is pushed and no PR is open — that is `Exhausted`. In the same session,
+   message the same agent to continue from where it stopped; in a fresh session, rule 2 resumes it
+   from the pushed branch. Replaying the whole procedure from the beginning is the most expensive
+   way to spend the turns it saved.
+
+   **A `Stalled` item never gets the same diagnostician twice.** When the selected issue's newest
+   agent comment is a `Stalled` handoff — three diagnoses, no PR — from an Opus 5 attempt and
+   `TICKS.md` records no escalation for it, delegate it exactly once more with the per-invocation
+   model `fable` (Claude Fable 5.1, the escalation tier at roughly twice Opus 5's price) and journal
+   `escalated fable`. If that attempt stalls too, label the issue `agent:blocked`, comment both
+   rounds of diagnoses, and take the next Ready item: the specification is now the suspect, not the
+   model, and a third model would only produce a third diagnosis.
 
 7. **Journal the tick.** Append one line to `TICKS.md`:
 
@@ -172,6 +187,8 @@ did the last tick actually accomplish anything.** Then it hands off and gets out
 | No journal | the loop cannot tell a stalled night from a productive one | append to `TICKS.md` every tick |
 | Summarizing the build procedure here | two sources for one job, executed at half fidelity | hand off by name |
 | Treating `No-op` as failure and forcing work | invented scope, and a board that stops meaning anything | report it and stop |
+| Re-running a worker that returned a partial result | the same sixty turns spent again to reach the point it had already reached | message it to resume, or resume from the pushed branch |
+| Escalating a `Stalled` item to Fable 5.1 every tick | the most expensive model in the fleet re-deriving the same three diagnoses at twice the price | once, journaled, then `agent:blocked` |
 
 ## Related skills
 

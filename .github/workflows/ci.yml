@@ -28,6 +28,17 @@ jobs:
       - name: Validate marketplace invariants
         run: node eng/validate-marketplace.mjs
 
+      # L1 — the vendor's own manifest validator, in strict mode, so a field the runtime would
+      # tolerate silently fails here instead. Pinned like every other tool; bump it deliberately.
+      # Needs no login, and the env var keeps it from phoning home.
+      - name: Validate manifests with Claude Code's own validator
+        env:
+          CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+        run: |
+          npm install -g @anthropic-ai/claude-code@2.1.266
+          claude plugin validate --strict .
+          for plugin in plugins/*/; do claude plugin validate --strict "$plugin"; done
+
       # L1 — the cross-tool index in AGENTS.md must match the skills on disk. Codex and Copilot
       # route from that index, and a stale one sends them to files that moved or no longer exist.
       - name: Check the cross-tool skill index is in sync

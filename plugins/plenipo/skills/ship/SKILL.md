@@ -203,7 +203,7 @@ switches them on by reading `stage` itself, so they are never something this ver
 | Pitfall | Consequence | Do instead |
 |---|---|---|
 | Reviewing in the session that wrote the code | the grade drifts up while quality stalls | a fresh context, or the Sonnet 5 `plenipo:pr-reviewer` agent only |
-| Relying on GitHub's own AI review as the gate | provider availability becomes merge availability | keep review optional and let deterministic checks decide |
+| Relying on GitHub's own AI review as the gate | provider availability becomes merge availability, and since September 2026 Copilot code review can be switched to submit counting approvals — a model satisfying a human gate | keep review optional and comment-only, leave the approval setting off, and let deterministic checks decide |
 | Enabling GitHub auto-merge as well | auto-merge waits only for configured conditions, so a PR can merge while review is still running | never pair them; this tick is the only merger |
 | Ignoring `checks_exist` on a repo with no CI | green means nothing and every gate below it is vacuous | no checks, no merge |
 | Path-based spine rules | blocks every migration, or catches nothing | protected content plus control paths decide when evidence is mandatory |

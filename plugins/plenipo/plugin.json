@@ -1,0 +1,19 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "plenipo",
+  "version": "0.3.0",
+  "description": "The front door. Eight loop verbs that drive every other plugin so you never have to remember the rest: setup (make a repo loop-ready), launch (nothing to a Ready backlog), define (keep the backlog full), deliver (next issue to a PR), test (sweep end to end and file the bugs), ship (review, gate, merge), steward (the platform's own request queue, behind a consumer-conformance gate), fleet (one tick across many products). Each verb is one bounded tick with a named terminal state, so it runs the same typed on demand or as `/loop <interval> /plenipo:<verb>`. Enable this plus every other plugin when you intend to run unattended.",
+  "author": {
+    "name": "Abraham Fernandez"
+  },
+  "license": "MIT",
+  "keywords": [
+    "plenipo",
+    "harness-engineering",
+    "loop-engineering",
+    "claude-code",
+    "codex",
+    "copilot",
+    "cursor"
+  ]
+}
